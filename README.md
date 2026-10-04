@@ -2,303 +2,117 @@
 
 # FatCodex
 
-Дневник питания в одном поле ввода. Пишешь, диктуешь или фотографируешь еду, приложение само разбирает,
-что съедено, считает КБЖУ и ведёт дневник. Никаких форм и поиска продуктов вручную.
+**English** · [Русский](README.ru.md)
 
-Название: FatSecret + Codex, дневник питания, который ведёт агент. Личный проект без монетизации. Сервер не обязателен: приложение целиком работает на телефоне
-(см. «Без сервера»). Свой сервер нужен, если хочется лучшего разбора и распознавания речи.
+A food diary with a single input field. Type, dictate or photograph what you ate: the app works out the foods and amounts, counts calories and macros (kcal, protein, fat, carbs) and keeps the diary for you. No forms, no searching for products by hand.
 
-## Как это работает
+A personal, non-commercial project (the name is FatSecret + Codex). A server is optional: the whole app runs on the phone, see [Local mode](#local-mode). Run your own server if you want better parsing and speech recognition.
+
+## How it works
 
 ```
 Android (Compose, Room)  ──JWT──▶  gateway  ──▶  ai-parser ──▶ DeepSeek
-   offline-first, очередь            │     └──▶  nutrition  (USDA + Open Food Facts, SQLite)
+   offline-first, queue              │     └──▶  nutrition  (USDA + Open Food Facts, SQLite)
    WorkManager                       └────────▶  stt        (faster-whisper small, CPU)
-                              Postgres (пользователи, дневник)    Redis (кэш разбора)
+                              Postgres (users, diary)    Redis (parse cache)
 ```
 
-- Модель **только называет продукты и граммы**. Калории она не выдумывает: цифры берёт `nutrition`
-  из локальной базы. Если продукт не нашёлся, запись остаётся без цифр, а в чате появляется один вопрос.
-- Уверенность ниже 0,6 даёт один короткий уточняющий вопрос. Ответом на него служит следующее сообщение.
-- «Масла было меньше», «это была половина», «убери хлеб» обновляют существующие записи, а не создают новые.
-- Всё хранится локально в Room, а сервер догоняет: сообщение без сети ждёт в очереди и отправится само.
-  Повторная отправка безопасна (идемпотентность по `client_id`).
-- Ключ DeepSeek лежит **только** в контейнере `ai-parser`. Приложение его никогда не видит.
-- Цель по калориям ниже 1 200 ккал не принимается (и клиентом, и сервером), формулировки нейтральные.
+- The model **only names foods and grams**. It does not invent calories: the numbers come from the `nutrition` service and its local food database. If a food is not found, the entry stays without numbers and the app asks one question.
+- Below 0.6 confidence the app asks one short clarifying question. Your next message is the answer.
+- "less oil", "that was half", "remove the bread" update existing entries instead of creating new ones.
+- Everything is stored locally in Room and synced later. A message sent offline waits in a queue and goes out by itself. Resending is safe (idempotent by `client_id`).
+- The DeepSeek key lives only in the `ai-parser` container. The app never sees it.
+- A calorie goal below 1,200 kcal is rejected by both client and server, and the wording stays neutral.
 
-## Без сервера (локальный режим)
+## What you can type
 
-На экране входа есть «без сервера»: почта не нужна, дневник хранится на телефоне. Дальше один раз вставляешь
-**свой ключ DeepSeek** (его можно пропустить, тогда работает только встроенный словарь) и задаёшь цель.
-Release-APK, собранный без `-PapiBaseUrl`, не показывает вход вообще: он начинается с ключа.
+| Input | What happens |
+|---|---|
+| `oatmeal 60 g, banana` | two entries with calories and macros |
+| `weight 82.4` | a weight entry (the trend is a 7-day moving average, shown in the day summary) |
+| `less oil` | edits the oil you already logged |
+| `as usual` | fills in your usual meal (after three repeats) |
+| a photo of the plate | parsed from the picture |
+| microphone | on-device recognition; if unavailable, the audio goes to `stt` (server mode only) |
 
-Ключ в APK не зашит и в код не попадает: ты вводишь его сам, он лежит в приватных настройках приложения.
-Модель получает только то, что ты написал или сфотографировал, и разбирает это напрямую (запрос идёт на
-`api.deepseek.com`, больше никуда). Для этого нужен интернет; без связи приложение разбирает текст словарём.
+The examples are translated. The offline dictionary understands Russian only; English text is parsed by the model. Tap an entry to edit it in place. Tap the day summary for details.
 
-Что происходит на телефоне вместо сервера:
+## Local mode
 
-- **Каталог продуктов** USDA SR Legacy (около 7 800 строк, 170 КБ) лежит в APK. Поиск и ранжирование портированы
-  с сервера на Kotlin и сверяются с ним тестом по общему эталонному файлу.
-- **Словарь на русском** (около 200 продуктов и блюд: борщ, пельмени, гречка, «стакан молока», «две ложки сахара»)
-  переводит слова в запрос к каталогу, знает вес штуки, ложки, стакана, порции. Блюда без аналога в USDA считаются
-  по таблице и помечаются знаком «~»: это оценка, а не точная цифра.
-- **Разбор фразы без модели**: граммы до и после продукта, списки через запятую и «и», штуки, ложки, стаканы,
-  «полтора», «полстакана», «как обычно», «убери хлеб», «это была половина», «вдвое больше», «масла меньше»,
-  ответ на уточняющий вопрос.
-- **Модель с твоим ключом работает как агент над базой продуктов** (см. ниже). Сложные фразы и **фото** разбирает
-  DeepSeek. Ключ можно сменить или убрать в настройках, в резервные копии он не попадает. Если модели нет (нет сети, ключ отозван или не подошёл), текст разбирается словарём,
-  а в ленте появляется пометка. Без ключа фото приложение отклоняет и объясняет почему. Верность ключа проверяется
-  на первом же сообщении, а не при вводе.
-- **Голос** только через распознавание на самом телефоне. Для русского языка может понадобиться скачать офлайн-пакет
-  в настройках Android: без сервера запасного варианта нет, приложение подскажет это.
-- **Резервная копия**: дневник и выбранный режим входят в автобэкап Android (и в перенос на новый телефон),
-  токен и ключ DeepSeek не входят. «Стереть всё» в настройках удаляет единственную копию, поэтому спрашивает дважды.
+On the login screen choose "without a server": no email is needed and the diary stays on the phone. Then paste **your own DeepSeek key** once (optional: without it only the built-in dictionary works) and set a goal.
 
-### База продуктов и агент
+- The key is not in the APK. You enter it yourself and it is stored in the app's private settings. The model receives only what you typed or photographed, and the request goes straight to `api.deepseek.com` and nowhere else. This needs internet. Offline, text is parsed with the dictionary.
+- A **USDA SR Legacy** catalog (about 7,800 rows, 170 KB) ships inside the APK, with search ported from the server to Kotlin.
+- A **Russian dictionary** (about 200 foods and dishes, such as borscht or dumplings) turns words into catalog queries and knows the weight of a piece, a spoon, a glass or a portion. Dishes with no USDA equivalent are calculated from a table and marked with "~": that is an estimate, not an exact figure.
+- Complex phrases and **photos** are parsed by DeepSeek, which works as an agent over your food database. It can search your database, the dish table, USDA and the web (DuckDuckGo), then **proposes** values. Nothing is added to the database without your choice.
+- Your own food database lives on the phone next to the diary. It can be edited in the app, managed from the chat, and exported to or imported from `dietapp-foods.json`.
+- Voice uses on-device recognition only. For Russian you may need to download the offline pack in Android settings.
+- The diary and the chosen mode are included in Android auto-backup. The token and the DeepSeek key are not.
+- If the model is unavailable, text is parsed with the dictionary and the feed says so. Settings → **Journal** shows every request to DeepSeek and why the app fell back.
 
-Своя база продуктов лежит на телефоне, в той же SQLite-базе, что и дневник (таблица `foods`, значения на 100 г).
-В неё попадает то, чего нет во встроенном каталоге: казеиновый протеин, конкретный батончик, домашний рецепт.
+The full description of local mode, the agent and the food database is in Russian: [docs/details.ru.md](docs/details.ru.md).
 
-- **Модель ищет, а новое ты подтверждаешь.** У модели есть инструменты `search_foods` (твоя база, таблица русских
-  блюд, USDA), `web_search` и `open_page` (поиск через DuckDuckGo и чтение страницы), `propose_food`, `save_food`,
-  `delete_food` и `reply`. На «сосиски ремит рубленые 100 г» она не находит их в базах, ищет в интернете, читает
-  страницу с КБЖУ и **предлагает** варианты: над полем ввода всплывает панель «Нашёл… Какие значения занести в
-  базу?» с вариантами (с сайта, с источником; типичные значения со знаком «~»), «свой вариант» (поправить цифры
-  перед занесением) и «пропустить». После выбора продукт попадает в базу, запись получает цифры, а под сообщением
-  появляется «Добавил в базу: …». Сама модель новые продукты в базу не заносит: это делает только твой выбор.
-  Цифры каждого варианта проверяются (4·Б + 9·Ж + 4·У должно сходиться с ккал), неправдоподобные не показываются.
-- **День читается как чат, без лишнего.** Записанная еда слегка зелёная и считается в итоге дня. Серая ждёт твоего
-  решения и не считается. Вопросы агента (уточнение, выбор значений, «Записать?») задаются в панели над полем
-  ввода: на уточнение отвечаешь обычным сообщением или жмёшь «пропустить». Весь разговор о продукте (вопрос, твой
-  ответ, выбор, «Добавил в базу», «Исправил») не остаётся строками в ленте, а сворачивается в его запись. Под
-  записью видна одна строка «› что выбрано».
-- **Запись раскрывается и сворачивается нажатием на неё** (в момент нажатия блок слегка сереет). В раскрытой
-  записи: КБЖУ порции (пересчитываются, пока меняешь граммы), значения на 100 г и откуда они, граммы и название для
-  правки, «удалить» и «Как выбрано». Изменения сохраняются, когда запись сворачивается.
-- **Режим: стандартный или точный** (настройки → Режим). В стандартном агент решает сам: обычная еда с известными
-  и стабильными цифрами (варёные макароны, гречка, банан, яйцо) записывается сразу. Если цифры сильно зависят от
-  марки или рецепта (сосиски, домашнее блюдо, ресторан) или значения только типичные («~»), еда ждёт ответа:
-  выбрать вариант или «записать». В точном режиме ждёт любая еда. Считается и показывается всё одинаково в обоих
-  режимах, разница только в том, кто решает. Выбор варианта в предложении сам записывает продукт, второго вопроса
-  нет.
-- **Русский или английский** (настройки → Язык). Переключается сразу, без перезапуска. Модель пишет вопросы на
-  выбранном языке. Встроенный словарь для работы без ключа понимает только русский, английский текст разбирает
-  модель.
-- **Поиск в интернете** включается и выключается в настройках. В DuckDuckGo уходит только запрос с названием
-  продукта, страницы открываются по ссылкам из результатов; медленная страница бросается через 8 секунд.
-- **Базой можно управлять из чата:** «казеиновый протеин 360 ккал, белок 80, жиры 1,5, углеводы 8 на 100 г»,
-  «удали из базы батончик», «что у меня в базе про творог». Твои цифры сохраняются как точные, без «~».
-- **Экран «База продуктов»** (настройки → База продуктов): поиск, правка, добавление, удаление. Ниже своих
-  продуктов показывается встроенная база: её строку можно скопировать в свою и поправить. Если поменять цифры,
-  которые оценила модель, пометка «оценка» снимается. В карточке продукта: «откуда цифры» (многострочно),
-  когда и кем он добавлен (вручную, моделью, из интернета с твоим подтверждением, из файла), когда изменён,
-  ссылка на страницу-источник и id.
-- **Файл для людей и других агентов.** «экспорт» сохраняет базу в `dietapp-foods.json`, «импорт» читает такой же
-  файл: новые продукты добавляются, продукты с тем же названием обновляются, остальное не трогается. Файл можно
-  поправить руками или отдать любому агенту на компьютере, затем импортировать обратно. Формат:
+## Run the backend
 
-  ```json
-  {
-    "format": "dietapp-foods",
-    "version": 1,
-    "foods": [
-      {"name": "казеиновый протеин", "aliases": ["казеин"], "kcal": 360.0, "protein": 80.0, "fat": 1.5,
-       "carbs": 8.0, "estimated": true, "note": "типичная этикетка"}
-    ]
-  }
-  ```
-
-- Своя база работает и без модели: продукт, добавленный один раз, офлайн-разбор узнаёт по названию и по другим
-  названиям (`aliases`).
-
-Лента устроена как переписка: твоё сообщение справа, а под ним то, что приложение из него сделало (записи,
-изменения базы, вопрос). Ответ на уточняющий вопрос или правка («казеина было 40») отвечают под своим сообщением,
-а исправленная запись остаётся там, где появилась. Если продукт снова не нашёлся, тот же вопрос не повторяется:
-приложение предлагает назвать калорийность или добавить продукт в базу.
-
-### Если модель не работает: журнал
-
-Настройки → **Журнал**. «сохранить» записывает его в файл `fatcodex-journal-<дата>.txt` (выбираешь куда),
-«отправить» прикладывает тот же `.txt` к сообщению (Telegram, почта), а не вставляет текст. Там видно каждое
-обращение к DeepSeek: что ушло (без ключа, без системного промпта и
-без байтов фото), какой HTTP-код и текст ошибки вернулся, какие инструменты вызвала модель, что получилось в
-итоге, какие страницы открывались и почему приложение перешло на словарь. Те же строки идут в logcat с тегом
-`FatCodex`:
+Only needed for server mode. Requires Docker and a [DeepSeek](https://platform.deepseek.com/) key.
 
 ```bash
-adb logcat -s FatCodex
+cp .env.example .env            # fill in POSTGRES_PASSWORD, JWT_SECRET, DEEPSEEK_API_KEY
+docker compose up -d --build    # the first start downloads the USDA data (~7 MB) and the Whisper model (~470 MB)
+docker compose logs gateway | grep "LOGIN CODE"   # login code while SMTP is not configured
 ```
 
-Заметка под сообщением тоже называет причину: «Ключ DeepSeek не подошёл (HTTP 401: Authentication Fails)»,
-«Нет связи с моделью (SocketTimeoutException: timeout)». На одно сообщение модель получает не больше 75 секунд,
-потом текст разбирается словарём (с поиском в интернете обычно 10–20 секунд).
+Generate `JWT_SECRET` with `python -c "import secrets; print(secrets.token_urlsafe(48))"`. The gateway refuses to start with the value `change-me`. The login code is sent by email when `SMTP_*` is set in `.env`, otherwise it is printed to the gateway log.
 
-Проверка на настоящем API (нужен свой ключ, в обычной сборке пропускается):
+## Install the app
 
-```bash
-DEEPSEEK_API_KEY=sk-… ./gradlew :data:testDebugUnitTest --tests "*LiveDeepSeekTest"
-```
-
-Без модели (нет сети или ключа) результат хуже: словарь знает не всё, незнакомое слово приложение не угадывает,
-а записывает без цифр и один раз переспрашивает. Режимы не смешиваются: сменить режим можно только через «выйти» («стереть всё»),
-а это очищает дневник.
-
-## Запуск бэкенда
-
-Нужен, только если ты хочешь серверный режим.
-
-Нужны Docker и ключ [DeepSeek](https://platform.deepseek.com/).
-
-```bash
-cp .env.example .env            # впиши POSTGRES_PASSWORD, JWT_SECRET, DEEPSEEK_API_KEY
-docker compose up -d --build    # первый запуск сам скачает базу USDA (~7 МБ) и модель Whisper (~470 МБ)
-docker compose logs gateway | grep "LOGIN CODE"   # код входа, пока не настроен SMTP
-```
-
-`JWT_SECRET` можно сгенерировать так: `python -c "import secrets; print(secrets.token_urlsafe(48))"`.
-Gateway откажется стартовать со значением `change-me`.
-
-Код входа приходит на почту, если в `.env` заполнен `SMTP_*`. Иначе он печатается в лог gateway.
-
-## Установка приложения
-
-Нужны JDK 17+ и Android SDK. Проще всего открыть папку `android/` в Android Studio.
+Requires JDK 17+ and the Android SDK. The easiest way is to open `android/` in Android Studio.
 
 ```bash
 cd android
-./gradlew assembleRelease                                         # только на телефоне, без сервера
-./gradlew assembleRelease -PapiBaseUrl=http://192.168.1.50:8080   # со своим сервером (вход почтой или «без сервера»)
+./gradlew assembleRelease                                         # phone only, no server
+./gradlew assembleRelease -PapiBaseUrl=http://192.168.1.50:8080   # with your own server
 adb install -r app/build/outputs/apk/release/app-release.apk
 ```
 
-- Эмулятор: `./gradlew assembleDebug`, адрес по умолчанию `http://10.0.2.2:8080` (это хост-машина).
-- Проверить весь путь с моделью без настоящего ключа можно на заглушке DeepSeek: `python android/tools/mock_deepseek.py`,
-  затем `adb reverse tcp:8090 tcp:8090` и сборка с `-PmodelBaseUrl=http://127.0.0.1:8090`. Заглушка разыгрывает
-  простого агента (поиск → добавление в базу → запись), сохраняет каждый запрос приложения в `android/tools/mock_requests/`
-  и проверяет их по документации API. Это не DeepSeek: настоящую модель она не заменяет.
-- Текст можно отправить в FatCodex из другого приложения («Поделиться»): он встанет в поле ввода.
-  Debug-сборка всегда показывает вход, и «без сервера» там тоже есть.
-- Телефон в той же Wi-Fi сети: в `.env` поставь `GATEWAY_BIND=0.0.0.0` и укажи в `-PapiBaseUrl` IP компьютера.
-  Приложение ходит по обычному HTTP, поэтому делай так только в сети, которой доверяешь.
-  Для интернета поставь перед gateway HTTPS (Caddy, nginx) и укажи `https://…`: cleartext в таком APK выключен.
-- Release-APK подписан отладочным ключом, для себя этого достаточно. Свой ключ: `android/keystore.properties`
-  с полями `storeFile`, `storePassword`, `keyAlias`, `keyPassword` (файл в `.gitignore`).
-- Размер release-APK около 2,7 МБ вместе с каталогом продуктов (R8 + shrinkResources).
+- Emulator: `./gradlew assembleDebug`. The default address is `http://10.0.2.2:8080` (the host machine).
+- Phone on the same Wi-Fi: set `GATEWAY_BIND=0.0.0.0` in `.env` and pass the computer's IP in `-PapiBaseUrl`. The app talks plain HTTP, so do this only on a network you trust. For the internet put HTTPS in front of the gateway (Caddy, nginx) and pass an `https://…` address: cleartext traffic is disabled in such a build.
+- The release APK is signed with the debug key, which is enough for personal use. For your own key create `android/keystore.properties` with `storeFile`, `storePassword`, `keyAlias`, `keyPassword` (the file is in `.gitignore`).
+- The release APK is about 2.7 MB including the food catalog.
 
-## Что можно написать
-
-| Ввод | Что произойдёт |
-|---|---|
-| `овсянка 60 г, банан` | две записи с КБЖУ |
-| `вес 82.4` | запись веса (тренд — скользящее среднее за 7 дней, график в итоге дня) |
-| `масла было меньше` | правка уже записанного масла |
-| `как обычно` | подставится привычный приём пищи (после трёх повторов) |
-| фото тарелки | разбор по картинке |
-| микрофон | распознавание на устройстве, а если недоступно, запись уходит на `stt` (только с сервером) |
-
-Нажатие на строку открывает правку на месте, нажатие на итог дня показывает детали.
-
-## Архитектура приложения
-
-Снаружи одно поле ввода и лента, внутри обычные слои с однонаправленным потоком данных (MVVM, близко к MVI):
+## Repository layout
 
 ```
-View (Compose)                 только рисует состояние и вызывает действия, без логики
-  │  actions (интерфейс: MainActions, FoodsActions)          ▲ один UiState на экран (StateFlow)
-  ▼                                                           │
-ViewModel                      собирает UiState из потоков репозиториев, держит черновики полей
-  │
-  ▼
-Repository (интерфейсы)        DiaryRepository, AuthRepository, FoodRepository, SpeechRepository
-  │
-  ├── Room (SQLite)            entries, messages, notes, weights, foods, outbox, profile: единственный источник правды
-  ├── LocalEngine              очередь outbox → разбор → записи (без сервера)
-  │     ├── ParserChooser      модель-агент (DeepSeek + инструменты базы) → офлайн-разбор, если модели нет
-  │     └── FoodResolver       выбор по id → своя база → таблица блюд → USDA
-  └── SyncEngine               то же самое через свой сервер (серверный режим)
-```
-
-- Экран ничего не знает о базе и сети: он получает готовое состояние и интерфейс действий. Поэтому каждый экран
-  тестируется без устройства, а скриншоты в README рендерятся тестом.
-- Всё, что видно в ленте, лежит в Room: сообщение, записи, заметки. Перезапуск, отсутствие сети или смерть процесса
-  ничего не теряют, а очередь `outbox` продолжит с того же места.
-- Схема базы версионируется (`android/data/schemas`), и обновление приложения переносит данные миграцией
-  (`Migration1To2`). Тест создаёт настоящую базу версии 1 и проверяет перенос.
-
-## Структура
-
-```
-android/            Gradle-проект (app, core-ui, data), version catalog в gradle/libs.versions.toml
-services/gateway/   REST для приложения, вход по коду из письма, JWT, синхронизация
-services/ai-parser/ вызовы DeepSeek, function calling, кэш в Redis, ретраи
-services/nutrition/ поиск продуктов и расчёт КБЖУ (SQLite + FTS5), импорт USDA и Open Food Facts
+android/            Gradle project (app, core-ui, data), version catalog in gradle/libs.versions.toml
+services/gateway/   REST API for the app, email-code login, JWT, sync
+services/ai-parser/ DeepSeek calls, function calling, Redis cache, retries
+services/nutrition/ food search and calorie/macro calculation (SQLite + FTS5), USDA and Open Food Facts import
 services/stt/       faster-whisper
-contracts/          OpenAPI каждого сервиса; тесты падают, если код разошёлся с файлом
-docs/screenshots/   скриншоты (рендерятся тестом, см. ниже)
+contracts/          OpenAPI of each service; tests fail if the code drifts from the file
+docs/               details (in Russian) and the app icon
 ```
 
-### Своя база продуктов
+More food data (USDA archives or an Open Food Facts dump) can be imported with `python -m nutrition.cli import-usda` and `import-off`, see [docs/details.ru.md](docs/details.ru.md). Open Food Facts is licensed under ODbL, USDA FoodData Central is in the public domain.
 
-По умолчанию грузится USDA SR Legacy (около 7 800 продуктов, английские названия; модель сама переводит запрос).
-Больше данных:
-
-Скачай архив на [fdc.nal.usda.gov/download-datasets](https://fdc.nal.usda.gov/download-datasets) или дамп Open Food Facts,
-положи файлы в контейнер и запусти импорт:
+## Tests
 
 ```bash
-docker compose cp FoodData_Central_foundation_food_csv nutrition:/tmp/usda
-docker compose exec nutrition python -m nutrition.cli import-usda /tmp/usda
-docker compose cp en.openfoodfacts.org.products.csv.gz nutrition:/tmp/off.csv.gz
-docker compose exec nutrition python -m nutrition.cli import-off /tmp/off.csv.gz --countries en:russia
-```
-
-Данные Open Food Facts распространяются по лицензии ODbL, USDA FoodData Central находится в общественном достоянии.
-
-## Тесты
-
-```bash
-# бэкенд, в каждом сервисе: python -m venv .venv && .venv/bin/pip install -e ".[dev]" && .venv/bin/pytest
-# Android (JVM, эмулятор не нужен):
+# backend, in each service: python -m venv .venv && .venv/bin/pip install -e ".[dev]" && .venv/bin/pytest
+# Android (JVM, no emulator needed):
 cd android && ./gradlew testDebugUnitTest
-# скриншоты для README:
-./gradlew :app:testDebugUnitTest --tests "*ScreenshotTest" -Pscreenshots=../docs/screenshots
 ```
 
-Что покрыто: разбор ответа модели и правила уточняющего вопроса, ретраи и кэш, расчёт КБЖУ и поиск продуктов
-(в том числе на 1 337 реальных строках USDA), изоляция пользователей, идемпотентность, синхронизация с очередью
-и конфликтами, ViewModel'и и Compose UI-тесты (Robolectric), например «ввод текста → запись → итог дня».
+## Limitations
 
-Локальный режим: Kotlin-поиск даёт те же первые результаты, что и сервер (общий `golden_top1.json`); словарь
-проверяется на правдоподобную калорийность и согласованность КБЖУ; разбор фраз, правки, «как обычно», клиент DeepSeek
-(MockWebServer: запрос и контекст такие же, как у сервиса, ретраи, 401, мусор в ответе), полный путь «сообщение → запись» на
-настоящей Room и отдельный тест `BundledAssetsTest`, который открывает ассеты через настоящий `AssetManager`
-(Android Gradle Plugin молча распаковывает и переименовывает `*.gz`, поэтому каталог лежит как `.tsv.gzip`).
+- Accuracy depends on how the model names a food. Search ranks USDA names by their structure ("Apples, raw", not "Croissants, apple"), but it is a heuristic: check the numbers if something looks odd. The app asks about anything unclear instead of guessing.
+- Numbers the model adds to the database on its own are typical values for that kind of food, not your label. They are marked "~"; fix them in the food database if you have the package.
+- The agent has not been tested against the real DeepSeek. Tool calls were checked against a stub that answers in the OpenAI-compatible format. If DeepSeek answers differently (for example without a function call), the app parses the message with the dictionary and says so.
+- Not tested on a real device: all tests run on the JVM (Robolectric). The Docker images, the real DeepSeek and Postgres were checked as separate processes and stubs, but not as a whole `docker compose` stack.
+- The server creates its database schema at startup (`create_all`). There are no migrations.
+- The token and the DeepSeek key are stored in the app's regular SharedPreferences, not in the Keystore. The token only gives access to your own server, and you can revoke the key on the DeepSeek side.
+- In local mode there is no sync between phones: the diary lives on one device (plus Android auto-backup).
+- The local dictionary is small and Russian. English names are found directly in the USDA catalog; anything else needs the model (a key) or the server.
 
-База продуктов и агент: сохранение и проверка цифр, поиск по всем источникам, экспорт и импорт файла, сценарий
-«казеиновый протеин с водой» целиком (поиск → добавление в базу → запись с цифрами), исправление цифр после ошибки,
-управление базой из чата, принудительное завершение агента, миграция настоящей базы версии 1, лента как переписка
-(сообщение и ответ не перекрываются: тест сверяет их границы на экране).
+## License
 
-## Ограничения
-
-- Точность зависит от того, как модель назвала продукт. Поиск ранжирует названия USDA с учётом их устройства
-  («Apples, raw», а не «Croissants, apple»), но это эвристика: проверь цифры, если что-то выглядит странно.
-  Непонятное приложение не подставляет, а переспрашивает.
-- Схема БД на сервере создаётся при старте (`create_all`), миграций нет.
-- Токен и ключ DeepSeek хранятся в обычных SharedPreferences приложения (не в Keystore): токен даёт вход на твой
-  собственный сервер, ключ ты вставил сам. Ключ можно отозвать на стороне DeepSeek, а в приложении убрать в настройках.
-- Без сервера нет синхронизации между телефонами: дневник живёт на одном устройстве (плюс автобэкап Android).
-- Цифры, которые модель добавила в базу сама, это типичные значения для такого продукта, а не твоя этикетка.
-  Они помечены «~», и их стоит поправить в «Базе продуктов», если есть упаковка.
-- Агент не проверялся на настоящем DeepSeek: ходы с инструментами проверены на заглушке с ответами в формате
-  OpenAI-совместимого API. Если DeepSeek ответит иначе (например, без вызова функции), приложение разберёт
-  сообщение словарём и напишет об этом.
-- Словарь локального режима небольшой и русский. Английские названия находятся прямо в каталоге USDA, остальное
-  нужно моделью (ключ) или сервером.
-- Не проверено на реальном устройстве: все тесты идут на JVM (Robolectric). Docker-образы, настоящий DeepSeek и
-  Postgres проверялись отдельными процессами и заглушками, но не целиком в `docker compose`.
-
-## Лицензия
-
-MIT, см. [LICENSE](LICENSE).
+MIT, see [LICENSE](LICENSE).
