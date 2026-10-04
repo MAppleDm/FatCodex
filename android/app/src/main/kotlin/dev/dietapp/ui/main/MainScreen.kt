@@ -136,6 +136,7 @@ fun MainScreen(state: MainUiState, actions: MainActions, effects: Flow<UiEffect>
             Feed(state, actions, Modifier.weight(1f))
 
             state.proposal?.let { ProposalPanel(it, actions) }
+            state.baseChange?.let { BaseChangePanel(it, actions) }
             state.question?.let { QuestionPanel(it.text, actions) }
             state.confirm?.let { ConfirmPanel(it, actions) }
             state.notice?.let { FeedNote(it, NoteTone.Info, Modifier.testTag("notice")) }
@@ -247,7 +248,7 @@ private fun Feed(state: MainUiState, actions: MainActions, modifier: Modifier) {
                     FeedNote(
                         text = item.note.text,
                         tone = when (item.note.kind) {
-                            NoteKind.Question, NoteKind.Proposal -> NoteTone.Question
+                            NoteKind.Question, NoteKind.Proposal, NoteKind.BaseChange -> NoteTone.Question
                             NoteKind.Error -> NoteTone.Error
                             NoteKind.Info, NoteKind.Answer -> NoteTone.Info
                         },
@@ -405,6 +406,31 @@ private fun EntryHistory(lines: List<HistoryLine>) {
                 }
                 HistoryLine.From.App -> Text(l.text, style = t.caption, modifier = Modifier.padding(top = 6.dp))
             }
+        }
+    }
+}
+
+/**
+ * The agent wants to delete or change one of the user's foods and may not without a yes: the question says what and
+ * how the values would change, "да" makes the change, "нет" leaves the food as it is.
+ */
+@Composable
+private fun BaseChangePanel(c: BaseChangeUi, actions: MainActions) {
+    Column(Modifier.fillMaxWidth().background(AppTheme.colors.background).testTag("base-change")) {
+        Hairline()
+        Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 4.dp)) {
+            Box(Modifier.width(1.dp).height(20.dp).background(AppTheme.colors.foreground))
+            Spacer(Modifier.width(10.dp))
+            Column {
+                val lines = c.question.lines()
+                Text(lines.first(), style = AppTheme.type.body)
+                lines.drop(1).forEach { Text(it, style = AppTheme.type.caption) }
+            }
+        }
+        Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+            TextAction(Texts.BASE_CHANGE_NO, { actions.onBaseChange(false) }, Modifier.testTag("base-change-no"), color = AppTheme.colors.secondary)
+            Spacer(Modifier.weight(1f))
+            TextAction(if (c.busy) "…" else Texts.BASE_CHANGE_YES, { actions.onBaseChange(true) }, Modifier.testTag("base-change-yes"))
         }
     }
 }

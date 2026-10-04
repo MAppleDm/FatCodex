@@ -1,0 +1,1338 @@
+fdc_id,description,kcal,protein,fat,carbs
+167532,"Bread, white wheat",238.0,10.66,2.15,43.91
+167542,"Snacks, granola bars, hard, plain",471.0,10.1,19.8,64.4
+167543,"Snacks, granola bars, hard, almond",495.0,7.7,25.5,62.0
+167544,"Snacks, granola bars, soft, uncoated, raisin",448.0,7.6,17.8,66.4
+167546,"Candies, honey-combed, with peanut butter",473.0,8.72,20.18,67.41
+167554,"Snacks, potato chips, made from dried potatoes, sour-cream and onion-flavor",547.0,6.6,37.0,51.3
+167567,"Baking chocolate, unsweetened, liquid",472.0,12.1,47.7,36.2
+167568,"Baking chocolate, unsweetened, squares",642.0,14.32,52.31,28.42
+167572,"Ice creams, vanilla, light",180.0,4.78,4.83,29.46
+167573,"Ice creams, vanilla, rich",249.0,3.5,16.2,22.29
+167575,"Ice creams, vanilla",207.0,3.5,11.0,23.6
+167576,"Ice creams, vanilla, light, soft-serve",126.0,4.9,2.6,21.8
+167583,"Candies, TWIZZLERS Strawberry Twists Candy",348.0,2.56,2.32,79.16
+167587,"Candies, milk chocolate",535.0,7.65,29.66,59.4
+167614,"Fish, salmon, king, chinook, smoked and canned (Alaska Native)",150.0,23.2,5.9,0.0
+167617,"Duck, scoter, white-winged, meat (Alaska Native)",84.0,20.2,0.4,0.0
+167618,"Sea cucumber, yane (Alaska Native)",56.0,13.0,0.4,0.0
+167620,"Tea, tundra, herb and laborador combination (Alaska Native)",1.0,0.0,0.0,0.2
+167629,"Melon, banana (Navajo)",21.0,0.84,0.2,4.06
+167631,"Corn, dried (Navajo)",386.0,9.88,5.22,74.93
+167640,"Blueberries, wild, raw (Alaska Native)",61.0,1.22,0.76,12.31
+167653,"Corn, dried, yellow (Northern Plains Indians)",419.0,14.48,10.64,66.27
+167674,"Restaurant, Chinese, lemon chicken",252.0,11.87,13.55,20.61
+167680,"Restaurant, Italian, spaghetti with meat sauce",121.0,5.79,3.59,16.4
+167684,"Creamy dressing, made with sour cream and/or buttermilk and oil, reduced calorie",160.0,1.5,14.0,7.0
+167694,"Sausage, turkey and pork, fresh, bulk, patty or link, cooked",307.0,22.7,23.0,0.7
+167695,"Mayonnaise, made with tofu",322.0,5.95,31.79,3.06
+167696,"Frankfurter, beef, low fat",140.0,12.0,9.5,1.6
+167698,"Pork sausage rice links, brown and serve, cooked",407.0,13.7,37.63,2.36
+167700,"Salad Dressing, mayonnaise-like, fat-free",84.0,0.2,2.7,15.5
+167703,"Cheese, cottage, lowfat, 1% milkfat, lactose reduced",74.0,12.4,1.0,3.2
+167706,"Jams, preserves, marmalade, reduced sugar",151.0,0.0,0.1,37.6
+167712,"Pork, cured, bacon, cooked, broiled, pan-fried or roasted, reduced sodium",541.0,37.04,41.78,1.43
+167716,"Cheese, cottage, lowfat, 1% milkfat, with vegetables",67.0,10.9,1.0,3.0
+167722,Tofu yogurt,94.0,3.5,1.8,15.96
+167725,"Cereals ready-to-eat, OAT BRAN FLAKES, HEALTH VALLEY",380.0,10.0,3.0,78.0
+167732,"Babyfood, banana no tapioca, strained",91.0,1.0,0.2,21.34
+167733,"Babyfood, banana apple dessert, strained",68.0,0.3,0.2,16.3
+167734,"Breakfast bar, corn flake crust with fruit",376.0,4.4,7.5,72.8
+167737,"Oil, corn, peanut, and olive",884.0,0.0,100.0,0.0
+167746,"Lemons, raw, without peel",29.0,1.1,0.3,9.32
+167747,"Lemon juice, raw",22.0,0.35,0.24,6.9
+167748,"Lemon juice from concentrate, canned or bottled",17.0,0.45,0.07,5.62
+167749,"Lemon peel, raw",47.0,1.5,0.3,16.0
+167750,"Prickly pears, raw",41.0,0.73,0.51,9.57
+167751,"Plums, dried (prunes), stewed, without added sugar",107.0,0.96,0.16,28.08
+167752,"Plums, dried (prunes), stewed, with added sugar",124.0,1.09,0.22,32.88
+167762,"Strawberries, raw",32.0,0.67,0.3,7.68
+167765,"Watermelon, raw",30.0,0.61,0.15,7.55
+167769,"Cherries, sour, canned, water pack, drained",42.0,0.69,0.21,10.45
+167770,"Cherries, sweet, canned, pitted, heavy syrup, drained",83.0,0.73,0.21,21.07
+167776,"Pears, raw, bartlett (Includes foods for USDA's Food Distribution Program)",63.0,0.39,0.16,15.01
+167777,"Pears, raw, red anjou",62.0,0.33,0.14,14.94
+167778,"Pears, raw, bosc (Includes foods for USDA's Food Distribution Program)",67.0,0.36,0.09,16.1
+167779,"Pears, raw, green anjou (Includes foods for USDA's Food Distribution Program)",66.0,0.44,0.1,15.79
+167782,"Abiyuch, raw",69.0,1.5,0.1,17.6
+167792,Orange Pineapple Juice Blend,51.0,0.41,0.08,12.2
+167793,"Apples, raw, fuji, with skin (Includes foods for USDA's Food Distribution Program)",63.0,0.2,0.18,15.22
+167794,"Orange juice, chilled, includes from concentrate, with added calcium and vitamins A, D, E",49.0,0.68,0.12,11.54
+167801,"Lemon juice from concentrate, bottled, CONCORD",24.0,0.4,0.07,5.37
+167802,"Lemon juice from concentrate, bottled, REAL LEMON",17.0,0.47,0.07,5.66
+167811,"Pork, fresh, backfat, raw",812.0,2.92,88.69,0.0
+167812,"Pork, fresh, belly, raw",518.0,9.34,53.01,0.0
+167813,"Pork, fresh, separable fat, raw",632.0,9.25,65.7,0.0
+167818,"Pork, fresh, loin, whole, separable lean and fat, raw",198.0,19.74,12.58,0.0
+167821,"Pork, fresh, loin, whole, separable lean and fat, cooked, roasted",248.0,27.09,14.65,0.0
+167843,"Pork, fresh, shoulder, whole, separable lean and fat, raw",236.0,17.18,17.99,0.0
+167844,"Pork, fresh, shoulder, whole, separable lean and fat, cooked, roasted",292.0,23.28,21.39,0.0
+167845,"Pork, fresh, shoulder, whole, separable lean only, raw",148.0,19.55,7.14,0.0
+167846,"Pork, fresh, shoulder, whole, separable lean only, cooked, roasted",230.0,25.33,13.54,0.0
+167902,"Pork, fresh, ground, raw",263.0,16.88,21.19,0.0
+167903,"Pork, fresh, ground, cooked",297.0,25.69,20.77,0.0
+167905,"Pork, fresh, loin, tenderloin, separable lean and fat, cooked, roasted",147.0,26.04,3.96,0.0
+167914,"Pork, cured, bacon, cooked, baked",548.0,35.73,43.27,1.35
+167923,"Interstate Brands Corp, Wonder Hamburger Rolls",273.0,8.07,4.15,50.84
+167926,"Pancakes, plain, frozen, ready-to-heat, microwave (includes buttermilk)",239.0,5.88,4.73,43.33
+167939,"Garlic bread, frozen",350.0,8.36,16.61,41.72
+167940,"Cinnamon buns, frosted (includes honey buns)",452.0,4.45,26.61,48.6
+167943,"Bread, potato",266.0,12.5,3.13,47.07
+167944,"Bread, cheese",408.0,10.42,20.83,44.83
+167952,"Snacks, granola bars, hard, chocolate chip",438.0,7.3,16.3,72.1
+167954,"Snacks, granola bars, soft, uncoated, plain",443.0,7.4,17.2,67.3
+167955,"Snacks, granola bars, soft, uncoated, peanut butter",426.0,10.5,15.8,64.4
+167963,"Snacks, potato chips, sour-cream-and-onion-flavor",531.0,8.1,33.9,51.5
+167964,"Snacks, M&M MARS, COMBOS Snacks Cheddar Cheese Pretzel",463.0,9.85,16.92,66.5
+167967,"Snacks, rice cakes, brown rice, buckwheat",380.0,9.0,3.5,80.1
+167976,"Candies, semisweet chocolate",480.0,4.2,30.0,63.9
+167981,"Ice creams, french vanilla, soft-serve",222.0,4.1,13.0,22.2
+167999,"Baking chocolate, mexican, squares",426.0,3.64,15.59,77.41
+168001,"Candies, milk chocolate coated peanuts",519.0,13.1,33.5,49.7
+168037,"Corn, white, steamed (Navajo)",386.0,9.72,5.18,75.2
+168042,"Stew, dumpling with mutton (Navajo)",101.0,8.71,3.78,8.03
+168080,"Restaurant, Chinese, shrimp and vegetables",78.0,5.9,4.05,4.52
+168085,"OLIVE GARDEN, spaghetti with meat sauce",121.0,5.8,3.28,17.19
+168089,"Imitation cheese, american or cheddar, low cholesterol",390.0,25.0,32.0,1.0
+168090,"Babyfood, banana juice with low fat yogurt",86.0,2.5,0.8,17.54
+168092,"Ham, turkey, sliced, extra lean, prepackaged or deli",134.0,19.6,5.8,0.93
+168094,"Mayonnaise, reduced-calorie or diet, cholesterol-free",333.0,0.9,33.3,6.7
+168095,"Granola bar, soft, milk chocolate coated, peanut butter",536.0,9.6,31.2,54.1
+168099,"Creamy dressing, made with sour cream and/or buttermilk and oil, reduced calorie, fat-free",107.0,1.4,2.7,20.0
+168100,"Creamy dressing, made with sour cream and/or buttermilk and oil, reduced calorie, cholesterol-free",140.0,1.0,8.0,16.0
+168110,"Pork, cured, ham, low sodium, lean and fat, cooked",172.0,22.3,8.3,0.3
+168114,"Cheese, cottage, lowfat, 1% milkfat, no sodium added",72.0,12.4,1.0,2.7
+168115,"Mayonnaise, low sodium, low calorie or diet",231.0,0.3,19.2,16.0
+168118,"Beef, bologna, reduced sodium",310.0,11.7,28.4,2.0
+168121,"Cheese, pasteurized process, cheddar or American, low sodium",376.0,22.2,31.19,1.6
+168122,"Beverages, coffee, instant, with whitener, reduced calorie",509.0,1.96,29.1,59.94
+168131,"Frankfurter, low sodium",312.0,12.0,28.51,1.8
+168136,"Ice creams, chocolate, rich",251.0,4.72,16.98,19.78
+168144,"Babyfood, grape juice, no sugar, canned",62.0,0.0,0.0,15.38
+168149,"Fish, mackerel, salted",305.0,18.5,25.1,0.0
+168150,"Java-plum, (jambolan), raw",60.0,0.72,0.23,15.56
+168153,"Kiwifruit, green, raw",61.0,1.14,0.52,14.66
+168158,"Blueberries, dried, sweetened",317.0,2.5,2.5,80.0
+168162,"Plums, dried (prunes), uncooked",240.0,2.18,0.38,63.88
+168164,"Raisins, golden, seedless",301.0,3.28,0.2,80.02
+168165,"Raisins, dark, seedless (Includes foods for USDA's Food Distribution Program)",299.0,3.3,0.25,79.32
+168166,"Raisins, seeded",296.0,2.52,0.54,78.47
+168171,"Rose-apples, raw",25.0,0.6,0.3,5.7
+168172,"Strawberries, canned, heavy syrup pack, solids and liquids",92.0,0.56,0.26,23.53
+168173,"Strawberries, frozen, unsweetened (Includes foods for USDA's Food Distribution Program)",35.0,0.43,0.11,9.13
+168174,"Strawberries, frozen, sweetened, sliced",96.0,0.53,0.13,25.92
+168175,"Sugar-apples, (sweetsop), raw",94.0,2.06,0.29,23.64
+168177,"Pears, asian, raw",42.0,0.5,0.23,10.65
+168179,"Blueberries, canned, light syrup, drained",88.0,1.04,0.4,22.66
+168180,"Blueberries, wild, canned, heavy syrup, drained",107.0,0.56,0.34,28.32
+168181,"Peaches, canned, heavy syrup, drained",72.0,0.52,0.18,18.43
+168182,"Pears, canned, heavy syrup, drained",74.0,0.24,0.18,19.08
+168183,"Plums, canned, heavy syrup, drained",89.0,0.44,0.14,23.12
+168191,"Dates, medjool",277.0,1.81,0.15,74.97
+168201,"Apples, raw, red delicious, with skin (Includes foods for USDA's Food Distribution Program)",59.0,0.27,0.2,14.06
+168202,"Apples, raw, golden delicious, with skin",57.0,0.28,0.15,13.6
+168203,"Apples, raw, granny smith, with skin (Includes foods for USDA's Food Distribution Program)",58.0,0.44,0.19,13.61
+168204,"Apples, raw, gala, with skin (Includes foods for USDA's Food Distribution Program)",57.0,0.25,0.12,13.68
+168207,"Grape juice, canned or bottled, unsweetened, with added ascorbic acid and calcium",62.0,0.37,0.13,14.77
+168211,"Kiwifruit, ZESPRI SunGold, raw",63.0,1.02,0.28,15.79
+168219,"Pork, fresh, carcass, separable lean and fat, raw",376.0,13.91,35.07,0.0
+168221,"Pork, fresh, separable fat, cooked",626.0,7.06,66.1,0.0
+168222,"Pork, fresh, leg (ham), whole, separable lean and fat, raw",245.0,17.43,18.87,0.0
+168223,"Pork, fresh, leg (ham), whole, separable lean and fat, cooked, roasted",273.0,26.83,17.61,0.0
+168224,"Pork, fresh, leg (ham), whole, separable lean only, raw",136.0,20.48,5.41,0.0
+168225,"Pork, fresh, leg (ham), whole, separable lean only, cooked, roasted",211.0,29.41,9.44,0.0
+168230,"Pork, fresh, loin, whole, separable lean only, raw",143.0,21.43,5.66,0.0
+168231,"Pork, fresh, loin, whole, separable lean only, cooked, braised",204.0,28.57,9.12,0.0
+168232,"Pork, fresh, loin, whole, separable lean only, cooked, broiled",210.0,28.57,9.8,0.0
+168233,"Pork, fresh, loin, whole, separable lean only, cooked, roasted",209.0,28.62,9.63,0.0
+168249,"Pork, fresh, loin, tenderloin, separable lean only, raw",109.0,20.95,2.17,0.0
+168250,"Pork, fresh, loin, tenderloin, separable lean only, cooked, roasted",143.0,26.17,3.51,0.0
+168277,"Pork, cured, bacon, unprepared",393.0,13.66,37.13,0.0
+168287,"Pork, cured, salt pork, raw",748.0,5.05,80.5,0.0
+168299,"Pork, fresh, backribs, separable lean and fat, raw",224.0,19.07,16.33,0.0
+168300,"Pork, fresh, backribs, separable lean and fat, cooked, roasted",292.0,23.01,21.51,0.0
+168318,"HORMEL ALWAYS TENDER, Pork Loin Filets, Lemon Garlic-Flavored",118.0,17.83,4.16,1.79
+168321,"Pork, cured, bacon, cooked, microwaved",476.0,39.01,34.12,0.48
+168322,"Pork, cured, bacon, pre-sliced, cooked, pan-fried",468.0,33.92,35.09,1.7
+168324,"Pork, bacon, rendered fat, cooked",898.0,0.07,99.5,0.0
+168389,"Asparagus, raw",20.0,2.2,0.12,3.88
+168409,"Cucumber, with peel, raw",15.0,0.65,0.11,3.63
+168422,"Mushrooms, Chanterelle, raw",32.0,1.49,0.53,6.86
+168423,"Mushrooms, morel, raw",31.0,3.12,0.57,5.1
+168427,"Lentils, sprouted, raw",106.0,8.96,0.55,22.14
+168428,"Lentils, sprouted, cooked, stir-fried, without salt",101.0,8.8,0.45,21.25
+168429,"Lettuce, butterhead (includes boston and bibb types), raw",13.0,1.35,0.22,2.23
+168431,"Lettuce, red leaf, raw",13.0,1.33,0.22,2.26
+168434,"Mushrooms, brown, italian, or crimini, raw",22.0,2.5,0.1,4.3
+168436,"Mushrooms, shiitake, dried",296.0,9.58,0.99,75.37
+168437,"Mushrooms, shiitake, cooked, without salt",56.0,1.56,0.22,14.39
+168438,"Mustard spinach, (tendergreen), raw",22.0,2.2,0.3,3.9
+168440,"New Zealand spinach, raw",14.0,1.5,0.2,2.5
+168442,"Potatoes, french fried, all types, salt added in processing, frozen, unprepared",147.0,2.24,4.66,24.81
+168444,"Potatoes, french fried, steak fries, salt added in processing, frozen, as purchased",130.0,2.19,3.39,23.51
+168445,"Potatoes, french fried, steak fries, salt added in processing, frozen, oven-heated",148.0,2.57,3.76,26.98
+168447,"Pumpkin leaves, cooked, boiled, drained, without salt",21.0,2.72,0.22,3.39
+168448,"Pumpkin, raw",26.0,1.0,0.1,6.5
+168449,"Pumpkin, cooked, boiled, drained, without salt",20.0,0.72,0.07,4.9
+168450,"Pumpkin, canned, without salt",34.0,1.1,0.28,8.09
+168462,"Spinach, raw",23.0,2.86,0.39,3.63
+168463,"Spinach, cooked, boiled, drained, without salt",23.0,2.97,0.26,3.75
+168469,"Squash, summer, zucchini, includes skin, frozen, unprepared",17.0,1.16,0.13,3.58
+168470,"Squash, summer, zucchini, includes skin, frozen, cooked, boiled, drained, without salt",17.0,1.15,0.13,3.56
+168471,"Squash, summer, zucchini, italian style, canned",29.0,1.03,0.11,6.85
+168484,"Sweet potato, cooked, boiled, without skin",76.0,1.37,0.14,17.72
+168490,"Arrowroot, raw",65.0,4.24,0.2,13.39
+168506,"Beets, cooked, boiled. drained, with salt",44.0,1.68,0.18,9.96
+168507,"Beets, canned, no salt added, solids and liquids",28.0,0.8,0.07,6.57
+168508,"Beet greens, cooked, boiled, drained, with salt",27.0,2.57,0.2,5.46
+168510,"Broccoli, cooked, boiled, drained, with salt",35.0,2.38,0.41,7.18
+168511,"Broccoli, frozen, chopped, cooked, boiled, drained, with salt",28.0,3.1,0.12,5.35
+168512,"Broccoli, frozen, spears, cooked, boiled, drained, with salt",28.0,3.1,0.11,5.35
+168514,"Cabbage, common, cooked, boiled, drained, with salt",23.0,1.27,0.06,5.51
+168515,"Cabbage, red, cooked, boiled, drained, with salt",29.0,1.51,0.09,6.94
+168518,"Carrots, canned, no salt added, drained solids",25.0,0.64,0.19,5.54
+168519,"Carrots, frozen, cooked, boiled, drained, with salt",37.0,0.58,0.68,7.73
+168538,"Corn, sweet, white, raw",86.0,3.22,1.18,19.02
+168541,"Corn, sweet, white, canned, whole kernel, regular pack, solids and liquids",64.0,1.95,0.5,15.41
+168542,"Corn, sweet, white, canned, vacuum pack, regular pack",79.0,2.41,0.5,19.44
+168546,"Peppers, sweet, red, canned, solids and liquids",18.0,0.8,0.3,3.9
+168547,"Peppers, sweet, red, frozen, chopped, unprepared",20.0,1.08,0.21,4.45
+168550,"Peppers, sweet, red, sauteed",133.0,1.04,12.75,6.57
+168551,"Lentils, sprouted, cooked, stir-fried, with salt",101.0,8.8,0.45,21.25
+168554,"Potatoes, mashed, prepared from granules, without milk, whole milk and margarine",108.0,2.05,4.93,14.4
+168555,"Potatoes, mashed, home-prepared, whole milk and butter added",113.0,1.86,4.22,16.81
+168556,Catsup,101.0,1.04,0.1,27.4
+168558,"Pickles, cucumber, dill or kosher dill",12.0,0.5,0.3,2.41
+168560,"Pickle relish, hot dog",91.0,1.5,0.46,23.35
+168561,"Pickle relish, sweet",130.0,0.37,0.47,35.06
+168562,"Pickles, cucumber, sour, low sodium",11.0,0.33,0.2,2.26
+168563,"Pickles, cucumber, dill, reduced sodium",12.0,0.5,0.3,2.41
+168565,"Squash, zucchini, baby, raw",21.0,2.71,0.4,3.11
+168567,"Tomatoes, sun-dried",258.0,14.11,2.97,55.76
+168568,"Carrots, baby, raw",35.0,0.64,0.13,8.24
+168572,"Cabbage, napa, cooked",12.0,1.1,0.17,2.23
+168573,"Lemon grass (citronella), raw",99.0,1.82,0.49,25.31
+168575,"Grape leaves, raw",93.0,5.6,2.12,17.31
+168576,"Peppers, jalapeno, raw",29.0,0.91,0.37,6.5
+168578,"Peppers, hungarian, raw",29.0,0.8,0.41,6.7
+168580,"Mushrooms, oyster, raw",33.0,3.31,0.41,6.09
+168588,"Nuts, almond butter, plain, without salt added",614.0,20.96,55.5,18.82
+168592,"Nuts, almonds, honey roasted, unblanched",594.0,18.17,49.9,27.9
+168593,"Seeds, sunflower seed kernels, oil roasted, with salt added",592.0,20.06,51.3,22.89
+168596,"Nuts, almonds, dry roasted, with salt added",598.0,20.96,52.54,21.01
+168597,"Nuts, cashew butter, plain, with salt added",609.0,12.12,53.03,30.3
+168601,"Seeds, pumpkin and squash seeds, whole, roasted, with salt added",446.0,18.55,19.4,53.75
+168602,"Nuts, almonds, oil roasted, lightly salted",607.0,21.23,55.17,17.68
+168603,"Nuts, almond butter, plain, with salt added",614.0,20.96,55.5,18.82
+168606,"Beef, retail cuts, separable fat, cooked",680.0,10.65,70.33,0.0
+168608,"Beef, grass-fed, ground, raw",198.0,19.42,12.73,0.0
+168650,"Beef, ground, 70% lean meat / 30% fat, patty cooked, pan-broiled",238.0,22.86,15.54,0.0
+168652,"Beef, ground, 70% lean meat / 30% fat, raw",332.0,14.35,30.0,0.0
+168746,"Alcoholic beverage, beer, regular, all",43.0,0.46,0.0,3.55
+168747,"Alcoholic beverage, beer, regular, BUDWEISER",41.0,0.36,0.0,2.97
+168748,"Alcoholic beverage, beer, light, BUDWEISER SELECT",28.0,0.2,0.0,0.87
+168749,"Alcoholic beverage, beer, light",29.0,0.24,0.0,1.64
+168754,"Candies, milk chocolate, with almonds",526.0,9.0,34.4,53.4
+168755,"Candies, milk chocolate, with rice cereal",511.0,7.64,29.37,59.67
+168758,"Toppings, strawberry",254.0,0.2,0.1,66.3
+168763,"Candies, REESE'S Peanut Butter Cups",515.0,10.24,30.53,55.36
+168774,"Cocoa, dry powder, unsweetened, HERSHEY'S European Style Cocoa",410.0,20.0,10.0,60.0
+168805,"Candies, MARS SNACKFOOD US, DOVE Dark Chocolate",520.0,5.19,32.45,59.4
+168807,"Candies, MARS SNACKFOOD US, MILKY WAY Caramels. dark chocolate covered",458.0,3.82,20.42,67.56
+168809,"Ice creams, chocolate",216.0,3.8,11.0,28.2
+168810,"Ice creams, strawberry",192.0,3.2,8.4,27.6
+168816,"Fruit butters, apple",173.0,0.39,0.3,42.47
+168830,"Puddings, lemon, dry mix, instant, prepared with whole milk",115.0,2.7,2.9,20.1
+168831,"Puddings, lemon, dry mix, regular",363.0,0.1,0.5,91.8
+168833,"Sugars, brown",380.0,0.12,0.0,98.09
+168849,"Snacks, banana chips",519.0,2.3,33.6,58.4
+168872,"Oat bran, raw",246.0,17.3,7.03,66.22
+168873,"Oat bran, cooked",40.0,3.21,0.86,11.44
+168875,"Rice, brown, medium-grain, cooked (Includes foods for USDA's Food Distribution Program)",112.0,2.32,0.83,23.51
+168877,"Rice, white, long-grain, regular, raw, enriched",365.0,7.13,0.66,79.95
+168878,"Rice, white, long-grain, regular, enriched, cooked",130.0,2.69,0.28,28.17
+168879,"Rice, white, medium-grain, raw, enriched",360.0,6.61,0.58,79.34
+168880,"Rice, white, medium-grain, enriched, cooked",130.0,2.38,0.21,28.59
+168881,"Rice, white, short-grain, enriched, uncooked",358.0,6.5,0.52,79.15
+168882,"Rice, white, short-grain, enriched, cooked",130.0,2.36,0.19,28.73
+168883,"Rice, white, glutinous, unenriched, uncooked",370.0,6.81,0.55,81.68
+168893,"Wheat flour, whole-grain (Includes foods for USDA's Food Distribution Program)",340.0,13.21,2.5,71.97
+168894,"Wheat flour, white, all-purpose, enriched, bleached",364.0,10.33,0.98,76.31
+168895,"Wheat flour, white, all-purpose, self-rising, enriched",354.0,9.89,0.97,74.22
+168896,"Wheat flour, white, bread, enriched",361.0,11.98,1.66,72.53
+168900,"Pasta, gluten-free, corn, cooked",126.0,2.63,0.73,27.91
+168901,"Pasta, homemade, made with egg, cooked",130.0,5.28,1.74,23.54
+168902,"Pasta, homemade, made without egg, cooked",124.0,4.37,0.98,25.12
+168910,"Pasta, whole-wheat, cooked (Includes foods for USDA's Food Distribution Program)",149.0,5.99,1.71,30.07
+168911,"Spaghetti, spinach, dry",372.0,13.35,1.57,74.81
+168912,"Spaghetti, spinach, cooked",130.0,4.58,0.63,26.15
+168916,"Pasta, whole grain, 51% whole wheat, remaining unenriched semolina, cooked",159.0,5.82,1.5,31.51
+168928,"Pasta, cooked, unenriched, without added salt",158.0,5.8,0.93,30.86
+168930,"Rice, white, medium-grain, cooked, unenriched",130.0,2.38,0.21,28.59
+168931,"Rice, white, short-grain, raw, unenriched",358.0,6.5,0.52,79.15
+168932,"Rice, white, short-grain, cooked, unenriched",130.0,2.36,0.19,28.73
+168934,"Spaghetti, protein-fortified, cooked, enriched (n x 6.25)",164.0,8.86,0.21,30.88
+168935,"Rice, white, long-grain, regular, cooked, unenriched, with salt",130.0,2.69,0.28,28.17
+168936,"Wheat flour, white, all-purpose, enriched, unbleached",364.0,10.33,0.98,76.31
+168937,"Spaghetti, protein-fortified, dry, enriched (n x 6.25)",374.0,21.78,2.23,65.65
+168938,"Wheat flour, white (industrial), 10% protein, unbleached, enriched",366.0,9.71,1.48,76.22
+168939,"Wheat flour, white (industrial), 11.5% protein, bleached, enriched",363.0,11.5,1.45,73.81
+168941,"Wheat flour, white (industrial), 11.5% protein, unbleached, enriched",363.0,11.5,1.45,73.81
+168942,"Wheat flour, white (industrial), 13% protein, bleached, enriched",362.0,13.07,1.38,72.2
+168944,"Wheat flour, whole-grain, soft wheat",332.0,9.61,1.95,74.48
+168946,"Potatoes, french fried, wedge cut, frozen, unprepared",162.0,2.56,7.47,22.22
+168947,"Potatoes, french fried, steak cut, salt not added in processing, frozen, unprepared",134.0,2.4,3.42,24.31
+168948,"Potatoes, french fried, cross cut, frozen, unprepared",187.0,2.7,10.0,22.95
+168989,"Fish, herring eggs on giant kelp, Pacific (Alaska Native)",63.0,11.3,0.8,2.6
+168990,"Fish, herring eggs, Pacific, dry (Alaska Native)",312.0,60.4,6.6,2.8
+169008,"APPLEBEE'S, Double Crunch Shrimp",323.0,12.31,18.9,25.96
+169029,"Restaurant, family style, spaghetti and meatballs",170.0,7.84,8.52,15.51
+169033,"Restaurant, Italian, spaghetti with pomodoro sauce (no meat)",104.0,3.9,1.89,17.77
+169037,"OLIVE GARDEN, cheese ravioli with marinara sauce",159.0,7.44,5.61,19.64
+169039,"Cereals ready-to-eat, frosted oat cereal with marshmallows",400.0,7.1,3.33,84.7
+169041,"Cereals ready-to-eat, POST, GREAT GRAINS, Raisin, Date & Pecan",378.0,7.9,7.1,74.3
+169043,"Babyfood, juice, orange-carrot",43.0,0.5,0.1,9.9
+169058,"Jams and preserves, no sugar (with sodium saccharin), any flavor",132.0,0.3,0.3,53.42
+169078,"Cheese, cottage, with vegetables",95.0,10.9,4.2,3.0
+169094,"Olives, ripe, canned (small-extra large)",116.0,0.84,10.9,6.04
+169095,"Olives, ripe, canned (jumbo-super colossal)",81.0,0.97,6.87,5.61
+169096,"Olives, pickled, canned or bottled, green",145.0,1.03,15.32,3.84
+169097,"Oranges, raw, all commercial varieties",47.0,0.94,0.12,11.75
+169098,"Orange juice, raw (Includes foods for USDA's Food Distribution Program)",45.0,0.7,0.2,10.4
+169099,"Orange juice, canned, unsweetened",47.0,0.68,0.15,11.01
+169100,"Orange juice, chilled, includes from concentrate",49.0,0.68,0.12,11.54
+169101,"Orange juice, chilled, includes from concentrate, with added calcium and vitamin D",47.0,0.68,0.12,11.27
+169103,"Orange peel, raw",97.0,1.5,0.2,25.0
+169112,"Peaches, canned, heavy syrup pack, solids and liquids",74.0,0.45,0.1,19.94
+169113,"Peaches, canned, extra heavy syrup pack, solids and liquids",96.0,0.47,0.03,26.06
+169114,"Peaches, spiced, canned, heavy syrup pack, solids and liquids",75.0,0.41,0.1,20.08
+169115,"Peaches, dried, sulfured, stewed, with added sugar",103.0,1.06,0.22,26.6
+169116,"Peaches, frozen, sliced, sweetened",94.0,0.63,0.13,23.98
+169118,"Pears, raw",57.0,0.36,0.14,15.23
+169119,"Pears, canned, water pack, solids and liquids",29.0,0.19,0.03,7.81
+169121,"Pears, dried, sulfured, uncooked",262.0,1.87,0.63,69.7
+169122,"Pears, dried, sulfured, stewed, without added sugar",127.0,0.91,0.31,33.81
+169123,"Pears, dried, sulfured, stewed, with added sugar",140.0,0.86,0.29,37.14
+169132,"Plums, canned, purple, heavy syrup pack, solids and liquids",89.0,0.36,0.1,23.24
+169133,"Plums, canned, purple, extra heavy syrup pack, solids and liquids",101.0,0.36,0.1,26.31
+169145,"Beets, raw",43.0,1.61,0.17,9.56
+169146,"Beets, cooked, boiled, drained",44.0,1.68,0.18,9.96
+169147,"Beets, canned, regular pack, solids and liquids",30.0,0.73,0.09,7.14
+169178,"Pork, fresh, spareribs, separable lean and fat, cooked, roasted",361.0,20.89,30.86,0.0
+169203,"Arrowhead, raw",99.0,5.33,0.29,20.23
+169214,"Corn, sweet, yellow, canned, whole kernel, drained solids",67.0,2.29,1.22,14.34
+169215,"Corn, sweet, yellow, canned, cream style, regular pack",72.0,1.74,0.42,18.13
+169216,"Corn, sweet, yellow, canned, vacuum pack, regular pack",79.0,2.41,0.5,19.44
+169222,"Yardlong bean, raw",47.0,2.8,0.4,8.35
+169225,"Cucumber, peeled, raw",10.0,0.59,0.16,2.16
+169228,"Eggplant, raw",25.0,0.98,0.18,5.88
+169229,"Eggplant, cooked, boiled, drained, without salt",35.0,0.83,0.23,8.73
+169230,"Garlic, raw",149.0,6.36,0.5,33.06
+169242,"Mushrooms, shiitake, raw",34.0,2.24,0.49,6.79
+169243,"Mushrooms, portabella, grilled",29.0,3.28,0.58,4.44
+169247,"Lettuce, cos or romaine, raw",17.0,1.23,0.3,3.29
+169248,"Lettuce, iceberg (includes crisphead types), raw",14.0,0.9,0.14,2.97
+169249,"Lettuce, green leaf, raw",15.0,1.36,0.15,2.87
+169251,"Mushrooms, white, raw",22.0,3.09,0.34,3.26
+169255,"Mushrooms, portabella, raw",22.0,2.11,0.35,3.87
+169265,"Potatoes, french fried, cottage-cut, salt not added in processing, frozen, as purchased",153.0,2.42,5.78,23.98
+169266,"Potatoes, french fried, cottage-cut, salt not added in processing, frozen, oven-heated",218.0,3.44,8.2,34.03
+169270,"Pumpkin flowers, raw",15.0,1.03,0.07,3.28
+169271,"Pumpkin flowers, cooked, boiled, drained, without salt",15.0,1.09,0.08,3.3
+169272,"Pumpkin leaves, raw",19.0,3.15,0.4,2.33
+169285,"Spinach, canned, regular pack, solids and liquids",19.0,2.11,0.37,2.92
+169286,"Spinach, canned, regular pack, drained solids",23.0,2.81,0.5,3.4
+169287,"Spinach, frozen, chopped or leaf, unprepared (Includes foods for USDA's Food Distribution Program)",29.0,3.63,0.57,4.21
+169288,"Spinach, frozen, chopped or leaf, cooked, boiled, drained, without salt",34.0,4.01,0.87,4.8
+169291,"Squash, summer, zucchini, includes skin, raw",17.0,1.21,0.32,3.11
+169292,"Squash, summer, zucchini, includes skin, cooked, boiled, drained, without salt",15.0,1.14,0.36,2.69
+169299,"Squash, winter, spaghetti, cooked, boiled, drained, or baked, without salt",27.0,0.66,0.26,6.46
+169329,"Broccoli, leaves, raw",28.0,2.98,0.35,5.06
+169330,"Broccoli, flower clusters, raw",28.0,2.98,0.35,5.06
+169331,"Broccoli, stalks, raw",28.0,2.98,0.35,5.24
+169335,"Cabbage, common (danish, domestic, and pointed types), freshly harvest, raw",24.0,1.21,0.18,5.37
+169336,"Cabbage, common (danish, domestic, and pointed types), stored, raw",24.0,1.21,0.18,5.37
+169339,"Carrots, cooked, boiled, drained, with salt",35.0,0.76,0.18,8.22
+169340,"Carrots, canned, no salt added, solids and liquids",23.0,0.59,0.14,5.36
+169352,"Eggplant, cooked, boiled, drained, with salt",33.0,0.83,0.23,8.14
+169360,"Corn, sweet, white, canned, whole kernel, no salt added, solids and liquids",64.0,1.95,0.5,15.41
+169361,"Corn, sweet, white, canned, whole kernel, drained solids",67.0,2.29,1.22,14.34
+169362,"Corn, sweet, white, canned, cream style, regular pack",74.0,1.74,0.42,18.62
+169372,"Potatoes, mashed, dehydrated, prepared from flakes without milk, whole milk and margarine added",113.0,1.9,5.6,15.02
+169373,"Peppers, sweet, red, freeze-dried",314.0,17.9,3.0,68.7
+169378,"Pickles, cucumber, sweet (includes bread and butter pickles)",91.0,0.58,0.41,21.15
+169379,"Pickles, cucumber, sour",11.0,0.33,0.2,2.26
+169380,"Pickles, cucumber, sweet, low sodium (includes bread and butter pickles)",122.0,0.37,0.26,33.73
+169381,"Catsup, low sodium",101.0,1.04,0.1,27.4
+169382,"Mushrooms, enoki, raw",37.0,2.66,0.29,7.81
+169383,"Peppers, sweet, yellow, raw",27.0,1.0,0.21,6.32
+169386,"Pickle relish, hamburger",129.0,0.63,0.54,34.48
+169387,"Arugula, raw",25.0,2.58,0.66,3.65
+169392,"Broccoli, chinese, cooked",22.0,1.14,0.72,3.81
+169393,"Grape leaves, canned",69.0,4.27,1.97,11.71
+169394,"Pepper, banana, raw",27.0,1.66,0.45,5.35
+169395,"Peppers, serrano, raw",32.0,1.74,0.44,6.7
+169397,"Pickles, chowchow, with cauliflower onion mustard, sweet",121.0,1.5,0.9,26.64
+169400,"Malabar spinach, cooked",23.0,2.98,0.78,2.71
+169402,"Mushrooms, white, microwaved",35.0,3.91,0.46,6.04
+169403,"Mushrooms, maitake, raw",31.0,1.94,0.19,6.97
+169404,"Broccoli, chinese, raw",26.0,1.2,0.76,4.67
+169407,"Seeds, watermelon seed kernels, dried",557.0,28.33,47.37,15.31
+169410,"Seeds, sesame butter, tahini, from raw and stone ground kernels",570.0,17.81,48.0,26.19
+169415,"Seeds, pumpkin and squash seed kernels, roasted, with salt added",574.0,29.84,49.05,14.71
+169419,"Nuts, almonds, oil roasted, with salt added",607.0,21.23,55.17,17.68
+169420,"Nuts, almonds, oil roasted, with salt added, smoke flavor",607.0,21.43,55.89,17.86
+169473,"Beef, ground, 70% lean meat / 30% fat, crumbles, cooked, pan-browned",270.0,25.56,17.86,0.0
+169474,"Beef, ground, 70% lean meat / 30% fat, loaf, cooked, baked",241.0,23.87,15.37,0.0
+169572,"Alcoholic beverage, beer, light, BUD LIGHT",29.0,0.25,0.0,1.3
+169575,"Alcoholic beverage, beer, light, low carb",27.0,0.17,0.0,0.73
+169576,"Candies, milk chocolate coated raisins",390.0,4.1,14.8,68.4
+169592,"Candies, SPECIAL DARK Chocolate Bar",556.0,5.54,32.4,60.49
+169593,"Cocoa, dry powder, unsweetened",228.0,19.6,13.7,57.9
+169594,"Cocoa, dry powder, unsweetened, processed with alkali",220.0,18.1,13.1,58.3
+169631,"Ice creams, vanilla, light, no sugar added",169.0,3.97,7.45,21.42
+169634,"Candies, dark chocolate coated coffee beans",540.0,7.5,30.0,59.95
+169637,"Candies, milk chocolate coated coffee beans",549.0,7.41,33.18,55.25
+169640,Honey,304.0,0.3,0.0,82.4
+169641,Jams and preserves,278.0,0.37,0.07,68.86
+169650,"Puddings, banana, dry mix, regular",366.0,0.0,0.4,93.0
+169654,"Puddings, lemon, dry mix, instant",378.0,0.0,0.7,95.4
+169655,"Sugars, granulated",387.0,0.0,0.0,99.98
+169656,"Sugars, powdered",389.0,0.0,0.0,99.77
+169658,"Sugars, maple",354.0,0.1,0.2,90.9
+169674,"Snacks, granola bars, soft, uncoated, chocolate chip",418.0,5.65,16.57,70.2
+169676,"Snacks, granola bars, soft, uncoated, nut and raisin",454.0,8.0,20.4,63.6
+169681,"Snacks, granola bars, hard, peanut butter",483.0,9.8,23.8,62.3
+169688,"Snacks, KELLOGG, KELLOGG'S Low Fat Granola Bar, Crunchy Almond/Brown Sugar",390.0,8.0,7.4,78.0
+169703,"Rice, brown, long-grain, raw (Includes foods for USDA's Food Distribution Program)",367.0,7.54,3.2,76.25
+169704,"Rice, brown, long-grain, cooked (Includes foods for USDA's Food Distribution Program)",123.0,2.74,0.97,25.58
+169705,Oats (Includes foods for USDA's Food Distribution Program),389.0,16.89,6.9,66.27
+169706,"Rice, brown, medium-grain, raw (Includes foods for USDA's Food Distribution Program)",362.0,7.5,2.68,76.17
+169707,"Rice, white, long-grain, parboiled, enriched, dry",374.0,7.51,1.03,80.89
+169708,"Rice, white, long-grain, parboiled, enriched, cooked",123.0,2.91,0.37,26.05
+169711,"Rice, white, glutinous, unenriched, cooked",97.0,2.02,0.19,21.09
+169728,"Pasta, fresh-refrigerated, plain, cooked",131.0,5.15,1.05,24.93
+169730,"Pasta, fresh-refrigerated, spinach, cooked",130.0,5.06,0.94,25.04
+169737,"Pasta, cooked, enriched, without added salt",158.0,5.8,0.93,30.86
+169741,"Oat flour, partially debranned",404.0,14.66,9.12,65.7
+169751,"Pasta, cooked, enriched, with added salt",157.0,5.8,0.93,30.59
+169753,"Rice, white, long-grain, regular, cooked, enriched, with salt",130.0,2.69,0.28,28.17
+169754,"Wheat flour, white, all-purpose, enriched, calcium-fortified",364.0,10.33,0.98,76.31
+169756,"Rice, white, long-grain, regular, raw, unenriched",365.0,7.13,0.66,79.95
+169757,"Rice, white, long-grain, regular, unenriched, cooked without salt",130.0,2.69,0.28,28.17
+169758,"Rice, white, long-grain, parboiled, unenriched, dry",374.0,7.51,1.03,80.89
+169759,"Rice, white, long-grain, parboiled, unenriched, cooked",123.0,2.91,0.37,26.05
+169760,"Rice, white, medium-grain, raw, unenriched",360.0,6.61,0.58,79.34
+169761,"Wheat flour, white, all-purpose, unenriched",364.0,10.33,0.98,76.31
+169768,"Potatoes, mashed, ready-to-eat",106.0,1.97,5.01,13.29
+169779,"Dumpling, potato- or cheese-filled, frozen",195.0,5.26,6.14,29.64
+169781,"Sausage, egg and cheese breakfast biscuit",324.0,9.54,22.13,21.57
+169799,"Blueberries, wild, frozen (Alaska Native)",44.0,0.7,0.0,10.4
+169806,"Fish, herring eggs, Pacific, plain (Alaska Native)",74.0,9.6,1.93,4.47
+169807,"Fish, herring, Pacific, flesh, air-dried, packed in oil (Alaska Native)",489.0,44.5,34.6,0.0
+169816,"Prickly pears, raw (Northern Plains Indians)",42.0,0.12,0.11,10.17
+169820,"Plums, wild (Northern Plains Indians)",91.0,0.43,0.17,21.95
+169828,"Tea, herbal, brewed, Hohoysi (Hopi)",2.0,0.12,0.2,0.0
+169851,"OLIVE GARDEN, lasagna classico",184.0,11.28,10.84,10.33
+169852,"OLIVE GARDEN, spaghetti with pomodoro sauce",102.0,4.26,1.85,17.14
+169858,"OLIVE GARDEN, chicken parmigiana without pasta",211.0,15.33,11.23,12.28
+169863,"Snacks, granola bar, with coconut, chocolate coated",531.0,5.2,32.2,55.2
+169866,"Frankfurter, meat and poultry, low fat",121.0,15.5,2.8,8.4
+169868,"Milk, fluid, nonfat, calcium fortified (fat free or skim)",35.0,3.4,0.18,4.85
+169869,"Peanut butter, reduced sodium",590.0,24.0,49.9,21.83
+169870,"Cereals ready-to-eat, POST GREAT GRAINS Banana Nut Crunch",390.0,9.8,8.8,70.9
+169871,"Babyfood, carrots, toddler",21.0,0.6,0.3,5.23
+169887,"Frankfurter, meatless",233.0,19.61,13.73,7.7
+169890,"Cabbage, japanese style, fresh, pickled",30.0,1.6,0.1,5.67
+169891,"Cabbage, mustard, salted",28.0,1.1,0.1,5.63
+169892,"Eggplant, pickled",49.0,0.9,0.7,9.77
+169899,"Whipped cream substitute, dietetic, made from powdered mix",100.0,0.9,6.0,10.6
+169901,"Cheese, american cheddar, imitation",239.0,16.7,14.0,11.6
+169909,"Mammy-apple, (mamey), raw",51.0,0.5,0.5,12.5
+169916,"Oranges, raw, California, valencias",49.0,1.04,0.3,11.89
+169917,"Oranges, raw, navels (Includes foods for USDA's Food Distribution Program)",49.0,0.91,0.15,12.54
+169918,"Oranges, raw, Florida",46.0,0.7,0.21,11.54
+169919,"Oranges, raw, with peel",63.0,1.3,0.3,15.5
+169920,"Orange juice, chilled, includes from concentrate, with added calcium",47.0,0.68,0.12,11.27
+169928,"Peaches, yellow, raw",39.0,0.91,0.25,9.54
+169929,"Peaches, canned, water pack, solids and liquids",24.0,0.44,0.06,6.11
+169930,"Peaches, canned, juice pack, solids and liquids",44.0,0.63,0.03,11.57
+169932,"Peaches, dehydrated (low-moisture), sulfured, uncooked",325.0,4.89,1.03,83.18
+169933,"Peaches, dehydrated (low-moisture), sulfured, stewed",133.0,2.01,0.42,34.14
+169934,"Peaches, dried, sulfured, uncooked",239.0,3.61,0.76,61.33
+169935,"Peaches, dried, sulfured, stewed, without added sugar",77.0,1.16,0.25,19.69
+169949,"Plums, raw",46.0,0.7,0.28,11.42
+169950,"Plums, canned, purple, water pack, solids and liquids",41.0,0.39,0.01,11.03
+169951,"Plums, canned, purple, juice pack, solids and liquids",58.0,0.51,0.02,15.15
+169952,"Plums, canned, purple, light syrup pack, solids and liquids",63.0,0.37,0.1,16.28
+169966,"Beets, canned, drained solids",31.0,0.91,0.14,7.21
+169967,"Broccoli, cooked, boiled, drained, without salt",35.0,2.38,0.41,7.18
+169968,"Broccoli, frozen, chopped, unprepared",26.0,2.81,0.29,4.78
+169970,"Broccoli, frozen, spears, unprepared (Includes foods for USDA's Food Distribution Program)",29.0,3.06,0.34,5.35
+169975,"Cabbage, raw",25.0,1.28,0.1,5.8
+169976,"Cabbage, cooked, boiled, drained, without salt",23.0,1.27,0.06,5.51
+169977,"Cabbage, red, raw",31.0,1.43,0.16,7.37
+169978,"Cabbage, red, cooked, boiled, drained, without salt",29.0,1.51,0.09,6.94
+169979,"Cabbage, chinese (pe-tsai), raw",16.0,1.2,0.2,3.23
+169983,"Carrots, frozen, unprepared (Includes foods for USDA's Food Distribution Program)",36.0,0.78,0.46,7.9
+169984,"Carrots, frozen, cooked, boiled, drained, without salt",37.0,0.58,0.68,7.73
+169998,"Corn, sweet, yellow, raw",86.0,3.27,1.35,18.7
+170000,"Onions, raw",40.0,1.1,0.1,9.34
+170001,"Onions, cooked, boiled, drained, without salt",44.0,1.36,0.19,10.15
+170002,"Onions, dehydrated flakes",349.0,8.95,0.46,83.28
+170003,"Onions, canned, solids and liquids",19.0,0.85,0.09,4.02
+170004,"Onions, yellow, sauteed",123.0,0.95,10.8,7.86
+170005,"Onions, spring or scallions (includes tops and bulb), raw",32.0,1.83,0.19,7.34
+170006,"Onions, young green, tops only",27.0,0.97,0.47,5.74
+170007,"Onions, welsh, raw",34.0,1.9,0.4,6.5
+170008,"Onions, sweet, raw",32.0,0.8,0.08,7.55
+170014,"Peas, green, canned, seasoned, solids and liquids",50.0,3.09,0.27,9.25
+170015,"Peas, green, canned, drained solids, rinsed in tap water",71.0,4.33,0.95,11.82
+170016,"Peas, green, frozen, unprepared (Includes foods for USDA's Food Distribution Program)",77.0,5.22,0.4,13.62
+170017,"Peas, green, frozen, cooked, boiled, drained, without salt",78.0,5.15,0.27,14.26
+170022,"Peppers, sweet, green, frozen, chopped, unprepared",20.0,1.08,0.21,4.45
+170024,"Peppers, sweet, green, sauteed",116.0,0.78,11.85,4.22
+170037,"Potatoes, mashed, home-prepared, whole milk and margarine added",113.0,1.96,4.2,16.94
+170039,"Potatoes, mashed, dehydrated, granules without milk, dry form",372.0,8.22,0.54,85.51
+170040,"Potatoes, mashed, dehydrated, prepared from granules without milk, whole milk and butter added",108.0,2.05,4.96,14.36
+170041,"Potatoes, mashed, dehydrated, granules with milk, dry form",357.0,10.9,1.1,77.7
+170042,"Potatoes, mashed, dehydrated, prepared from granules with milk, water and margarine added",116.0,2.13,4.8,16.13
+170049,"Potatoes, frozen, whole, cooked, boiled, drained, without salt",65.0,1.98,0.13,14.52
+170050,"Tomatoes, red, ripe, cooked",18.0,0.95,0.11,4.01
+170051,"Tomatoes, red, ripe, canned, packed in tomato juice",16.0,0.79,0.25,3.47
+170052,"Tomatoes, red, ripe, canned, stewed",26.0,0.91,0.19,6.19
+170053,"Tomatoes, red, ripe, canned, with green chilies",15.0,0.69,0.08,3.62
+170089,"Tomatoes, red, ripe, cooked, stewed",79.0,1.96,2.68,13.05
+170092,Potato pancakes,268.0,6.08,14.76,27.81
+170096,"Tomatoes, yellow, raw",15.0,0.98,0.26,2.98
+170097,"Mushrooms, shiitake, cooked, with salt",56.0,1.56,0.22,14.39
+170100,"Onions, cooked, boiled, drained, with salt",42.0,1.36,0.19,9.56
+170102,"Peas, green, cooked, boiled, drained, with salt",84.0,5.36,0.22,15.63
+170103,"Peas, green, canned, no salt added, solids and liquids",53.0,3.19,0.3,9.75
+170104,"Peas, green, canned, no salt added, drained solids",69.0,4.42,0.35,12.58
+170105,"Peas, green, frozen, cooked, boiled, drained, with salt",78.0,5.15,0.27,14.26
+170106,"Peppers, hot chili, red, raw",40.0,1.87,0.44,8.81
+170108,"Peppers, sweet, red, raw",26.0,0.99,0.3,6.03
+170109,"Peppers, sweet, green, cooked, boiled, drained, with salt",26.0,0.92,0.2,6.11
+170110,"Peppers, sweet, red, cooked, boiled, drained, without salt",28.0,0.92,0.2,6.7
+170114,"Potatoes, boiled, cooked in skin, flesh, with salt",87.0,1.87,0.1,20.13
+170116,"Potatoes, frozen, whole, cooked, boiled, drained, with salt",63.0,1.98,0.13,13.93
+170118,"Potatoes, french fried, all types, salt not added in processing, frozen, oven-heated",168.0,2.66,5.22,28.71
+170119,"Pumpkin, flowers, cooked, boiled, drained, with salt",15.0,1.09,0.08,3.18
+170120,"Pumpkin leaves, cooked, boiled, drained, with salt",21.0,2.72,0.22,3.39
+170123,"Spinach, canned, no salt added, solids and liquids",19.0,2.11,0.37,2.92
+170124,"Spinach, frozen, chopped or leaf, cooked, boiled, drained, with salt",34.0,4.01,0.87,4.8
+170137,"Tomatoes, red, ripe, cooked, with salt",18.0,0.95,0.11,4.01
+170138,"Tomatoes, red, ripe, canned, packed in tomato juice, no salt added",16.0,0.79,0.25,3.47
+170158,"Nuts, almonds, dry roasted, without salt added",598.0,20.96,52.54,21.01
+170159,"Nuts, almonds, oil roasted, without salt added",607.0,21.23,55.17,17.68
+170160,"Nuts, almond paste",458.0,9.0,27.74,47.81
+170163,"Nuts, cashew butter, plain, without salt added",587.0,17.56,49.41,27.57
+170186,"Nuts, walnuts, black, dried",619.0,24.06,59.33,9.58
+170187,"Nuts, walnuts, english",654.0,15.23,65.21,13.71
+170188,"Seeds, pumpkin and squash seeds, whole, roasted, without salt",446.0,18.55,19.4,53.75
+170198,"Beef, cured, breakfast strips, cooked",449.0,31.3,34.4,1.4
+170200,"Beef, cured, corned beef, brisket, cooked",251.0,18.17,18.98,0.47
+170242,"Puddings, lemon, dry mix, regular, with added oil, potassium, sodium",366.0,0.1,1.5,90.3
+170251,"Snacks, rice cakes, brown rice, buckwheat, unsalted",380.0,9.0,3.5,80.1
+170271,"Chocolate, dark, 45- 59% cacao solids",546.0,4.88,31.28,61.17
+170272,"Chocolate, dark, 60-69% cacao solids",579.0,6.12,38.31,52.42
+170273,"Chocolate, dark, 70-85% cacao solids",598.0,7.79,42.63,45.9
+170274,"Candies, chocolate, dark, NFS (45-59% cacao solids 90%; 60-69% cacao solids 5%; 70-85% cacao solids 5%)",550.0,5.09,32.2,59.97
+170275,"Candies, crispy bar with peanut butter filling",542.0,9.53,31.34,55.53
+170280,"Jams, preserves, marmalades, sweetened with fruit juice",212.0,0.0,0.0,52.93
+170286,Buckwheat,343.0,13.25,3.4,71.5
+170295,"Fast foods, chicken fillet sandwich, plain with pickles",250.0,16.28,11.19,20.89
+170299,"Fast foods, submarine sandwich, tuna on white bread with lettuce and tomato",218.0,12.33,12.04,15.95
+170318,"Fast Foods, crispy chicken filet sandwich, with lettuce and mayonnaise",276.0,10.94,13.59,27.4
+170328,"BURGER KING, Hamburger",261.0,14.85,10.55,26.76
+170375,"Beet greens, raw",22.0,2.2,0.13,4.33
+170376,"Beet greens, cooked, boiled, drained, without salt",27.0,2.57,0.2,5.46
+170379,"Broccoli, raw",34.0,2.82,0.37,6.64
+170381,"Broccoli raab, raw",22.0,3.17,0.49,2.85
+170382,"Broccoli raab, cooked",25.0,3.83,0.52,3.12
+170388,"Cabbage, savoy, raw",27.0,2.0,0.1,6.1
+170390,"Cabbage, chinese (pak-choi), raw",13.0,1.5,0.2,2.18
+170393,"Carrots, raw",41.0,0.93,0.24,9.58
+170394,"Carrots, cooked, boiled, drained, without salt",35.0,0.76,0.18,8.22
+170395,"Carrots, canned, regular pack, solids and liquids",23.0,0.58,0.14,5.37
+170396,"Carrots, canned, regular pack, drained solids",25.0,0.64,0.19,5.54
+170409,"Corn, sweet, yellow, canned, brine pack, regular pack, solids and liquids",61.0,1.95,0.77,13.86
+170410,"Onions, frozen, chopped, unprepared",29.0,0.79,0.1,6.82
+170412,"Onions, frozen, whole, unprepared",35.0,0.89,0.06,8.45
+170419,"Peas, green, raw",81.0,5.42,0.4,14.45
+170420,"Peas, green, cooked, boiled, drained, without salt",84.0,5.36,0.22,15.63
+170421,"Peas, green, canned, regular pack, solids and liquids",58.0,3.01,0.48,10.6
+170427,"Peppers, sweet, green, raw",20.0,0.86,0.17,4.64
+170428,"Peppers, sweet, green, cooked, boiled, drained, without salt",28.0,0.92,0.2,6.7
+170429,"Peppers, sweet, green, canned, solids and liquids",18.0,0.8,0.3,3.9
+170436,"Potatoes, french fried, crinkle or regular cut, salt added in processing, frozen, as purchased",146.0,2.34,4.99,23.96
+170437,"Potatoes, french fried, crinkle or regular cut, salt added in processing, frozen, oven-heated",161.0,2.51,5.13,27.5
+170438,"Potatoes, boiled, cooked in skin, flesh, without salt",87.0,1.87,0.1,20.13
+170439,"Potatoes, boiled, cooked in skin, skin, without salt",78.0,2.86,0.1,17.21
+170440,"Potatoes, boiled, cooked without skin, flesh, without salt",86.0,1.71,0.1,20.01
+170445,"Potatoes, mashed, dehydrated, flakes without milk, dry form",354.0,8.34,0.41,81.17
+170446,"Potatoes, mashed, dehydrated, prepared from flakes without milk, whole milk and butter added",97.0,1.77,5.13,10.87
+170451,"Potatoes, french fried, shoestring, salt added in processing, frozen, as purchased",163.0,2.16,6.24,25.59
+170452,"Potatoes, french fried, shoestring, salt added in processing, frozen, oven-heated",194.0,2.9,6.76,31.66
+170456,"Tomatoes, green, raw",23.0,1.2,0.2,5.1
+170457,"Tomatoes, red, ripe, raw, year round average",18.0,0.88,0.2,3.89
+170479,"Beets, harvard, canned, solids and liquids",73.0,0.84,0.06,18.18
+170480,"Beets, pickled, canned, solids and liquids",65.0,0.8,0.08,16.28
+170493,"Potatoes, mashed, home-prepared, whole milk added",83.0,1.91,0.57,17.57
+170494,Spinach souffle,172.0,7.89,12.95,5.9
+170497,"Peppers, hot chili, green, raw",40.0,2.0,0.2,9.46
+170500,"Carrot, dehydrated",341.0,8.1,1.49,79.57
+170501,"Tomatoes, crushed, canned",32.0,1.64,0.28,7.29
+170502,"Tomatoes, orange, raw",16.0,1.16,0.19,3.18
+170505,"Mustard spinach, (tendergreen), cooked, boiled, drained, with salt",16.0,1.7,0.2,2.8
+170507,"Onions, frozen, whole, cooked, boiled, drained, with salt",26.0,0.71,0.05,6.11
+170515,"Peppers, sweet, red, cooked, boiled, drained, with salt",26.0,0.92,0.2,6.11
+170519,"Potatoes, boiled, cooked in skin, skin, with salt",78.0,2.86,0.1,17.2
+170520,"Potatoes, boiled, cooked without skin, flesh, with salt",86.0,1.71,0.1,20.01
+170523,"Potatoes, french fried, all types, salt not added in processing, frozen, as purchased",147.0,2.24,4.66,24.81
+170526,"Pumpkin, cooked, boiled, drained, with salt",18.0,0.72,0.07,4.31
+170527,"Pumpkin, canned, with salt",34.0,1.1,0.28,8.09
+170531,"Spinach, cooked, boiled, drained, with salt",23.0,2.97,0.26,3.75
+170534,"Squash, summer, zucchini, includes skin, cooked, boiled, drained, with salt",15.0,1.14,0.36,2.69
+170535,"Squash, summer, zucchini, includes skin, frozen, cooked, boiled, drained, with salt",14.0,1.15,0.13,2.97
+170539,"Squash, winter, spaghetti, cooked, boiled, drained, or baked, with salt",27.0,0.66,0.26,6.46
+170541,"Sweet potato, cooked, boiled, without skin, with salt",76.0,1.37,0.14,17.72
+170564,"Seeds, sunflower seed kernels, oil roasted, without salt",592.0,20.06,51.3,22.89
+170567,"Nuts, almonds",579.0,21.15,49.93,21.55
+170568,"Nuts, almonds, blanched",590.0,21.4,52.52,18.67
+170580,"Nuts, coconut cream, raw (liquid expressed from grated meat)",330.0,3.63,34.68,6.65
+170593,"Nuts, walnuts, glazed",500.0,8.28,35.71,47.59
+170594,"Nuts, walnuts, dry roasted, with salt added",643.0,14.29,60.71,17.86
+170611,"Beef, brisket, whole, separable lean and fat, trimmed to 0"" fat, all grades, cooked, braised",291.0,26.79,19.52,0.0
+170612,"Beef, brisket, whole, separable lean only, trimmed to 0"" fat, all grades, cooked, braised",218.0,29.75,10.08,0.0
+170645,"Jams and preserves, apricot",242.0,0.7,0.2,64.4
+170656,"Candies, sugar-coated almonds",465.0,10.0,17.93,68.26
+170657,"Cocoa, dry powder, hi-fat or breakfast, processed with alkali",479.0,16.8,23.71,49.71
+170659,"Ice creams, vanilla, fat free",138.0,4.48,0.0,30.06
+170671,"Ice creams, regular, low carbohydrate, vanilla",216.0,3.17,12.7,22.23
+170672,"Sweeteners, for baking, brown, contains sugar and sucralose",388.0,0.0,0.0,97.11
+170673,"Sweeteners, for baking, contains sugar and sucralose",398.0,0.0,0.0,99.53
+170674,"Sugar, turbinado",399.0,0.0,0.0,99.8
+170675,"Sweeteners, sugar substitute, granulated, brown",347.0,2.06,0.0,84.77
+170685,"Buckwheat groats, roasted, dry",346.0,11.73,2.71,74.95
+170686,"Buckwheat groats, roasted, cooked",92.0,3.38,0.62,19.94
+170687,"Buckwheat flour, whole-groat",335.0,12.62,3.1,70.59
+170689,"Fast foods, taco with beef, cheese and lettuce, hard shell",226.0,8.86,12.7,19.85
+170693,"Fast foods, hamburger; single, regular patty; plain",297.0,16.52,12.01,31.5
+170694,"Fast foods, hamburger; single, regular patty; with condiments",263.0,13.3,10.18,29.57
+170696,"Fast foods, submarine sandwich, cold cut on white bread with lettuce and tomato",213.0,10.52,10.04,20.43
+170699,"Fast foods, potato, mashed",89.0,1.65,2.82,14.65
+170707,"Fast foods, submarine sandwich, ham on white bread with lettuce and tomato",151.0,9.12,2.53,22.91
+170710,"Fast foods, hamburger, large, single patty, with condiments",256.0,15.68,11.6,22.14
+170763,"Fast foods, taco with beef, cheese and lettuce, soft",206.0,9.25,9.75,20.23
+170764,"Fast foods, taco with chicken, lettuce and cheese, soft",189.0,13.3,6.35,19.69
+170775,"Fast foods, strawberry banana smoothie made with ice and low-fat yogurt",65.0,0.86,0.14,15.05
+170785,"Fast foods, crispy chicken in tortilla, with lettuce, cheese, and ranch sauce",275.0,11.48,15.1,23.22
+170786,"Fast foods, grilled chicken in tortilla, with lettuce, cheese, and ranch sauce",222.0,13.77,10.31,18.43
+170788,"Fast foods, breadstick, soft, prepared with garlic and parmesan cheese",343.0,12.2,12.88,44.48
+170789,"PIZZA HUT, breadstick, parmesan garlic",343.0,12.2,12.88,44.48
+170802,"Beef, chuck eye steak, boneless, separable lean only, trimmed to 0"" fat, choice, raw",160.0,21.31,8.29,0.0
+170803,"Beef, chuck eye steak, boneless, separable lean only, trimmed to 0"" fat, select, raw",143.0,21.28,6.47,0.0
+170804,"Beef, chuck eye steak, boneless, separable lean only, trimmed to 0"" fat, all grades, raw",153.0,21.29,7.56,0.0
+170834,"Beef, chuck eye steak, boneless, separable lean and fat, trimmed to 0"" fat, choice, raw",227.0,18.86,16.85,0.0
+170835,"Beef, chuck eye steak, boneless, separable lean and fat, trimmed to 0"" fat, select, raw",216.0,18.86,15.6,0.0
+170843,"Cheese, fontina",389.0,25.6,31.14,1.55
+170845,"Cheese, mozzarella, whole milk",299.0,22.17,22.14,2.4
+170851,"Cheese, ricotta, whole milk",150.0,7.54,10.18,7.27
+170857,"Cream, fluid, light (coffee cream or table cream)",195.0,2.96,19.1,3.66
+170858,"Cream, fluid, light whipping",292.0,2.17,30.91,2.96
+170859,"Cream, fluid, heavy whipping",340.0,2.84,36.08,2.84
+170860,"Cream, whipped, cream topping, pressurized",257.0,3.2,22.22,12.49
+170861,"Milk, filled, fluid, with blend of hydrogenated vegetable oils",63.0,3.33,3.46,4.74
+170862,"Milk, filled, fluid, with lauric acid oil",63.0,3.33,3.4,4.74
+170869,"Sour cream, imitation, cultured",208.0,2.4,19.52,6.63
+170871,"Milk, reduced fat, fluid, 2% milkfat, protein fortified, with added vitamin A and vitamin D",56.0,3.95,1.98,5.49
+170872,"Milk, lowfat, fluid, 1% milkfat, with added vitamin A and vitamin D",42.0,3.37,0.97,4.99
+170875,"Milk, low sodium, fluid",61.0,3.1,3.46,4.46
+170876,"Milk, dry, whole, with added vitamin D",496.0,26.32,26.71,38.42
+170879,"Milk, chocolate, fluid, commercial, whole, with added vitamin A and vitamin D",83.0,3.17,3.39,10.34
+170880,"Milk, chocolate, fluid, commercial, reduced fat, with added vitamin A and vitamin D",76.0,2.99,1.9,12.13
+170881,"Milk, chocolate, lowfat, with added vitamin A and vitamin D",64.0,3.46,1.11,10.15
+170882,"Milk, sheep, fluid",108.0,5.98,7.0,5.36
+170886,"Yogurt, plain, low fat",63.0,5.25,1.55,7.04
+170887,"Yogurt, plain, skim milk",56.0,5.73,0.18,7.68
+170893,"Egg, whole, raw, frozen, salted, pasteurized",138.0,10.97,10.07,0.83
+170894,"Yogurt, Greek, plain, nonfat (Includes foods for USDA's Food Distribution Program)",59.0,10.19,0.39,3.6
+170896,"Cheese spread, American or Cheddar cheese base, reduced fat",176.0,13.41,8.88,10.71
+170899,"Cheese, cheddar, sharp, sliced",410.0,24.25,33.82,2.13
+170901,"Yogurt, Greek, strawberry, nonfat",82.0,8.05,0.15,12.07
+170903,"Yogurt, Greek, plain, lowfat",73.0,9.95,1.92,3.94
+170904,"Kefir, lowfat, plain, LIFEWAY",43.0,3.79,1.02,4.77
+170905,"Yogurt, Greek, fruit, whole milk",106.0,7.33,3.0,12.29
+170906,"Yogurt, vanilla, non-fat",78.0,2.94,0.0,17.04
+170907,"Yogurt, Greek, vanilla, lowfat",95.0,8.64,2.5,9.54
+170910,"Milk, chocolate, lowfat, reduced sugar",57.0,3.43,1.04,7.68
+170931,"Spices, pepper, black",251.0,10.39,3.26,63.95
+170932,"Spices, pepper, red or cayenne",318.0,12.01,17.27,56.63
+170933,"Spices, pepper, white",296.0,10.4,2.12,68.61
+170961,"Babyfood, juice, orange and apricot",46.0,0.8,0.1,10.9
+170962,"Babyfood, juice, orange and banana",50.0,0.7,0.1,11.9
+170963,"Babyfood, juice, orange and pineapple",48.0,0.5,0.1,11.7
+170966,"Babyfood, cereal, mixed, with applesauce and bananas, strained",82.0,0.71,0.51,18.38
+170967,"Babyfood, cereal, mixed, with applesauce and bananas, junior, fortified",84.0,0.71,0.51,18.79
+170970,"Babyfood, cereal, rice, with applesauce and bananas, strained",80.0,1.2,0.4,17.1
+170987,"Babyfood, yogurt, whole milk, with fruit, multigrain cereal and added DHA fortified",98.0,3.4,3.53,13.22
+170989,"Babyfood, mashed cheddar potatoes and broccoli, toddlers",48.0,1.11,1.47,7.47
+170990,"Babyfood, yogurt, whole milk, with fruit, multigrain cereal and added iron fortified",92.0,3.05,3.08,13.0
+170999,"Babyfood, banana with mixed berries, strained",92.0,1.01,0.36,21.31
+171009,"Salad dressing, mayonnaise, regular",680.0,0.96,74.85,0.57
+171010,"Salad dressing, mayonnaise, soybean and safflower oil, with salt",717.0,1.1,79.4,2.7
+171015,"Oil, palm",884.0,0.0,100.0,0.0
+171017,"Oil, sunflower, linoleic (less than 60%)",884.0,0.0,100.0,0.0
+171025,"Oil, sunflower, linoleic, (approx. 65%)",884.0,0.0,100.0,0.0
+171028,"Oil, grapeseed",884.0,0.0,100.0,0.0
+171030,"Oil, walnut",884.0,0.0,100.0,0.0
+171031,"Oil, almond",884.0,0.0,100.0,0.0
+171034,"Salad dressing, honey mustard dressing, reduced calorie",207.0,0.98,10.0,28.26
+171043,"Salad dressing, honey mustard, regular",464.0,0.87,40.83,23.33
+171046,"Dressing, honey mustard, fat-free",169.0,1.07,1.47,38.43
+171075,"Chicken, broilers or fryers, breast, meat and skin, cooked, roasted",197.0,29.8,7.78,0.0
+171076,"Chicken, broilers or fryers, breast, meat and skin, cooked, stewed",184.0,27.39,7.42,0.0
+171077,"Chicken, broiler or fryers, breast, skinless, boneless, meat only, raw",120.0,22.5,2.62,0.0
+171078,"Chicken, broilers or fryers, breast, meat only, cooked, fried",187.0,33.44,4.71,0.51
+171091,"Turkey, whole, dark meat, cooked, roasted",173.0,27.71,6.04,0.0
+171097,"Turkey, whole, back, meat only, cooked, roasted",173.0,27.71,6.04,0.0
+171098,"Turkey, whole, breast, meat only, raw",114.0,23.66,1.48,0.14
+171112,"Duck, young duckling, domesticated, White Pekin, leg, meat and skin, bone in, cooked, roasted",217.0,26.75,11.4,0.0
+171113,"Duck, young duckling, domesticated, White Pekin, leg, meat only, bone in, cooked without skin, braised",178.0,29.1,5.96,0.0
+171123,"Chicken, broilers or fryers, rotisserie, original seasoning, breast, meat and skin, cooked",184.0,27.48,8.18,0.02
+171140,"Chicken, broiler or fryers, breast, skinless, boneless, meat only, cooked, braised",157.0,32.06,3.24,0.0
+171144,"Soup, bean with ham, canned, chunky, ready-to-serve",95.0,5.19,3.5,11.16
+171159,"Soup, cream of shrimp, canned, condensed",72.0,2.22,4.14,6.53
+171192,"Sauce, pasta, spaghetti/marinara, ready-to-serve",50.0,1.39,1.61,7.43
+171231,"Beef, chuck eye steak, boneless, separable lean and fat, trimmed to 0"" fat, all grades, raw",223.0,18.86,16.35,0.0
+171240,"Cheese, gjetost",466.0,9.65,29.51,42.65
+171241,"Cheese, gouda",356.0,24.94,27.44,2.22
+171242,"Cheese, gruyere",413.0,29.81,32.34,0.36
+171255,"Cream, fluid, half and half",131.0,3.13,11.5,4.3
+171256,"Cream, sour, reduced fat, cultured",135.0,2.94,12.0,4.26
+171257,"Cream, sour, cultured",198.0,2.44,19.35,4.63
+171259,"Sour dressing, non-butterfat, cultured, filled cream-type",178.0,3.25,16.57,4.68
+171265,"Milk, whole, 3.25% milkfat, with added vitamin D",61.0,3.15,3.25,4.8
+171266,"Milk, producer, fluid, 3.7% milkfat",64.0,3.28,3.66,4.65
+171267,"Milk, reduced fat, fluid, 2% milkfat, with added vitamin A and vitamin D",50.0,3.3,1.98,4.8
+171268,"Milk, lowfat, fluid, 1% milkfat, protein fortified, with added vitamin A and vitamin D",48.0,3.93,1.17,5.52
+171277,"Milk, chocolate beverage, hot cocoa, homemade",77.0,3.52,2.34,10.74
+171284,"Yogurt, plain, whole milk",61.0,3.47,3.25,4.66
+171287,"Egg, whole, raw, fresh",143.0,12.56,9.51,0.72
+171292,"Cheese, cheddar, reduced fat (Includes foods for USDA's Food Distribution Program)",316.0,27.35,20.41,2.67
+171295,"Cheese, cheddar, nonfat or fat free",157.0,32.14,0.0,7.14
+171300,"Yogurt, Greek, strawberry, lowfat",105.0,8.17,2.57,12.29
+171301,"Kefir, lowfat, strawberry, LIFEWAY",62.0,3.39,0.9,10.2
+171303,"Milk, chocolate, fat free, with added vitamin A and vitamin D",67.0,3.39,0.0,13.46
+171304,"Yogurt, Greek, plain, whole milk",97.0,9.0,5.0,3.98
+171306,Ice cream sundae cone,254.0,3.0,14.0,28.89
+171308,"Cream, half and half, lowfat",72.0,3.33,5.0,3.33
+171309,"Yogurt, Greek, whole, plain, CHOBANI",82.0,8.24,4.01,3.24
+171312,"Yogurt, Greek, nonfat, plain, CHOBANI",54.0,9.53,0.24,3.43
+171314,"Butter, Clarified butter (ghee)",900.0,0.0,100.0,0.0
+171325,"Spices, garlic powder",331.0,16.55,0.73,72.73
+171342,"Babyfood, pears, dices, toddler",57.0,0.3,0.1,13.6
+171349,"Babyfood, peaches, dices, toddler",51.0,0.5,0.2,11.8
+171351,"Babyfood, apple-banana juice",51.0,0.2,0.1,12.3
+171354,"Babyfood, juice, orange",45.0,0.6,0.3,10.2
+171355,"Babyfood, juice, orange and apple",43.0,0.4,0.2,10.1
+171362,"Babyfood, cereal, oatmeal, with applesauce and bananas, strained",75.0,0.89,0.89,15.62
+171363,"Babyfood, cereal, oatmeal, with applesauce and bananas, junior, fortified",76.0,0.89,0.89,16.03
+171365,"Babyfood, cereal, with eggs, strained",58.0,2.2,1.5,8.0
+171403,"Salad dressing, mayonnaise type, regular, with salt",250.0,0.65,21.6,14.78
+171406,"Salad dressing, mayonnaise, imitation, soybean",232.0,0.3,19.2,16.0
+171407,"Salad dressing, mayonnaise, imitation, milk cream",97.0,2.1,5.1,11.1
+171408,"Salad dressing, mayonnaise, imitation, soybean without cholesterol",482.0,0.1,47.7,15.8
+171409,"Sandwich spread, with chopped pickle, regular, unspecified oils",389.0,0.9,34.0,22.4
+171412,"Oil, coconut",892.0,0.0,99.06,0.0
+171413,"Oil, olive, salad or cooking",884.0,0.0,100.0,0.0
+171418,"Salad dressing, mayonnaise, soybean oil, without salt",717.0,1.1,79.4,2.7
+171421,"Oil, cocoa butter",884.0,0.0,100.0,0.0
+171423,"Oil, poppyseed",884.0,0.0,100.0,0.0
+171427,"Oil, hazelnut",884.0,0.0,100.0,0.0
+171428,"Oil, babassu",884.0,0.0,100.0,0.0
+171443,"Mayonnaise, reduced fat, with olive oil",361.0,0.37,40.0,0.0
+171444,"Salad dressing, mayonnaise-type, light",158.0,0.65,10.0,16.4
+171474,"Chicken, broilers or fryers, breast, meat and skin, raw",172.0,20.85,9.25,0.0
+171475,"Chicken, broilers or fryers, breast, meat and skin, cooked, fried, batter",260.0,24.84,13.2,8.99
+171476,"Chicken, broilers or fryers, breast, meat and skin, cooked, fried, flour",222.0,31.84,8.87,1.64
+171477,"Chicken, broilers or fryers, breast, meat only, cooked, roasted",165.0,31.02,3.57,0.0
+171478,"Chicken, broilers or fryers, breast, meat only, cooked, stewed",151.0,28.98,3.03,0.0
+171481,"Turkey, whole, meat only, cooked, roasted",159.0,29.06,3.84,0.0
+171492,"Turkey, all classes, breast, meat and skin, cooked, roasted",189.0,28.71,7.41,0.0
+171496,"Turkey, whole, breast, meat only, cooked, roasted",147.0,30.13,2.08,0.0
+171501,"Turkey breast, pre-basted, meat and skin, cooked, roasted",126.0,22.16,3.46,0.0
+171506,"Turkey, Ground, cooked",203.0,27.37,10.4,0.0
+171509,"Chicken, broilers or fryers, breast, skinless, boneless, meat only, with added solution, raw",108.0,20.32,3.0,0.0
+171510,"Duck, young duckling, domesticated, White Pekin, breast, meat and skin, boneless, cooked, roasted",202.0,24.5,10.85,0.0
+171511,"Duck, young duckling, domesticated, White Pekin, breast, meat only, boneless, cooked without skin, broiled",140.0,27.6,2.5,0.0
+171514,"Chicken breast tenders, breaded, cooked, microwaved",252.0,16.35,12.89,17.56
+171518,"Chicken, broilers or fryers, rotisserie, original seasoning, breast, meat only, cooked",137.0,28.0,2.79,0.0
+171529,"Turkey, retail parts, breast, meat and skin, cooked, roasted",164.0,29.01,5.33,0.05
+171534,"Chicken, broiler or fryers, breast, skinless, boneless, meat only, cooked, grilled",151.0,30.54,3.17,0.0
+171535,"Chicken, broiler or fryers, breast, skinless, boneless, meat only, with added solution, cooked, braised",145.0,28.24,3.61,0.0
+171536,"Chicken, broiler or fryers, breast, skinless, boneless, meat only, with added solution, cooked, grilled",148.0,29.5,3.39,0.0
+171549,"Soup, lentil with ham, canned, ready-to-serve",56.0,3.74,1.12,8.16
+171551,"Soup, onion, canned, condensed",46.0,3.06,1.42,6.68
+171554,"Soup, pea, green, canned, condensed",125.0,6.54,2.23,20.18
+171575,"Sauce, peanut, made from coconut, water, sugar, peanuts",179.0,2.02,6.34,28.46
+171577,"SMART SOUP, French Lentil",53.0,2.9,1.06,9.5
+171591,"Soup, tomato, low sodium, with water",30.0,0.79,0.28,6.57
+171597,"Sauce, pasta, spaghetti/marinara, ready-to-serve, low sodium",51.0,1.41,1.48,8.06
+171616,"Beerwurst, beer salami, pork",238.0,14.24,18.8,2.06
+171617,"Sausage, Berliner, pork, beef",230.0,15.27,17.2,2.59
+171624,"Frankfurter, chicken",223.0,15.51,16.19,2.74
+171625,"Frankfurter, turkey",223.0,12.23,17.29,3.81
+171626,"Ham, chopped, canned",239.0,16.06,18.83,0.26
+171627,"Ham, chopped, not canned",221.0,16.5,16.7,0.0
+171629,Ham and cheese spread,245.0,16.18,18.53,2.28
+171631,"Sausage, Italian, pork, mild, raw",290.0,13.9,24.26,2.97
+171633,"Frankfurter, meat and poultry, cooked, boiled",298.0,10.31,26.28,4.96
+171634,"Frankfurter, meat and poultry, cooked, grilled",302.0,10.67,26.43,5.24
+171646,"Cereals ready-to-eat, granola, homemade",489.0,13.67,24.31,53.88
+171650,"Cereals ready-to-eat, POST Raisin Bran Cereal",324.0,7.6,1.6,78.9
+171654,"Cereals, corn grits, white, regular and quick, enriched, dry",370.0,7.65,1.75,79.09
+171655,"Cereals, corn grits, white, regular and quick, enriched, cooked with water, without salt",71.0,1.71,0.46,14.76
+171661,"Cereals, oats, instant, fortified, plain, dry",362.0,11.92,6.9,69.52
+171662,"Cereals, oats, instant, fortified, plain, prepared with water (boiling water added or microwaved)",68.0,2.37,1.36,11.67
+171664,"Cereals, oats, instant, fortified, with cinnamon and spice, dry",369.0,9.53,4.84,76.08
+171670,"Cereals, corn grits, yellow, regular and quick, unenriched, dry",371.0,8.8,1.2,79.6
+171671,"Cereals, corn grits, white, regular and quick, enriched, cooked with water, with salt",71.0,1.71,0.46,14.76
+171672,"Cereals, corn grits, yellow, regular and quick, enriched, cooked with water, without salt",65.0,1.23,0.39,13.86
+171673,"Cereals, corn grits, yellow, regular, quick, enriched, cooked with water, with salt",65.0,1.23,0.39,13.86
+171675,"Cereals, oats, regular and quick and instant, unenriched, cooked with water (includes boiling and microwaving), with salt",71.0,2.54,1.52,12.0
+171684,"Cereals, QUAKER, oatmeal, REAL MEDLEYS, apple walnut, dry",390.0,8.18,10.36,70.53
+171688,"Apples, raw, with skin (Includes foods for USDA's Food Distribution Program)",52.0,0.26,0.17,13.81
+171689,"Apples, raw, without skin",48.0,0.27,0.13,12.76
+171691,"Apples, dried, sulfured, uncooked",243.0,0.93,0.32,65.89
+171692,"Apples, dried, sulfured, stewed, without added sugar",57.0,0.22,0.07,15.32
+171693,"Apples, dried, sulfured, stewed, with added sugar",83.0,0.2,0.07,20.73
+171697,"Apricots, raw",48.0,1.4,0.39,11.12
+171705,"Avocados, raw, all commercial varieties",160.0,2.0,14.66,8.53
+171706,"Avocados, raw, California",167.0,1.96,15.41,8.64
+171707,"Avocados, raw, Florida",120.0,2.23,10.06,7.82
+171708,"Cherries, tart, dried, sweetened (Includes foods for USDA's Food Distribution Program)",333.0,1.25,0.73,80.45
+171711,"Blueberries, raw",57.0,0.74,0.33,14.49
+171716,"Cherries, sour, red, canned, heavy syrup pack, solids and liquids",91.0,0.73,0.1,23.27
+171717,"Cherries, sour, red, canned, extra heavy syrup pack, solids and liquids",114.0,0.71,0.09,29.23
+171718,"Cherries, sour, red, frozen, unsweetened (Includes foods for USDA's Food Distribution Program)",46.0,0.92,0.44,11.02
+171719,"Cherries, sweet, raw",63.0,1.06,0.2,16.01
+171720,"Cherries, sweet, canned, extra heavy syrup pack, solids and liquids",102.0,0.59,0.15,26.23
+171725,"Custard-apple, (bullock's-heart), raw",101.0,1.7,0.6,25.2
+171726,"Dates, deglet noor",282.0,2.45,0.39,75.03
+171784,"Beef, chuck, clod roast, separable lean and fat, trimmed to 0"" fat, select, cooked, roasted",196.0,27.3,8.76,0.0
+171790,"Beef, ground, 95% lean meat / 5% fat, raw",137.0,21.41,5.0,0.0
+171794,"Beef, ground, 90% lean meat / 10% fat, crumbles, cooked, pan-browned",230.0,28.45,12.04,0.0
+171795,"Beef, ground, 90% lean meat / 10% fat, loaf, cooked, baked",214.0,26.62,11.1,0.0
+171796,"Beef, ground, 85% lean meat / 15% fat, raw (Includes foods for USDA's Food Distribution Program)",215.0,18.59,15.0,0.0
+171799,"Beef, ground, 80% lean meat / 20% fat, crumbles, cooked, pan-browned",272.0,27.0,17.36,0.0
+171800,"Beef, ground, 80% lean meat / 20% fat, loaf, cooked, baked",254.0,25.25,16.17,0.0
+171801,"Beef, ground, 75% lean meat / 25% fat, loaf, cooked, baked",254.0,24.56,16.5,0.0
+171823,"Sauce, duck, ready-to-serve",245.0,0.36,0.13,60.66
+171836,"Cookie, with peanut butter filling, chocolate-coated",562.0,8.1,35.3,52.9
+171838,"Crackers, multigrain",482.0,7.1,20.4,67.6
+171849,"Bread, cinnamon",253.0,7.05,5.29,44.38
+171853,"Pancakes, whole wheat, dry mix, incomplete",350.0,10.53,1.32,74.11
+171871,"Beverages, carbonated, root beer",41.0,0.0,0.0,10.6
+171872,"Alcoholic Beverage, wine, table, red, Gamay",78.0,0.07,0.0,2.38
+171880,"Beverages, coffee, ready to drink, milk based, sweetened",71.0,1.98,1.38,12.6
+171881,"Beverages, coffee, brewed, breakfast blend",2.0,0.3,0.0,0.17
+171883,"Beverages, tea, green, ready to drink, ginseng and honey, sweetened",30.0,0.0,0.18,7.16
+171884,"Beverages, The COCA-COLA company, Minute Maid, Lemonade",46.0,0.0,0.0,12.08
+171886,"Beverages, Cocoa mix, no sugar added, powder",377.0,15.49,3.0,71.93
+171887,"Cocoa mix, NESTLE, Rich Chocolate Hot Cocoa Mix",400.0,3.0,15.0,75.0
+171888,"Beverages, tea, black, ready-to-drink, lemon, sweetened",45.0,0.0,0.22,10.8
+171889,"Beverages, coffee, brewed, prepared with tap water, decaffeinated",0.0,0.1,0.0,0.0
+171890,"Beverages, coffee, brewed, prepared with tap water",1.0,0.12,0.02,0.0
+171891,"Beverages, coffee, brewed, espresso, restaurant-prepared",9.0,0.12,0.18,1.67
+171893,"Beverages, coffee, instant, regular, powder",353.0,12.2,0.5,75.4
+171897,"Beverages, coffee, instant, with chicory",355.0,9.3,0.2,78.9
+171906,"Alcoholic beverages, beer, higher alcohol",58.0,0.9,0.0,0.27
+171910,"Beverages, tea, green, brewed, decaffeinated",0.0,0.0,0.0,0.0
+171911,"Beverages, tea, green, ready to drink, unsweetened",0.0,0.0,0.0,0.0
+171916,"Beverages, grape drink, canned",61.0,0.0,0.0,15.72
+171917,"Beverages, tea, green, brewed, regular",1.0,0.22,0.0,0.0
+171925,"Alcoholic Beverage, wine, table, red, Merlot",83.0,0.07,0.0,2.51
+171946,"Beverages, tea, hibiscus, brewed",0.0,0.0,0.0,0.0
+171955,"Fish, cod, Atlantic, raw",82.0,17.81,0.67,0.0
+171956,"Fish, cod, Atlantic, cooked, dry heat",105.0,22.83,0.86,0.0
+171970,"Crustaceans, shrimp, mixed species, cooked, breaded and fried",242.0,21.39,12.28,11.47
+171971,"Crustaceans, shrimp, mixed species, cooked, moist heat (may contain additives to retain moisture)",119.0,22.78,1.7,1.52
+171972,"Crustaceans, shrimp, mixed species, canned",100.0,20.42,1.36,0.0
+171973,"Crustaceans, shrimp, mixed species, imitation, made from surimi",101.0,12.39,1.47,9.13
+171986,"Fish, tuna, light, canned in water, without salt, drained solids",116.0,25.51,0.82,0.0
+171987,"Fish, tuna, white, canned in oil, without salt, drained solids",186.0,26.53,8.08,0.0
+171988,"Fish, tuna, white, canned in water, without salt, drained solids",128.0,23.62,2.97,0.0
+171990,"Fish, cod, Pacific, cooked, dry heat (may contain additives to retain moisture)",85.0,18.73,0.5,0.0
+171994,"Fish, mackerel, Pacific and jack, mixed species, cooked, dry heat",201.0,25.73,10.12,0.0
+171998,"Fish, salmon, Atlantic, wild, cooked, dry heat",182.0,25.44,8.13,0.0
+171999,"Fish, salmon, chinook, cooked, dry heat",231.0,25.72,13.38,0.0
+172000,"Fish, salmon, chum, cooked, dry heat",154.0,25.82,4.83,0.0
+172001,"Fish, salmon, pink, cooked, dry heat",153.0,24.58,5.28,0.0
+172011,"Beerwurst, beer salami, pork and beef",277.0,14.0,22.53,3.76
+172014,"Pasta, cooked, unenriched, with added salt",157.0,5.8,0.93,30.59
+172016,"Wheat flour, white (industrial), 9% protein, bleached, enriched",367.0,8.89,1.43,77.32
+172018,"Wheat flour, white (industrial), 10% protein, bleached, enriched",366.0,9.71,1.48,76.22
+172021,"Wheat flour, white (industrial), 15% protein, bleached, enriched",362.0,15.33,1.41,69.88
+172024,"Pasta, whole grain, 51% whole wheat, remaining enriched semolina, cooked (Includes foods for USDA's Food Distribution Program)",156.0,5.67,1.48,30.87
+172026,"Pasta, gluten-free, brown rice flour, cooked, TINKYADA",138.0,3.46,1.67,32.2
+172037,"Fast foods, shrimp, breaded and fried",308.0,7.84,18.9,27.99
+172080,"Fast foods, hamburger; double, large patty; with condiments, vegetables and mayonnaise",252.0,13.94,15.66,13.74
+172099,"Spaghetti, with meatballs in tomato sauce, canned",100.0,4.37,4.11,11.45
+172137,"Beef, plate steak, boneless, inside skirt, separable lean only, trimmed to 0"" fat, choice, raw",171.0,20.89,9.76,0.0
+172139,"Beef, plate steak, boneless, inside skirt, separable lean only, trimmed to 0"" fat, select, raw",153.0,21.61,7.41,0.0
+172159,"Beef, plate steak, boneless, inside skirt, separable lean and fat, trimmed to 0"" fat, choice, raw",195.0,20.06,12.78,0.0
+172160,"Beef, plate steak, boneless, inside skirt, separable lean and fat, trimmed to 0"" fat, select, raw",174.0,20.87,10.11,0.0
+172161,"Beef, ground, unspecified fat content, cooked",240.0,25.07,14.53,0.62
+172162,"Beef, plate steak, boneless, outside skirt, separable lean and fat, trimmed to 0"" fat, choice, raw",238.0,17.69,18.44,0.35
+172163,"Beef, plate steak, boneless, outside skirt, separable lean and fat, trimmed to 0"" fat, select, raw",222.0,18.43,16.31,0.36
+172175,"Cheese, blue",353.0,21.4,28.74,2.34
+172176,"Cheese, brick",371.0,23.24,29.68,2.79
+172177,"Cheese, brie",334.0,20.75,27.68,0.45
+172178,"Cheese, camembert",300.0,19.8,24.26,0.46
+172179,"Cheese, cottage, creamed, large or small curd",98.0,11.12,4.3,3.38
+172180,"Cheese, cottage, creamed, with fruit",97.0,10.69,3.85,4.61
+172181,"Cheese, cottage, nonfat, uncreamed, dry, large or small curd",72.0,10.34,0.29,6.66
+172182,"Cheese, cottage, lowfat, 2% milkfat",81.0,10.45,2.27,4.76
+172183,"Egg, white, raw, fresh",52.0,10.9,0.17,0.73
+172185,"Egg, whole, cooked, omelet",154.0,10.57,11.66,0.64
+172186,"Egg, whole, cooked, poached",143.0,12.51,9.47,0.71
+172187,"Egg, whole, cooked, scrambled",149.0,9.99,10.98,1.61
+172188,"Egg, whole, dried",592.0,48.05,43.9,1.13
+172189,"Egg, duck, whole, fresh, raw",185.0,12.81,13.77,1.45
+172190,"Egg, goose, whole, fresh, raw",185.0,13.87,13.27,1.35
+172191,"Egg, quail, whole, fresh, raw",158.0,13.05,11.09,0.41
+172192,"Egg, turkey, whole, fresh, raw",171.0,13.68,11.88,1.15
+172202,"Egg, whole, raw, frozen, pasteurized (Includes foods for USDA's Food Distribution Program)",147.0,12.33,9.95,1.01
+172203,"Egg, white, raw, frozen, pasteurized",48.0,10.2,0.0,1.04
+172204,"Egg, white, dried",382.0,81.1,0.0,7.8
+172205,"Milk, reduced fat, fluid, 2% milkfat, without added vitamin A and vitamin D",50.0,3.3,1.98,4.8
+172210,KRAFT BREAKSTONE'S Reduced Fat Sour Cream,152.0,4.5,12.0,6.5
+172211,KRAFT BREAKSTONE'S FREE Fat Free Sour Cream,91.0,4.7,1.3,15.1
+172212,"Cream, half and half, fat free",59.0,2.6,1.4,9.0
+172217,"Milk, whole, 3.25% milkfat, without added vitamin A and vitamin D",61.0,3.15,3.27,4.78
+172225,"Milk, buttermilk, fluid, whole",62.0,3.21,3.31,4.88
+172247,"Babyfood, meat, ham, strained",97.0,11.3,3.8,3.7
+172256,"Babyfood, dinner, vegetables and dumplings and beef, strained",48.0,2.0,0.9,7.7
+172285,"Babyfood, plums, bananas and rice, strained",57.0,1.1,0.3,12.7
+172296,"Babyfood, cereal, barley, prepared with whole milk",84.0,3.73,3.26,9.94
+172297,"Babyfood, cereal, oatmeal, with bananas, prepared with whole milk",86.0,3.82,3.46,10.0
+172299,"Babyfood, cereal, rice, prepared with whole milk",85.0,3.45,3.38,10.31
+172328,"Oil, sunflower, linoleic, (partially hydrogenated)",884.0,0.0,100.0,0.0
+172336,"Oil, canola",884.0,0.0,100.0,0.0
+172337,"Oil, mustard",884.0,0.0,100.0,0.0
+172338,"Oil, sunflower, high oleic (70% and over)",884.0,0.0,100.0,0.0
+172344,"Butter, light, stick, without salt",499.0,3.3,55.1,0.0
+172357,"Oil, industrial, mid-oleic, sunflower",884.0,0.0,100.0,0.0
+172379,"Chicken, broilers or fryers, leg, meat only, cooked, fried",208.0,28.38,9.32,0.65
+172387,"Chicken, broilers or fryers, thigh, meat only, cooked, fried",218.0,28.18,10.3,1.18
+172388,"Chicken, broilers or fryers, thigh, meat only, cooked, roasted",179.0,24.76,8.15,0.0
+172389,"Chicken, broilers or fryers, thigh, meat only, cooked, stewed",195.0,25.0,9.79,0.0
+172408,"Duck, domesticated, meat and skin, raw",404.0,11.49,39.34,0.0
+172409,"Duck, domesticated, meat and skin, cooked, roasted",337.0,18.99,28.35,0.0
+172410,"Duck, domesticated, meat only, raw",135.0,18.28,5.95,0.94
+172411,"Duck, domesticated, meat only, cooked, roasted",201.0,23.48,11.2,0.0
+172420,"Lentils, raw",352.0,24.63,1.06,63.35
+172421,"Lentils, mature seeds, cooked, boiled, without salt",116.0,9.02,0.38,20.13
+172428,"Peas, green, split, mature seeds, raw",364.0,23.12,3.89,61.63
+172430,"Peanuts, all types, raw",567.0,25.8,49.24,16.13
+172431,"Peanuts, spanish, oil-roasted, with salt",579.0,28.01,49.04,17.45
+172432,"Peanuts, valencia, raw",570.0,25.09,47.58,20.91
+172433,"Peanuts, valencia, oil-roasted, with salt",589.0,27.04,51.24,16.3
+172434,"Peanuts, virginia, raw",563.0,25.19,48.75,16.54
+172438,"Refried beans, canned, traditional style",90.0,4.98,2.01,13.55
+172448,"Tofu, firm, prepared with calcium sulfate and magnesium chloride (nigari)",78.0,9.04,4.17,2.85
+172449,"Tofu, soft, prepared with calcium sulfate and magnesium chloride (nigari)",61.0,7.17,3.69,1.18
+172450,"Tofu, dried-frozen (koyadofu)",477.0,52.47,30.34,10.03
+172451,"Tofu, fried",270.0,18.82,20.18,8.86
+172454,"Hummus, home prepared",177.0,4.86,8.59,20.12
+172458,"Peanut butter, smooth, reduced fat",520.0,25.9,34.0,35.65
+172459,"Peanut butter, smooth, vitamin and mineral fortified",591.0,25.72,50.81,18.75
+172460,"Peanut butter, chunky, vitamin and mineral fortified",593.0,26.06,51.47,17.69
+172469,"Peanut butter, chunk style, without salt",589.0,24.06,49.94,21.57
+172470,"Peanut butter, smooth style, without salt",598.0,22.21,51.36,22.31
+172471,"Peanut butter with omega-3, creamy",608.0,24.47,54.17,17.0
+172475,"Tofu, raw, firm, prepared with calcium sulfate",144.0,17.27,8.72,2.78
+172476,"Tofu, raw, regular, prepared with calcium sulfate",76.0,8.08,4.78,1.87
+172499,"Lamb, shoulder, whole (arm and blade), separable lean only, trimmed to 1/4"" fat, choice, cooked, roasted",204.0,24.94,10.77,0.0
+172544,"Lamb, ground, cooked, broiled",283.0,24.75,19.65,0.0
+172573,"Lamb, Australian, imported, fresh, separable fat, cooked",639.0,9.42,66.4,0.0
+172577,"Lamb, Australian, imported, fresh, leg, whole (shank and sirloin), separable lean only, trimmed to 1/8"" fat, cooked, roasted",190.0,27.31,8.1,0.0
+172656,"Lamb, Australian, imported, fresh, seam fat, cooked",554.0,13.81,54.72,1.55
+172664,"Bagels, cinnamon-raisin",274.0,9.8,1.7,55.2
+172665,"Bagels, cinnamon-raisin, toasted",294.0,10.6,1.8,59.3
+172673,"Bread, egg",287.0,9.5,6.0,47.8
+172678,"Bread, oatmeal",269.0,8.4,4.4,48.5
+172680,"Bread, raisin, enriched",274.0,7.9,4.4,52.3
+172681,"Bread, raisin, enriched, toasted",297.0,8.6,4.8,56.9
+172684,"Bread, rye",259.0,8.5,3.3,48.3
+172685,"Bread, rye, toasted",284.0,9.4,3.6,53.1
+172686,"Bread, wheat",274.0,10.67,4.53,47.54
+172736,"Cookies, sugar wafers with creme filling, regular",502.0,3.84,23.24,70.64
+172739,"Crackers, crispbread, rye",366.0,7.9,1.3,82.2
+172740,"Crackers, matzo, plain",395.0,10.0,1.4,83.7
+172741,"Crackers, matzo, egg",391.0,12.3,2.1,78.6
+172742,"Crackers, matzo, whole-wheat",351.0,13.1,1.5,78.9
+172744,"Crackers, rye, wafers, plain",334.0,9.6,0.9,80.4
+172749,"Crackers, whole-wheat",427.0,10.58,14.13,69.55
+172750,"Cracker, meal",383.0,9.3,1.7,80.9
+172772,"Pancakes, plain, dry mix, complete (includes buttermilk)",368.0,9.77,3.1,73.65
+172773,"Pancakes, blueberry, prepared from recipe",222.0,6.1,9.2,29.0
+172774,"Pancakes, buckwheat, dry mix, incomplete",340.0,10.9,2.7,71.3
+172775,"Pancakes, special dietary, dry mix",349.0,8.9,1.4,73.9
+172776,"Pancakes, whole-wheat, dry mix, incomplete",344.0,12.8,1.5,71.0
+172796,"Rolls, hamburger or hotdog, plain",279.0,9.77,3.91,50.12
+172797,"Rolls, hamburger or hotdog, mixed-grain",263.0,9.6,6.0,44.6
+172801,"Toaster pastries, brown-sugar-cinnamon",370.0,4.06,7.98,72.64
+172816,"Bread, pita, white, unenriched",275.0,9.1,1.2,55.7
+172817,"Bread, raisin, unenriched",274.0,7.9,4.4,52.3
+172818,"Bread, white, commercially prepared, low sodium, no salt",267.0,8.2,3.6,49.6
+172826,"Bread, white, commercially prepared, toasted, low sodium no salt",293.0,9.0,4.0,54.4
+172827,"Danish pastry, lemon, unenriched",371.0,5.4,18.5,47.8
+172853,"Chicken, broilers or fryers, dark meat, thigh, meat only, cooked, braised",176.0,24.55,8.63,0.0
+172854,"Chicken, skin (drumsticks and thighs), cooked, braised",443.0,14.61,42.76,0.0
+172858,"Chicken, dark meat, thigh, meat only, with added solution, cooked, braised",164.0,23.0,7.96,0.0
+172862,"Chicken, dark meat, thigh, meat and skin, with added solution, cooked, braised",215.0,20.7,14.62,0.21
+172876,"Turkey, breast, from whole bird, meat only, with added solution, raw",102.0,21.54,1.66,0.14
+172879,"Sauce, plum, ready-to-serve",184.0,0.89,1.04,42.81
+172896,"Soup, pea, green, canned, prepared with equal volume milk",94.0,4.97,2.77,12.69
+172898,"Soup, cream of shrimp, canned, prepared with equal volume low fat (2%) milk",61.0,2.78,3.23,5.64
+172918,"Soup, cream of shrimp, canned, prepared with equal volume water",36.0,1.11,2.07,3.27
+172926,"Olive loaf, pork",235.0,11.8,16.5,9.2
+172941,"Turkey breast, sliced, prepackaged",106.0,14.81,3.77,2.2
+172943,"Honey roll sausage, beef",182.0,18.58,10.5,2.18
+172945,"Oscar Mayer, Chicken Breast (honey glazed)",109.0,19.85,1.5,4.3
+172952,"Sausage, Italian, sweet, links",149.0,16.13,8.42,2.1
+172953,"Sausage, Polish, beef with chicken, hot",259.0,17.6,19.4,3.6
+172955,"Sausage, pork and beef, with cheddar cheese, smoked",296.0,12.89,25.84,2.13
+172962,"Chicken breast, fat-free, mesquite flavor, sliced",80.0,16.8,0.39,2.25
+172963,"Chicken breast, oven-roasted, fat-free, sliced",79.0,16.79,0.39,2.17
+172964,"Frankfurter, pork",269.0,12.81,23.68,0.28
+172968,"Frankfurter, meat",290.0,10.26,25.76,4.17
+172973,"Cereals ready-to-eat, chocolate-flavored frosted puffed corn",405.0,3.34,3.5,87.2
+172976,"Cereals ready-to-eat, QUAKER, Low Fat 100% Natural Granola with Raisins",388.0,8.42,5.52,80.57
+172996,"Cereals ready-to-eat, MALT-O-MEAL, Raisin Bran Cereal",342.0,7.63,1.87,80.37
+172999,"Cereals, MALT-O-MEAL, Maple & Brown Sugar Hot Wheat Cereal, dry",368.0,8.82,0.47,80.52
+173002,"Cereals ready-to-eat, RALSTON Enriched Wheat Bran flakes",390.0,10.21,3.36,79.77
+173003,"Cereals ready-to-eat, RALSTON Corn Biscuits",376.0,5.83,1.05,85.79
+173007,"Cereals ready-to-eat, QUAKER, QUAKER Honey Graham LIFE Cereal",373.0,9.33,4.14,78.56
+173015,"Cereals ready-to-eat, POST, HONEY BUNCHES OF OATS with vanilla bunches",394.0,7.9,5.1,81.8
+173020,"Cereals ready-to-eat, POST HONEY BUNCHES OF OATS with cinnamon bunches",400.0,7.1,5.0,82.8
+173040,"Grapes, muscadine, raw",57.0,0.81,0.47,13.93
+173041,"Grape juice, canned or bottled, unsweetened, with added ascorbic acid",60.0,0.37,0.13,14.77
+173042,"Grape juice, canned or bottled, unsweetened, without added ascorbic acid",60.0,0.37,0.13,14.77
+173045,"Guavas, strawberry, raw",69.0,0.58,0.6,17.36
+173082,"Beef, New Zealand, imported, intermuscular fat, cooked",560.0,7.9,57.22,3.39
+173090,"Beef, New Zealand, imported, subcutaneous fat, cooked",731.0,6.5,78.3,0.0
+173092,"Beef, New Zealand, imported, sweetbread, cooked, boiled",318.0,12.53,29.79,0.0
+173110,"Beef, ground, 93% lean meat / 7% fat, raw",152.0,20.85,7.0,0.0
+173111,"Beef, ground, 97% lean meat / 3% fat, raw",121.0,21.98,3.0,0.0
+173114,"Beef, ground, 97% lean meat / 3% fat, loaf, cooked, baked",154.0,27.58,4.06,0.0
+173146,"Snacks, granola bites, mixed flavors",451.0,7.17,17.5,66.27
+173148,"Snacks, granola bars, soft, almond, confectioners coating",455.0,8.6,20.0,60.13
+173160,"Snacks, shrimp cracker",426.0,7.14,17.86,59.09
+173165,"Beverages, THE COCA-COLA COMPANY, NOS energy drink, Original, grape, loaded cherry, charged citrus, fortified with vitamins B6 and B12",44.0,0.0,0.0,11.25
+173178,"Beverages, Orange juice, light, No pulp",21.0,0.21,0.0,5.42
+173179,"Beverages, The COCA-COLA company, Hi-C Flashin' Fruit Punch",45.0,0.0,0.0,12.5
+173187,"Beverages, chocolate almond milk, unsweetened, shelf-stable, fortified with vitamin D2 and E",21.0,0.83,1.46,1.25
+173188,"Beverages, The COCA-COLA company, Glaceau Vitamin Water, Revive Fruit Punch, fortified",0.0,0.0,0.0,0.0
+173190,"Alcoholic beverage, wine, table, red",85.0,0.07,0.0,2.61
+173191,"Alcoholic Beverage, wine, table, red, Barbera",85.0,0.07,0.0,2.79
+173192,"Alcoholic Beverage, wine, table, red, Zinfandel",88.0,0.07,0.0,2.86
+173194,"Alcoholic Beverage, wine, table, red, Claret",83.0,0.07,0.0,3.01
+173199,"Carbonated beverage, cream soda",51.0,0.0,0.0,13.3
+173203,"Beverages, carbonated, grape soda",43.0,0.0,0.0,11.2
+173204,"Beverages, carbonated, low calorie, other than cola or pepper, without caffeine",0.0,0.1,0.0,0.0
+173205,"Beverages, carbonated, lemon-lime soda, no caffeine",41.0,0.09,0.0,10.42
+173208,"Alcoholic Beverage, wine, table, red, Burgundy",86.0,0.07,0.0,3.69
+173213,"Beverages, grape juice drink, canned",57.0,0.0,0.0,14.55
+173227,"Beverages, tea, black, brewed, prepared with tap water",1.0,0.0,0.0,0.3
+173232,"Beverages, tea, herb, other than chamomile, brewed",1.0,0.0,0.0,0.2
+173246,"Archway Home Style Cookies, Date Filled Oatmeal",400.0,4.67,12.05,68.16
+173247,"Archway Home Style Cookies, Dutch Cocoa",431.0,4.5,14.99,69.44
+173263,"Rice, brown, parboiled, cooked, UNCLE BENS",147.0,3.09,0.85,31.33
+173265,"Pasta, gluten-free, corn and rice flour, cooked",179.0,3.2,1.0,38.05
+173317,"Fast foods, hamburger; single, large patty; with condiments, vegetables and mayonnaise",226.0,11.34,12.37,17.33
+173318,"Fast foods, hamburger; single, regular patty; double decker bun with condiments and special sauce",259.0,12.17,13.3,22.69
+173410,"Butter, salted",717.0,0.85,81.11,0.06
+173411,"Butter, whipped, with salt",731.0,0.49,78.3,0.0
+173413,"Cheese, caraway",376.0,25.18,29.2,3.06
+173414,"Cheese, cheddar (Includes foods for USDA's Food Distribution Program)",403.0,22.87,33.31,3.37
+173415,"Cheese, cheshire",387.0,23.37,30.6,4.78
+173416,"Cheese, colby",394.0,23.76,32.11,2.57
+173417,"Cheese, cottage, lowfat, 1% milkfat",72.0,12.39,1.02,2.72
+173418,"Cheese, cream",350.0,6.15,34.44,5.52
+173419,"Cheese, edam",357.0,24.99,28.57,1.43
+173420,"Cheese, feta",265.0,14.21,21.49,3.88
+173423,"Egg, whole, cooked, fried",196.0,13.61,14.84,0.83
+173424,"Egg, whole, cooked, hard-boiled",155.0,12.58,10.61,1.12
+173425,"Egg, whole, dried, stabilized, glucose reduced",615.0,48.17,43.95,2.38
+173430,"Butter, without salt",717.0,0.85,81.11,0.06
+173439,"Cheese, low fat, cheddar or colby",173.0,24.35,7.0,1.91
+173440,"Cheese, low-sodium, cheddar or colby",398.0,24.35,32.62,1.91
+173441,"Milk, fluid, 1% fat, without added vitamin A and vitamin D",42.0,3.37,0.97,4.99
+173442,"Sour cream, reduced fat",181.0,7.0,14.1,7.0
+173443,"Sour cream, light",136.0,3.5,10.6,7.1
+173444,"Sour cream, fat free",74.0,3.1,0.0,15.6
+173450,"Milk, chocolate, fluid, commercial, reduced fat, with added calcium",78.0,2.99,1.9,12.13
+173454,"Milk, dry, whole, without added vitamin D",496.0,26.32,26.71,38.42
+173465,"Ice cream, soft serve, chocolate",222.0,4.1,13.0,22.2
+173480,"Babyfood, meat, ham, junior",97.0,11.3,3.8,3.7
+173488,"Babyfood, dinner, vegetables and dumplings and beef, junior",48.0,2.1,0.8,8.0
+173492,"Babyfood, dinner, spaghetti and tomato and meat, junior",68.0,2.57,1.37,11.42
+173493,"Babyfood, dinner, spaghetti and tomato and meat, toddler",75.0,5.3,1.0,10.8
+173505,"Babyfood, vegetables, beets, strained",34.0,1.3,0.1,7.7
+173511,"Babyfood, apples, dices, toddler",50.0,0.19,0.36,11.56
+173517,"Babyfood, apples with ham, strained",62.0,2.6,0.9,10.9
+173518,"Babyfood, carrots and beef, strained",59.0,3.4,2.5,5.7
+173528,"Babyfood, cereal, high protein, prepared with whole milk",111.0,8.7,3.8,11.6
+173529,"Babyfood, cereal, mixed, prepared with whole milk",96.0,4.14,3.38,12.3
+173530,"Babyfood, cereal, mixed, with bananas, prepared with whole milk",86.0,3.82,3.46,10.0
+173531,"Babyfood, cereal, oatmeal, prepared with whole milk",116.0,5.0,4.1,15.3
+173532,"Babyfood, cereal, mixed, with honey, prepared with whole milk",115.0,5.0,3.6,15.9
+173573,"Oil, avocado",884.0,0.0,100.0,0.0
+173576,"Oil, oat",884.0,0.0,100.0,0.0
+173581,"Butter, light, stick, with salt",499.0,3.3,55.1,0.0
+173594,"Salad dressing, mayonnaise, light",238.0,0.37,22.22,9.23
+173625,"Chicken, broilers or fryers, thigh, meat and skin, cooked, roasted",232.0,23.26,14.71,0.0
+173626,"Chicken, broilers or fryers, thigh, meat and skin, cooked, stewed",232.0,23.26,14.74,0.0
+173668,"Fish, herring, Atlantic, kippered",217.0,24.58,12.37,0.0
+173669,"Fish, herring, Pacific, raw",195.0,16.39,13.88,0.0
+173672,"Fish, mackerel, Pacific and jack, mixed species, raw",158.0,20.07,7.89,0.0
+173673,"Fish, mackerel, spanish, raw",139.0,19.29,6.3,0.0
+173674,"Fish, mackerel, spanish, cooked, dry heat",158.0,23.59,6.32,0.0
+173687,"Fish, salmon, chinook, smoked",117.0,18.28,4.32,0.0
+173688,"Fish, salmon, chinook, raw",179.0,19.93,10.43,0.0
+173689,"Fish, salmon, chum, raw",120.0,20.14,3.77,0.0
+173691,"Fish, salmon, sockeye, raw",131.0,22.25,4.69,0.0
+173692,"Fish, salmon, sockeye, cooked, dry heat",156.0,26.48,5.57,0.0
+173706,"Fish, tuna, fresh, bluefin, raw",144.0,23.33,4.9,0.0
+173708,"Fish, tuna, light, canned in oil, drained solids",198.0,29.13,8.21,0.0
+173709,"Fish, tuna, light, canned in water, drained solids (Includes foods for USDA's Food Distribution Program)",86.0,19.44,0.96,0.0
+173716,"Fish, salmon, coho, farmed, cooked, dry heat",178.0,24.3,8.23,0.0
+173719,"Fish, salmon, coho, wild, cooked, dry heat",139.0,23.45,4.3,0.0
+173722,"Salmon nuggets, cooked as purchased, unheated",189.0,11.97,10.43,11.85
+173781,SILK Blueberry soy yogurt,88.0,2.35,1.18,17.06
+173788,HOUSE FOODS Premium Firm Tofu,85.0,10.92,4.19,0.97
+173807,"Peanuts, spanish, oil-roasted, without salt",579.0,28.01,49.04,17.45
+173808,"Peanuts, valencia, oil-roasted, without salt",589.0,27.04,51.24,16.3
+173859,"Sausage, pork, chorizo, link or ground, raw",296.0,13.63,25.1,3.78
+173862,"Frankfurter, beef, unheated",315.0,11.69,28.1,2.97
+173863,"Ham, sliced, pre-packaged, deli meat (96%fat free, water added)",107.0,16.85,4.04,0.7
+173864,"Ham, sliced, regular (approximately 11% fat)",164.0,16.6,8.8,3.63
+173865,"Ham, minced",263.0,16.28,20.68,1.84
+173871,"Sausage, turkey, fresh, cooked",196.0,23.89,10.44,0.0
+173875,"Frankfurter, meat and poultry, unheated",277.0,9.72,24.18,5.02
+173880,"Sausage, chicken or turkey, Italian style, lower sodium",183.0,21.43,4.46,14.25
+173881,"Ham, smoked, extra lean, low sodium",141.0,18.52,2.71,10.7
+173888,"Cereals ready-to-eat, POST Bran Flakes",328.0,9.9,2.1,80.5
+173898,"Cereals, QUAKER, corn grits, instant, cheddar cheese flavor, dry",363.0,8.98,5.46,72.96
+173904,"Cereals, oats, regular and quick, not fortified, dry",379.0,13.15,6.52,67.7
+173905,"Cereals, oats, regular and quick, unenriched, cooked with water (includes boiling and microwaving), without salt",71.0,2.54,1.52,12.0
+173906,"Cereals, oats, instant, fortified, with cinnamon and spice, prepared with water",96.0,2.37,1.21,18.95
+173907,"Cereals, QUAKER, Instant Oatmeal, maple and brown sugar, dry",368.0,9.2,4.63,76.91
+173908,"Cereals, oats, instant, fortified, with raisins and spice, prepared with water",88.0,1.98,0.95,17.91
+173919,"Cereals ready-to-eat, POST SELECTS Blueberry Morning",395.0,6.5,5.3,81.6
+173920,"Cereals, oats, instant, fortified, maple and brown sugar, dry",386.0,9.25,4.73,76.67
+173922,"Cereals, QUAKER, Weight Control Instant Oatmeal, maple and brown sugar",361.0,16.37,6.2,64.25
+173928,"Apples, raw, without skin, cooked, boiled",53.0,0.26,0.36,13.64
+173929,"Apples, raw, without skin, cooked, microwave",56.0,0.28,0.42,14.41
+173944,"Bananas, raw",89.0,1.09,0.33,22.84
+173945,"Bananas, dehydrated, or banana powder",346.0,3.89,1.81,88.28
+173946,"Blackberries, raw",43.0,1.39,0.49,9.61
+173948,"Blueberries, canned, heavy syrup, solids and liquids",88.0,0.65,0.33,22.06
+173949,"Blueberries, wild, frozen (Includes foods for USDA's Food Distribution Program)",57.0,0.0,0.16,13.85
+173950,"Blueberries, frozen, unsweetened (Includes foods for USDA's Food Distribution Program)",51.0,0.42,0.64,12.17
+173951,"Blueberries, frozen, sweetened",85.0,0.4,0.13,21.95
+173954,"Cherries, sour, red, raw",50.0,1.0,0.3,12.18
+173955,"Cherries, sour, red, canned, water pack, solids and liquids",36.0,0.77,0.1,8.94
+173956,"Cherries, sour, red, canned, light syrup pack, solids and liquids",75.0,0.74,0.1,19.3
+173957,"Cherries, sweet, canned, water pack, solids and liquids",46.0,0.77,0.13,11.76
+173958,"Cherries, sweet, canned, juice pack, solids and liquids",54.0,0.91,0.02,13.81
+173960,"Cherries, sweet, canned, pitted, heavy syrup pack, solids and liquids",83.0,0.6,0.15,21.27
+173962,"Cranberry-orange relish, canned",178.0,0.3,0.1,46.2
+174023,"Beef, chuck, clod roast, separable lean and fat, trimmed to 0"" fat, choice, cooked, roasted",216.0,24.61,12.26,0.0
+174029,"Beef, ground, 95% lean meat / 5% fat, loaf, cooked, baked",174.0,27.31,6.37,0.0
+174030,"Beef, ground, 90% lean meat / 10% fat, raw",176.0,20.0,10.0,0.0
+174034,"Beef, ground, 85% lean meat / 15% fat, crumbles, cooked, pan-browned",256.0,27.73,15.3,0.0
+174035,"Beef, ground, 85% lean meat / 15% fat, loaf, cooked, baked",240.0,25.93,14.36,0.0
+174036,"Beef, ground, 80% lean meat / 20% fat, raw",254.0,17.17,20.0,0.0
+174037,"Beef, ground, 75% lean meat / 25% fat, raw",293.0,15.76,25.0,0.0
+174040,"Beef, ground, 75% lean meat / 25% fat, crumbles, cooked, pan-browned",277.0,26.28,18.21,0.0
+174070,"Sauce, peanut, made from peanut butter, water, soy sauce",257.0,6.31,16.02,22.02
+174079,"Cookie, butter or sugar, with chocolate icing or filling",503.0,4.1,23.5,68.83
+174084,"Crackers, cheese, whole grain",412.0,9.62,16.03,57.29
+174086,"Pancakes, plain, reduced fat",269.0,5.71,1.9,57.32
+174089,"Rolls, hamburger or hot dog, wheat/cracked wheat",269.0,11.69,3.61,47.31
+174090,"Rolls, hamburger or hot dog, whole wheat",269.0,12.38,4.38,44.93
+174094,"Rolls, hamburger, whole grain white, calcium-fortified",255.0,9.3,3.49,46.5
+174099,"Bread, gluten-free, white, made with potato extract, rice starch, and rice flour",320.0,3.13,10.7,52.83
+174100,"Bread, gluten-free, white, made with rice flour, corn starch, and/or tapioca",248.0,4.31,5.24,45.78
+174101,"Bread, gluten-free, white, made with tapioca starch and brown rice flour",298.0,5.4,8.02,51.15
+174109,"Alcoholic Beverage, wine, table, red, Mouvedre",88.0,0.07,0.0,2.64
+174111,"Beverages, Kiwi Strawberry Juice Drink",47.0,0.0,0.0,12.26
+174117,"Beverages, chocolate syrup",279.0,2.1,1.13,65.1
+174118,"Beverages, chocolate syrup, prepared with whole milk",90.0,3.07,2.96,12.78
+174119,"Beverages, coffee, ready to drink, iced, mocha, milk based",60.0,1.48,0.98,11.42
+174120,"Beverages, tea, Oolong, brewed",1.0,0.0,0.0,0.15
+174122,"Beverages, Cocoa mix, powder",398.0,6.67,4.0,83.73
+174123,"Beverages, Cocoa mix, powder, prepared with water",55.0,0.92,0.55,11.54
+174124,"Beverages, Cocoa mix, NESTLE, Hot Cocoa Mix Rich Chocolate With Marshmallows",400.0,2.8,15.0,75.0
+174125,"Beverages, coffee, brewed, espresso, restaurant-prepared, decaffeinated",9.0,0.1,0.18,1.69
+174126,"Beverages, coffee, instant, regular, half the caffeine",352.0,14.42,0.5,73.18
+174127,"Beverages, coffee and cocoa, instant, decaffeinated, with whitener and low calorie sweetener",440.0,9.0,13.21,71.4
+174128,"Beverages, tea, green, ready-to-drink, sweetened",27.0,0.0,0.22,6.2
+174130,"Beverages, coffee, instant, regular, prepared with water",2.0,0.1,0.0,0.34
+174134,"Beverages, coffee, instant, chicory",3.0,0.09,0.0,0.75
+174135,"Beverages, coffee, instant, mocha, sweetened",460.0,5.29,15.87,74.04
+174141,"Alcoholic beverage, malt beer, hard lemonade",68.0,0.0,0.0,10.07
+174144,"Beverages, tea, black, ready to drink",0.0,0.0,0.0,0.0
+174145,"Alcoholic beverage, beer, light, higher alcohol",46.0,0.25,0.0,0.77
+174155,"Beverages, tea, black, brewed, prepared with distilled water",1.0,0.0,0.0,0.3
+174156,"Beverages, tea, herb, brewed, chamomile",1.0,0.0,0.0,0.2
+174160,"Beverages, chocolate-flavor beverage mix for milk, powder, with added nutrients, prepared with whole milk",89.0,3.27,3.17,11.87
+174189,"Fish, cod, Atlantic, canned, solids and liquid",105.0,22.76,0.86,0.0
+174190,"Fish, cod, Atlantic, dried and salted",290.0,62.82,2.37,0.0
+174191,"Fish, cod, Pacific, raw (may have been previously frozen)",69.0,15.27,0.41,0.0
+174210,"Crustaceans, shrimp, mixed species, raw (may contain additives to retain moisture)",71.0,13.61,1.01,0.91
+174227,"Fish, tuna, light, canned in oil, without salt, drained solids",198.0,29.13,8.21,0.0
+174233,"Fish, herring, Pacific, cooked, dry heat",250.0,21.01,17.79,0.0
+174236,"Fish, mackerel, king, cooked, dry heat",134.0,26.0,2.56,0.0
+174260,"Peanuts, all types, cooked, boiled, with salt",318.0,13.5,22.01,21.26
+174261,"Peanuts, all types, oil-roasted, with salt",599.0,28.03,52.5,15.26
+174262,"Peanuts, all types, dry-roasted, with salt",587.0,24.35,49.66,21.26
+174263,"Peanuts, spanish, raw",570.0,26.15,49.6,15.83
+174264,"Peanuts, virginia, oil-roasted, with salt",578.0,25.87,48.62,19.86
+174265,"Peanut butter, chunk style, with salt",589.0,24.06,49.94,21.57
+174266,"Peanut butter, smooth style, with salt (Includes foods for USDA's Food Distribution Program)",598.0,22.21,51.36,22.31
+174269,"Sausage, meatless",255.0,20.28,18.16,8.09
+174280,"Tofu, salted and fermented (fuyu)",116.0,8.92,8.0,4.38
+174284,"Lentils, pink or red, raw",358.0,23.91,2.17,63.1
+174289,"Hummus, commercial",237.0,7.78,17.82,15.0
+174290,"Tofu, extra firm, prepared with nigari",83.0,9.98,5.26,1.18
+174291,"Tofu, hard, prepared with nigari",145.0,12.68,9.99,4.39
+174294,"Peanut Butter, smooth (Includes foods for USDA's Food Distribution Program)",588.0,21.93,49.54,23.98
+174296,"Refried beans, canned, vegetarian",83.0,5.28,0.87,13.5
+174303,"Tofu, dried-frozen (koyadofu), prepared with calcium sulfate",470.0,52.43,30.34,8.3
+174304,"Tofu, fried, prepared with calcium sulfate",270.0,18.82,20.18,8.86
+174305,"Tofu, salted and fermented (fuyu), prepared with calcium sulfate",116.0,8.15,8.0,5.15
+174312,"Lamb, leg, whole (shank and sirloin), separable lean and fat, trimmed to 1/4"" fat, choice, cooked, roasted",258.0,25.55,16.48,0.0
+174314,"Lamb, leg, whole (shank and sirloin), separable lean only, trimmed to 1/4"" fat, choice, cooked, roasted",191.0,28.3,7.74,0.0
+174325,"Lamb, shoulder, whole (arm and blade), separable lean and fat, trimmed to 1/4"" fat, choice, cooked, roasted",276.0,22.51,19.97,0.0
+174373,"Lamb, leg, whole (shank and sirloin), separable lean and fat, trimmed to 1/8"" fat, choice, cooked, roasted",242.0,26.2,14.42,0.0
+174379,"Lamb, shoulder, whole (arm and blade), separable lean and fat, trimmed to 1/8"" fat, choice, cooked, roasted",269.0,22.7,19.08,0.0
+174404,"Lamb, Australian, imported, fresh, leg, whole (shank and sirloin), separable lean and fat, trimmed to 1/8"" fat, cooked, roasted",244.0,25.16,15.13,0.0
+174467,"Duck, domesticated, liver, raw",136.0,18.74,4.64,3.53
+174468,"Duck, wild, meat and skin, raw",211.0,17.42,15.2,0.0
+174469,"Duck, wild, breast, meat only, raw",123.0,19.85,4.25,0.0
+174496,"Chicken, skin (drumsticks and thighs), cooked, roasted",462.0,16.57,43.99,0.0
+174498,"Chicken, broilers or fryers, dark meat, thigh, meat and skin, cooked, braised",229.0,22.57,15.43,0.0
+174500,"Chicken, dark meat, thigh, meat only, with added solution, cooked, roasted",164.0,24.23,7.73,0.0
+174503,"Chicken, skin (drumsticks and thighs), with added solution, cooked, roasted",421.0,20.31,37.6,0.44
+174505,"Chicken, dark meat, thigh, meat and skin, with added solution, cooked, roasted",214.0,23.47,13.81,0.09
+174514,"Turkey, retail parts, breast, meat only, with added solution, cooked, roasted",130.0,27.94,2.08,0.0
+174516,"Turkey, retail parts, breast, meat only, cooked, roasted",136.0,29.51,1.97,0.0
+174519,"Turkey, breast, from whole bird, meat only, with added solution, roasted",127.0,26.97,2.08,0.0
+174576,"Pickle and pimiento loaf, pork",225.0,11.23,15.95,8.46
+174579,"Sausage, pork and beef, fresh, cooked",396.0,13.8,36.25,2.7
+174588,"Sausage, New england brand, pork, beef",161.0,17.27,7.58,4.83
+174599,"Sausage, summer, pork and beef, sticks, with cheddar cheese",426.0,19.43,37.91,1.82
+174600,"Sausage, turkey, breakfast links, mild, raw",174.0,15.91,10.39,3.18
+174608,"Chicken breast, roll, oven-roasted",134.0,14.59,7.65,1.79
+174611,"Ham, honey, smoked, cooked",122.0,17.93,2.37,7.27
+174614,"Frankfurter, beef, heated",322.0,11.69,29.36,2.66
+174615,"Frankfurter, meat, heated",278.0,9.77,24.31,4.9
+174617,"Sausage, turkey, fresh, raw",155.0,18.79,8.08,0.47
+174618,"Sausage, beef, fresh, cooked",332.0,18.21,27.98,0.35
+174625,"Cereals, QUAKER, Instant Oatmeal, raisins, dates and walnuts, dry",371.0,8.82,6.98,72.41
+174637,"Cereals, QUAKER, Instant Oatmeal, DINOSAUR EGGS, Brown Sugar, dry",384.0,8.69,7.59,73.68
+174642,"Cereals ready-to-eat, MALT-O-MEAL, Honey BUZZERS",379.0,3.45,1.72,89.66
+174648,"Cereals ready-to-eat, RALSTON Corn Flakes",384.0,5.9,0.91,88.01
+174659,"Cereals ready-to-eat, QUAKER, Maple Brown Sugar LIFE Cereal",373.0,9.17,4.06,78.86
+174682,"Grapes, american type (slip skin), raw",67.0,0.63,0.35,17.15
+174683,"Grapes, red or green (European type, such as Thompson seedless), raw",69.0,0.72,0.16,18.1
+174684,"Grapes, canned, thompson seedless, water pack, solids and liquids",40.0,0.5,0.11,10.3
+174685,"Grapes, canned, thompson seedless, heavy syrup pack, solids and liquids",76.0,0.48,0.1,19.65
+174699,"Beef, ribeye cap steak, boneless, separable lean only, trimmed to 0"" fat, choice, raw",187.0,19.46,11.4,1.75
+174700,"Beef, ribeye cap steak, boneless, separable lean only, trimmed to 0"" fat, select, raw",169.0,20.05,9.39,1.15
+174721,"Beef, New Zealand, imported, eye round, separable lean only, cooked, slow roasted",164.0,29.68,4.98,0.0
+174730,"Beef, New Zealand, imported, manufacturing beef, cooked, boiled",126.0,24.21,3.26,0.0
+174743,"Beef, New Zealand, imported, eye round, separable lean and fat, cooked, slow roasted",168.0,29.49,5.57,0.0
+174754,"Beef, ground, 93% lean meat / 7% fat, loaf, cooked, baked",192.0,27.03,8.43,0.0
+174809,"Beverages, THE COCA-COLA COMPANY, NOS Zero, energy drink, sugar-free with guarana, fortified with vitamins B6 and B12",4.0,0.0,0.0,1.03
+174832,"Beverages, almond milk, unsweetened, shelf stable",15.0,0.4,0.96,1.31
+174833,"Alcoholic Beverage, wine, table, red, Cabernet Sauvignon",83.0,0.07,0.0,2.6
+174834,"Alcoholic Beverage, wine, table, red, Cabernet Franc",83.0,0.07,0.0,2.45
+174836,"Alcoholic Beverage, wine, table, red, Syrah",83.0,0.07,0.0,2.58
+174838,"Alcoholic Beverage, wine, table, red, Lemberger",80.0,0.07,0.0,2.46
+174839,"Alcoholic Beverage, wine, table, red, Sangiovese",86.0,0.07,0.0,2.62
+174840,"Alcoholic Beverage, wine, table, red, Carignane",74.0,0.07,0.0,2.4
+174850,"Beverages, carbonated, low calorie, cola or pepper-type, with aspartame, without caffeine",1.0,0.12,0.0,0.12
+174851,"Beverages, carbonated, cola, without caffeine",41.0,0.0,0.0,10.58
+174852,"Beverages, carbonated, cola, regular",42.0,0.0,0.25,10.36
+174853,"Beverages, carbonated, reduced sugar, cola, contains caffeine and sweeteners",20.0,0.0,0.0,5.16
+174854,"Beverages, carbonated, orange",48.0,0.0,0.0,12.3
+174863,"Malt beverage, includes non-alcoholic beer",37.0,0.21,0.12,8.05
+174869,"Strawberry-flavor beverage mix, powder",389.0,0.1,0.2,99.1
+174870,"Beverages, Strawberry-flavor beverage mix, powder, prepared with whole milk",88.0,3.0,3.1,12.3
+174888,"Lamb, Australian, imported, fresh, tenderloin, boneless, separable lean only, trimmed to 1/8"" fat, cooked, roasted",184.0,30.97,6.71,0.0
+174891,"Lamb, Australian, imported, fresh, external fat, cooked",538.0,16.9,52.3,0.0
+174897,"Lamb, Australian, imported, fresh, tenderloin, boneless, separable lean and fat, trimmed to 1/8"" fat, cooked, roasted",187.0,30.87,7.02,0.0
+174913,"Bread, Italian",259.0,9.49,2.73,48.11
+174915,"Bread, pita, white, enriched",275.0,9.1,1.2,55.7
+174916,"Bread, pita, whole-wheat",262.0,9.8,1.71,55.89
+174918,"Bread, pumpernickel",250.0,8.7,3.1,47.5
+174920,"Bread, reduced-calorie, rye",203.0,9.1,2.9,40.5
+174922,"Bread, reduced-calorie, white",207.0,8.7,2.5,44.3
+174924,"Bread, white, commercially prepared (includes soft bread crumbs)",266.0,8.85,3.33,49.42
+174925,"Bread, white, commercially prepared, toasted",290.0,9.0,4.0,54.5
+174926,"Bread, white, prepared from recipe, made with nonfat dry milk",274.0,7.7,2.6,53.6
+174927,"Bread, white, prepared from recipe, made with low fat (2%) milk",285.0,7.9,5.7,49.6
+174966,"Cookies, raisin, soft-type",401.0,4.1,13.6,68.0
+174972,"Cookies, sugar, refrigerated dough",436.0,4.0,19.48,61.22
+174975,"Crackers, cheese, regular",489.0,10.93,22.74,59.42
+174977,"Crackers, melba toast, plain",390.0,12.1,3.2,76.6
+174980,"Crackers, milk",446.0,7.6,13.77,71.73
+174981,"Crackers, rusk toast",407.0,13.5,7.2,72.3
+174985,"Crackers, wheat, regular",455.0,7.3,16.4,70.73
+175001,"Ice cream cones, sugar, rolled-type",402.0,7.9,3.8,84.1
+175006,"Pancakes, plain, dry mix, complete, prepared",194.0,5.2,2.5,36.7
+175007,"Pancakes, plain, dry mix, incomplete (includes buttermilk)",355.0,10.0,1.7,73.6
+175008,"Pancakes, plain, dry mix, incomplete, prepared",218.0,7.8,7.7,28.9
+175009,"Pancakes, plain, prepared from recipe",227.0,6.4,9.7,28.3
+175010,"Pancakes, whole-wheat, dry mix, incomplete, prepared",208.0,8.5,6.5,29.4
+175075,"Archway Home Style Cookies, Oatmeal Raisin",406.0,5.17,12.08,69.27
+175078,"Artificial Blueberry Muffin Mix, dry",407.0,4.7,8.7,77.45
+175092,"Beverages, cocoa mix, with aspartame, powder, prepared with water",29.0,1.21,0.23,5.61
+175093,"Beverages, carbonated, cola, fast-food cola",37.0,0.07,0.02,9.56
+175099,"Beverages, carbonated, low calorie, cola or pepper-type, with aspartame, contains caffeine",2.0,0.11,0.03,0.29
+175104,"Beverages, The COCA-COLA company, DASANI, water, bottled, non-carbonated",0.0,0.0,0.0,0.0
+175105,"Beverages, orange breakfast drink, ready-to-drink, with added nutrients",53.0,0.0,0.0,13.2
+175108,"Beverages, COCA-COLA, POWERADE, lemon-lime flavored, ready-to-drink",32.0,0.0,0.05,7.84
+175114,"Beverages, Cocoa mix, low calorie, powder, with added calcium, phosphorus, aspartame, without added sodium or vitamin A",359.0,25.1,3.0,58.0
+175116,"Fish, herring, Atlantic, raw",158.0,17.96,9.04,0.0
+175117,"Fish, herring, Atlantic, cooked, dry heat",203.0,23.03,11.59,0.0
+175118,"Fish, herring, Atlantic, pickled",262.0,14.19,18.0,9.64
+175119,"Fish, mackerel, Atlantic, raw",205.0,18.6,13.89,0.0
+175120,"Fish, mackerel, Atlantic, cooked, dry heat",262.0,23.85,17.81,0.0
+175121,"Fish, mackerel, jack, canned, drained solids",156.0,23.19,6.3,0.0
+175122,"Fish, mackerel, king, raw",105.0,20.28,2.0,0.0
+175137,"Fish, salmon, coho, wild, cooked, moist heat",184.0,27.36,7.5,0.0
+175138,"Fish, salmon, pink, raw",127.0,20.5,4.4,0.0
+175139,"Fish, sardine, Atlantic, canned in oil, drained solids with bone",208.0,24.62,11.45,0.0
+175140,"Fish, sardine, Pacific, canned in tomato sauce, drained solids with bone",185.0,20.86,10.45,0.54
+175156,"Fish, tuna, fresh, skipjack, raw",103.0,22.0,1.01,0.0
+175157,"Fish, tuna, white, canned in oil, drained solids",186.0,26.53,8.08,0.0
+175158,"Fish, tuna, white, canned in water, drained solids",128.0,23.62,2.97,0.0
+175159,"Fish, tuna, fresh, yellowfin, raw",109.0,24.4,0.49,0.0
+175168,"Fish, salmon, Atlantic, farmed, cooked, dry heat",206.0,22.1,12.35,0.0
+175178,"Fish, cod, Pacific, cooked",84.0,20.42,0.25,0.0
+175179,"Crustaceans, shrimp, raw",85.0,20.1,0.51,0.0
+175180,"Crustaceans, shrimp, cooked",99.0,23.98,0.28,0.2
+175207,"Chili with beans, canned",103.0,6.12,3.76,13.24
+175227,SILK Plain soy yogurt,66.0,2.64,1.76,9.69
+175228,SILK Strawberry soy yogurt,94.0,2.35,1.18,18.24
+175230,SILK Banana-Strawberry soy yogurt,88.0,2.35,1.18,17.06
+175254,"Lentils, mature seeds, cooked, boiled, with salt",114.0,9.02,0.38,19.54

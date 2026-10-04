@@ -108,6 +108,22 @@ class MainScreenTest {
         compose.onNodeWithTag("question-panel").assertDoesNotExist()
     }
 
+    @Test fun `a change to the food base is asked with yes and no, and yes goes to the diary`() {
+        diary.notes.value = listOf(
+            dev.dietapp.data.domain.Note(7, TODAY, dev.dietapp.data.domain.NoteKind.BaseChange,
+                "Удалить «казеин» из базы?\n360 ккал · Б 80 · Ж 1,5 · У 8 на 100 г", null, java.time.Instant.parse("2026-09-30T06:00:00Z")),
+        )
+        show()
+        compose.onNodeWithTag("base-change").assertIsDisplayed()
+        compose.onNodeWithText("Удалить «казеин» из базы?").assertIsDisplayed()
+        compose.onNodeWithText("360 ккал · Б 80 · Ж 1,5 · У 8 на 100 г").assertIsDisplayed()
+        compose.onNodeWithTag("base-change-no").assertIsDisplayed()
+        compose.onNodeWithTag("base-change-yes").performClick()
+        compose.waitForIdle()
+        org.junit.Assert.assertEquals(listOf(7L to true), diary.baseChangeAnswers)
+        compose.onNodeWithTag("base-change").assertDoesNotExist()
+    }
+
     @Test fun `an empty day explains what can be typed`() {
         show()
         compose.onNodeWithText(Texts.EMPTY_HINT).assertIsDisplayed()

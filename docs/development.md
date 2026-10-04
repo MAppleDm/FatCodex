@@ -33,6 +33,21 @@ On the login screen choose "without a server": no email is needed and the diary 
 
 The full description of local mode, the agent and the food database is in Russian: [details.ru.md](details.ru.md).
 
+## Export
+
+Settings → **Export history** writes the diary to a file for another model, a script or a spreadsheet to read. The app does not analyse the history itself: it records, and summaries are better made elsewhere. Pick the period (last 7, 30 or 90 days, or all time), then **save** (a file you place yourself) or **send** (straight to another app). It works the same with a server and without: it reads the phone's own copy. Only recorded food is exported: deleted food and food still waiting for "record" are not in the diary.
+
+| Format | For | Content |
+|---|---|---|
+| Markdown (`.md`) | a person, a chat with a model | one section per day: totals, weight, a table of foods; the text follows the app's language |
+| JSON (`.json`) | programs, models that work with structured data | days with totals, entries (amounts, numbers, per-100 g values, matched food, status, source), weight and trend, and a legend explaining each field |
+| CSV: food (`.csv`) | spreadsheets, pandas | one row per food: `date,time,meal_id,name,grams,kcal,protein_g,fat_g,carbs_g,kcal_per_100g,matched_food,status,source` |
+| CSV: weight (`.csv`) | spreadsheets, pandas | `date,kg,trend_7d_kg`, one row per weigh-in day |
+
+- Numbers use a dot as the decimal mark whatever the phone's language, one decimal at most. CSV is UTF-8 with commas (RFC 4180) and no BOM: in a Russian-locale Excel use *Data → From text/CSV* and pick UTF-8.
+- `status`: `ok` numbers from a food database, `uncertain` approximate (typical values or a guessed amount; marked `~` in Markdown), `unmatched` the food was not found: no numbers, not counted in the day's total. Missing numbers are empty cells (CSV) or `null` (JSON), never zeros.
+- Files are named `fatcodex-<diary|food|weight>-<7d|30d|90d|all>-<date>.<ext>`.
+
 ## Run the backend
 
 Only needed for server mode. Requires Docker and a [DeepSeek](https://platform.deepseek.com/) key.
@@ -90,6 +105,6 @@ cd android && ./gradlew testDebugUnitTest
 - The agent has not been tested against the real DeepSeek. Tool calls were checked against a stub that answers in the OpenAI-compatible format. If DeepSeek answers differently (for example without a function call), the app parses the message with the dictionary and says so.
 - Not tested on a real device: all tests run on the JVM (Robolectric). The Docker images, the real DeepSeek and Postgres were checked as separate processes and stubs, but not as a whole `docker compose` stack.
 - The server creates its database schema at startup (`create_all`). There are no migrations.
-- The token and the DeepSeek key are stored in the app's regular SharedPreferences, not in the Keystore. The token only gives access to your own server, and you can revoke the key on the DeepSeek side.
+- The DeepSeek key is stored encrypted (AES-GCM, the key lives in the Android Keystore) and is not backed up. The Keystore code is not covered by the JVM tests, because Robolectric has no Keystore: check it on a phone. The server token is still in regular SharedPreferences: it only gives access to your own server.
 - In local mode there is no sync between phones: the diary lives on one device (plus Android auto-backup).
 - The local dictionary is small and Russian. English names are found directly in the USDA catalog; anything else needs the model (a key) or the server.

@@ -370,14 +370,29 @@ class SettingsViewModelTest {
         assertEquals(1, state.value.foodCount)
     }
 
-    @Test fun `web search can be switched off and on`() = runTest {
+    @Test fun `the agent block opens and closes, and the prompt inside it opens on its own`() = runTest {
         goLocal()
         val (vm, state) = viewModel()
-        assertTrue(state.value.webSearch)
-        vm.onToggleWebSearch()
-        assertFalse(state.value.webSearch)
-        vm.onToggleWebSearch()
-        assertTrue(state.value.webSearch)
+        assertFalse(state.value.agentOpen)
+        assertFalse(state.value.promptOpen)
+        assertEquals("the prompt is read from the settings", "You are a food diary agent.\nNever estimate calories.", state.value.agentPrompt)
+        vm.onToggleAgent()
+        assertTrue(state.value.agentOpen)
+        vm.onTogglePrompt()
+        assertTrue(state.value.promptOpen)
+        vm.onToggleAgent()
+        assertFalse(state.value.agentOpen)
+    }
+
+    @Test fun `saving the goal keeps the agent block as it was`() = runTest {
+        goLocal()
+        val (vm, state) = viewModel()
+        vm.onToggleAgent()
+        vm.onTogglePrompt()
+        vm.onGoalChange("2000")
+        vm.onSaveGoal()
+        assertTrue(state.value.agentOpen)
+        assertTrue(state.value.promptOpen)
     }
 
     @Test fun `touching anything else disarms the erase`() = runTest {

@@ -90,12 +90,12 @@ object Texts {
     val MODE_STANDARD get() = t("стандартный", "standard")
     val MODE_PRECISE get() = t("точный", "precise")
     val MODE_STANDARD_HINT get() = t(
-        "Привычная еда с известными цифрами записывается сразу. Если цифры зависят от марки или рецепта, агент спросит.",
-        "Familiar food with known values is recorded at once. When the values depend on the brand or the recipe, the agent asks.",
+        "Привычная еда с известными цифрами записывается сразу, а продукт в базе агент меняет или удаляет, только если уверен. Если нет, он спросит.",
+        "Familiar food with known values is recorded at once, and a food in your base is changed or deleted only when the agent is sure. Otherwise it asks.",
     )
     val MODE_PRECISE_HINT get() = t(
-        "Любая еда записывается только после «записать». До этого она серая и не считается.",
-        "Every food is recorded only after “record”. Until then it is grey and not counted.",
+        "Любая еда записывается только после «записать», а любое изменение или удаление продукта в базе — только после «да». До этого еда серая и не считается.",
+        "Every food is recorded only after “record”, and every change or deletion in your base only after “yes”. Until then food is grey and not counted.",
     )
 
     // proposals: values the model found, to confirm
@@ -118,14 +118,62 @@ object Texts {
     val ENTRY_GRAMS get() = t("граммы", "grams")
     val ENTRY_HISTORY get() = t("Как выбрано", "How it was chosen")
 
-    // web search
-    val WEB_SEARCH get() = t("Поиск в интернете", "Web search")
-    val WEB_SEARCH_HINT get() = t(
-        "Незнакомые продукты модель ищет через DuckDuckGo и предлагает варианты КБЖУ. В поиск уходит только название продукта.",
-        "The model looks unfamiliar foods up on DuckDuckGo and offers their values. Only the food's name goes to the search.",
+    // export of the history
+    val EXPORT get() = t("Экспорт истории", "Export history")
+    val EXPORT_HINT get() = t(
+        "Файл с дневником для разбора в другой модели или в таблице. Приложение само историю не анализирует: оно записывает, а сводки лучше делать там.",
+        "The diary as a file to analyse in another model or a spreadsheet. The app does not analyse the history itself: it records, and summaries are better made there.",
     )
-    val ON get() = t("вкл", "on")
-    val OFF get() = t("выкл", "off")
+    val EXPORT_PERIOD get() = t("Период", "Period")
+    val EXPORT_FORMAT get() = t("Формат", "Format")
+    val EXPORT_SAVE get() = t("сохранить", "save")
+    val EXPORT_SHARE get() = t("отправить", "send")
+    val EXPORT_SAVED get() = t("Файл сохранён.", "File saved.")
+    val EXPORT_SUBJECT get() = t("FatCodex: дневник", "FatCodex: diary")
+
+    fun exportPeriod(p: dev.dietapp.data.export.ExportPeriod): String = when (p) {
+        dev.dietapp.data.export.ExportPeriod.Week -> t("Последние 7 дней", "Last 7 days")
+        dev.dietapp.data.export.ExportPeriod.Month -> t("Последние 30 дней", "Last 30 days")
+        dev.dietapp.data.export.ExportPeriod.Quarter -> t("Последние 90 дней", "Last 90 days")
+        dev.dietapp.data.export.ExportPeriod.All -> t("Всё время", "All time")
+    }
+
+    fun exportFormat(f: dev.dietapp.data.export.ExportFormat): String = when (f) {
+        dev.dietapp.data.export.ExportFormat.Markdown -> "Markdown (.md)"
+        dev.dietapp.data.export.ExportFormat.Json -> "JSON (.json)"
+        dev.dietapp.data.export.ExportFormat.CsvFood -> t("CSV: еда (.csv)", "CSV: food (.csv)")
+        dev.dietapp.data.export.ExportFormat.CsvWeight -> t("CSV: вес (.csv)", "CSV: weight (.csv)")
+    }
+
+    fun exportFormatHint(f: dev.dietapp.data.export.ExportFormat): String = when (f) {
+        dev.dietapp.data.export.ExportFormat.Markdown -> t("Читается человеком и моделью: раздел на каждый день, таблицы.",
+            "Readable by a person and a model: a section per day, tables.")
+        dev.dietapp.data.export.ExportFormat.Json -> t("Всё, с пояснением полей: для программ и моделей.", "Everything, with the fields explained: for programs and models.")
+        dev.dietapp.data.export.ExportFormat.CsvFood -> t("Одна строка на продукт: для таблиц.", "One row per food: for spreadsheets.")
+        dev.dietapp.data.export.ExportFormat.CsvWeight -> t("Вес по дням и недельный тренд.", "Weight by day and the weekly trend.")
+    }
+
+    // a change to the food base that waits for a yes
+    val BASE_CHANGE_YES get() = t("да", "yes")
+    val BASE_CHANGE_NO get() = t("нет", "no")
+    val BASE_CHANGE_FAILED get() = t("Не удалось изменить базу продуктов.", "Could not change the food base.")
+
+    // agent settings
+    val AGENT get() = t("Агент", "Agent")
+    val AGENT_NO_KEY get() = t("нет ключа", "no key")
+    val AGENT_PROVIDER get() = t("Ключ", "Key")
+    val AGENT_PROVIDER_DEEPSEEK get() = "DeepSeek API"
+    val AGENT_WEB get() = t("Поиск в интернете", "Web search")
+    val AGENT_WEB_ON get() = t("включён", "on")
+    val AGENT_WEB_HINT get() = t(
+        "Незнакомые продукты агент ищет через DuckDuckGo и предлагает варианты КБЖУ. В поиск уходит только название продукта. Всегда включён.",
+        "The agent looks unfamiliar foods up on DuckDuckGo and offers their values. Only the food's name goes to the search. Always on.",
+    )
+    val AGENT_PROMPT get() = t("Системный промпт", "System prompt")
+    val AGENT_PROMPT_HINT get() = t(
+        "Это инструкция, которую агент получает перед каждым сообщением. Пока её нельзя менять.",
+        "This is the instruction the agent gets before every message. It cannot be changed yet.",
+    )
 
     // food base
     val FOODS get() = t("База продуктов", "Food base")

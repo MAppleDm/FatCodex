@@ -81,6 +81,7 @@ class ScreenshotTest {
         override fun onProposalSkip() = Unit
         override fun onProposalBack() = Unit
         override fun onConfirm(record: Boolean) = Unit
+        override fun onBaseChange(apply: Boolean) = Unit
         override fun onQuestionSkip() = Unit
         override fun onDraftChange(text: String) = Unit
         override fun onSend() = Unit
@@ -323,6 +324,16 @@ class ScreenshotTest {
                 history = listOf(29, 28, 27, 26).mapIndexed { i, d ->
                     dev.dietapp.data.domain.DaySummary(LocalDate.parse("2026-09-$d"), dev.dietapp.data.domain.Totals(1420.0 + i * 130, 90.0, 50.0, 140.0))
                 },
+            ),
+            {}, {}, {}, {}, {}, {}, {}, {},
+        )
+    }
+
+    @Test fun settingsAgentLight() = shot("settings_agent_light", dark = false) {
+        SettingsScreen(
+            SettingsUiState(
+                savedGoal = 1900, local = true, hasKey = true, agentOpen = true, promptOpen = true,
+                agentPrompt = "You turn what a person ate into foods and grams.\nNever estimate or mention calories.\n\nLocal mode. Besides record_food you have these tools: search_foods(query), propose_food(...), delete_food(id, sure).",
             ),
             {}, {}, {}, {}, {}, {}, {}, {},
         )

@@ -15,7 +15,7 @@ import dev.dietapp.data.local.Capabilities
 import java.time.Instant
 import java.time.LocalDate
 
-enum class Screen { Main, Settings, Foods, Journal }
+enum class Screen { Main, Settings, Foods, Journal, Export }
 
 enum class VoicePhase { Idle, Listening, Recording, Transcribing }
 
@@ -85,9 +85,11 @@ data class MainUiState(
     val capabilities: Capabilities = Capabilities(),
     /** Values the model found for a food, waiting for the user to pick one: shown above the input. */
     val proposal: ProposalUi? = null,
-    /** The app's open question, answered by the next message. Shown when no proposal is open. */
+    /** "Удалить «X» из базы?": a change the agent may not make before the user says yes. Shown when no proposal is open. */
+    val baseChange: BaseChangeUi? = null,
+    /** The app's open question, answered by the next message. Shown when nothing above it is open. */
     val question: Note? = null,
-    /** "Записать?" for the day's food that waits for the user. Shown when no proposal is open. */
+    /** "Записать?" for the day's food that waits for the user. Shown when nothing above it is open. */
     val confirm: ConfirmUi? = null,
 ) {
     val isToday get() = day == today
@@ -108,6 +110,9 @@ data class ProposalUi(
     val custom: ChoiceDraft? = null,
     val busy: Boolean = false,
 )
+
+/** A change to the user's food base waiting for "да" or "нет". [question] may have several lines (what it is now, what it becomes). */
+data class BaseChangeUi(val noteId: Long, val question: String, val busy: Boolean = false)
 
 /** The day's food waiting for "записать" or "не записывать". */
 data class ConfirmUi(val entries: List<Entry>, val busy: Boolean = false)
@@ -152,6 +157,7 @@ internal data class Local(
     val customFor: Long? = null,
     val custom: ChoiceDraft? = null,
     val proposalBusy: Long? = null,
+    val baseChangeBusy: Long? = null,
     val confirmBusy: Boolean = false,
 )
 
@@ -202,6 +208,9 @@ internal fun buildState(
             busy = local.proposalBusy == n.id,
         )
     }
+    val baseChange = content.notes.lastOrNull { it.kind == NoteKind.BaseChange && !it.resolved }?.let { n ->
+        BaseChangeUi(n.id, n.text, busy = local.baseChangeBusy == n.id)
+    }
     val question = content.notes.lastOrNull { it.kind == NoteKind.Question && !it.resolved }
     val waiting = content.entries.filter { it.pending }
     val confirm = if (waiting.isEmpty()) null else ConfirmUi(waiting, busy = local.confirmBusy)
@@ -226,8 +235,9 @@ internal fun buildState(
         screen = local.screen,
         capabilities = capabilities,
         proposal = proposal,
-        question = if (proposal != null) null else question,
-        confirm = if (proposal != null) null else confirm,
+        baseChange = if (proposal != null) null else baseChange,
+        question = if (proposal != null || baseChange != null) null else question,
+        confirm = if (proposal != null || baseChange != null) null else confirm,
     )
 }
 
@@ -248,7 +258,7 @@ internal fun fold(content: DayContent, unprocessed: Set<String>): Fold {
 
     for (n in content.notes) {
         val target = n.targetEntryId
-        val asks = n.kind == NoteKind.Question || n.kind == NoteKind.Proposal
+        val asks = n.kind == NoteKind.Question || n.kind == NoteKind.Proposal || n.kind == NoteKind.BaseChange
         when {
             asks && !n.resolved -> notes += n.id
             n.kind == NoteKind.Error -> Unit
@@ -256,13 +266,13 @@ internal fun fold(content: DayContent, unprocessed: Set<String>): Fold {
                 notes += n.id
                 val from = when (n.kind) {
                     NoteKind.Answer -> HistoryLine.From.User
-                    NoteKind.Question, NoteKind.Proposal -> HistoryLine.From.AppAsks
+                    NoteKind.Question, NoteKind.Proposal, NoteKind.BaseChange -> HistoryLine.From.AppAsks
                     else -> HistoryLine.From.App
                 }
                 attach(target, HistoryLine(n.text, from, n.createdAt))
             }
             target != null -> notes += n.id // its entry was deleted
-            n.kind == NoteKind.Proposal || n.kind == NoteKind.Answer -> notes += n.id
+            n.kind == NoteKind.Proposal || n.kind == NoteKind.Answer || n.kind == NoteKind.BaseChange -> notes += n.id
         }
     }
     for (m in content.messages) {

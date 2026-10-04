@@ -21,6 +21,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -54,9 +55,11 @@ fun SettingsScreen(
     onLogout: () -> Unit,
     onOpenFoods: () -> Unit = {},
     onOpenJournal: () -> Unit = {},
-    onToggleWebSearch: () -> Unit = {},
     onToggleRecordMode: () -> Unit = {},
     onToggleLanguage: () -> Unit = {},
+    onToggleAgent: () -> Unit = {},
+    onTogglePrompt: () -> Unit = {},
+    onOpenExport: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     Column(modifier.fillMaxSize().background(AppTheme.colors.background).statusBarsPadding().navigationBarsPadding()) {
@@ -95,11 +98,9 @@ fun SettingsScreen(
             if (state.local) {
                 item {
                     Hairline()
-                    ModelKey(state, onKeyChange, onSaveKey, onClearKey)
+                    AgentSection(state, onToggleAgent, onTogglePrompt, onKeyChange, onSaveKey, onClearKey)
                     Hairline()
                     StatRow(Texts.FOODS, formatInt(state.foodCount), Modifier.testTag("foods-entry"), onClick = onOpenFoods)
-                    StatRow(Texts.WEB_SEARCH, if (state.webSearch) Texts.ON else Texts.OFF, Modifier.testTag("web-search"), onClick = onToggleWebSearch)
-                    Text(Texts.WEB_SEARCH_HINT, style = AppTheme.type.caption, modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 8.dp))
                     val precise = state.recordMode == RecordMode.Precise
                     StatRow(Texts.RECORD_MODE, if (precise) Texts.MODE_PRECISE else Texts.MODE_STANDARD, Modifier.testTag("record-mode"),
                         onClick = onToggleRecordMode)
@@ -111,6 +112,7 @@ fun SettingsScreen(
             item {
                 Hairline()
                 StatRow(Texts.LANGUAGE, Texts.LANGUAGE_NAME, Modifier.testTag("language"), onClick = onToggleLanguage)
+                StatRow(Texts.EXPORT, "›", Modifier.testTag("export-entry"), onClick = onOpenExport)
                 Hairline()
                 Text(Texts.HISTORY, style = AppTheme.type.caption, modifier = Modifier.padding(start = 16.dp, top = 12.dp, bottom = 4.dp))
                 if (state.history.isEmpty()) {
@@ -140,6 +142,42 @@ fun SettingsScreen(
                 color = if (state.eraseArmed) AppTheme.colors.error else AppTheme.colors.secondary,
             )
         }
+    }
+}
+
+/**
+ * "Агент": everything about the model that reads the messages, in one block that opens on a tap. The key comes from
+ * DeepSeek's API (the only kind so far); the web search is always on, shown so nothing is hidden; the system prompt
+ * can be read (it opens in turn) but not changed yet.
+ */
+@Composable
+private fun AgentSection(
+    state: SettingsUiState,
+    onToggle: () -> Unit,
+    onTogglePrompt: () -> Unit,
+    onKeyChange: (String) -> Unit,
+    onSaveKey: () -> Unit,
+    onClearKey: () -> Unit,
+) {
+    StatRow(
+        Texts.AGENT, if (state.hasKey) Texts.AGENT_PROVIDER_DEEPSEEK else Texts.AGENT_NO_KEY, Modifier.testTag("agent"),
+        extra = if (state.agentOpen) "−" else "+", onClick = onToggle,
+    )
+    if (!state.agentOpen) return
+    StatRow(Texts.AGENT_PROVIDER, Texts.AGENT_PROVIDER_DEEPSEEK, Modifier.testTag("agent-provider"))
+    ModelKey(state, onKeyChange, onSaveKey, onClearKey)
+    StatRow(Texts.AGENT_WEB, Texts.AGENT_WEB_ON, Modifier.testTag("agent-web"))
+    Text(Texts.AGENT_WEB_HINT, style = AppTheme.type.caption, modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 8.dp))
+    StatRow(
+        Texts.AGENT_PROMPT, "", Modifier.testTag("agent-prompt"),
+        extra = if (state.promptOpen) "−" else "+", onClick = onTogglePrompt,
+    )
+    if (state.promptOpen) {
+        Text(Texts.AGENT_PROMPT_HINT, style = AppTheme.type.caption, modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 8.dp))
+        Text(
+            state.agentPrompt, style = AppTheme.type.caption.copy(fontFamily = FontFamily.Monospace),
+            modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 12.dp).testTag("agent-prompt-text"),
+        )
     }
 }
 

@@ -6,6 +6,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -82,8 +83,8 @@ class LocalModeScreensTest {
 
     // ---------- settings ----------
 
-    @Test fun `local settings say where the diary lives and offer the key`() {
-        settings(SettingsUiState(savedGoal = 1900, local = true))
+    @Test fun `local settings say where the diary lives and offer the key in the agent block`() {
+        settings(SettingsUiState(savedGoal = 1900, local = true, agentOpen = true))
         compose.onNodeWithText(Texts.LOCAL_MODE).assertIsDisplayed()
         compose.onNodeWithTag("key").assertIsDisplayed()
         compose.onNodeWithText(Texts.MODEL_KEY_HINT).assertIsDisplayed()
@@ -93,18 +94,68 @@ class LocalModeScreensTest {
 
     @Test fun `a typed key can be saved`() {
         var saved = 0
-        settings(SettingsUiState(savedGoal = 1900, local = true, keyInput = "sk-1234567890"), onSaveKey = { saved++ })
+        settings(SettingsUiState(savedGoal = 1900, local = true, agentOpen = true, keyInput = "sk-1234567890"), onSaveKey = { saved++ })
         compose.onNodeWithTag("key-save").performClick()
         assertEquals(1, saved)
     }
 
     @Test fun `a stored key is never shown, only that there is one, and it can be removed`() {
         var cleared = 0
-        settings(SettingsUiState(savedGoal = 1900, local = true, hasKey = true), onClearKey = { cleared++ })
+        settings(SettingsUiState(savedGoal = 1900, local = true, agentOpen = true, hasKey = true), onClearKey = { cleared++ })
         compose.onNodeWithText(Texts.MODEL_KEY_SET).assertIsDisplayed()
         compose.onNodeWithTag("key").assertDoesNotExist()
         compose.onNodeWithTag("key-clear").performClick()
         assertEquals(1, cleared)
+    }
+
+    @Test fun `the agent block is closed until it is tapped`() {
+        var toggled = 0
+        compose.setContent {
+            AppTheme(darkTheme = false) {
+                SettingsScreen(SettingsUiState(savedGoal = 1900, local = true, hasKey = true), {}, {}, {}, {}, {}, {}, {}, {},
+                    onToggleAgent = { toggled++ })
+            }
+        }
+        compose.onNodeWithTag("agent").assertIsDisplayed()
+        compose.onNodeWithText(Texts.AGENT_PROVIDER_DEEPSEEK).assertIsDisplayed() // the summary: which provider is set
+        compose.onNodeWithTag("key").assertDoesNotExist()
+        compose.onNodeWithTag("agent").performClick()
+        assertEquals(1, toggled)
+    }
+
+    @Test fun `without a key the agent block says so`() {
+        settings(SettingsUiState(savedGoal = 1900, local = true))
+        compose.onNodeWithText(Texts.AGENT_NO_KEY).assertIsDisplayed()
+    }
+
+    @Test fun `the open agent block shows the web search, and the prompt only when it is opened too`() {
+        var prompt = 0
+        compose.setContent {
+            AppTheme(darkTheme = false) {
+                SettingsScreen(
+                    SettingsUiState(savedGoal = 1900, local = true, agentOpen = true, agentPrompt = "Never estimate calories."),
+                    {}, {}, {}, {}, {}, {}, {}, {}, onTogglePrompt = { prompt++ },
+                )
+            }
+        }
+        compose.onNodeWithTag("agent-provider").assertIsDisplayed()
+        compose.onNodeWithText(Texts.AGENT_WEB_ON).performScrollTo().assertIsDisplayed()
+        compose.onNodeWithTag("agent-prompt-text").assertDoesNotExist()
+        compose.onNodeWithTag("agent-prompt").performScrollTo().performClick()
+        assertEquals(1, prompt)
+    }
+
+    @Test fun `an opened prompt can be read but there is nothing to type into`() {
+        settings(SettingsUiState(savedGoal = 1900, local = true, agentOpen = true, promptOpen = true, agentPrompt = "Never estimate calories."))
+        compose.onNodeWithTag("agent-prompt-text").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Never estimate calories.").assertIsDisplayed()
+        compose.onNodeWithText(Texts.AGENT_PROMPT_HINT).performScrollTo().assertIsDisplayed()
+    }
+
+    @Test fun `web search has no switch`() {
+        settings(SettingsUiState(savedGoal = 1900, local = true, agentOpen = true))
+        compose.onNodeWithTag("web-search").assertDoesNotExist()
+        compose.onNodeWithTag("agent-web").performScrollTo().assertIsDisplayed()
     }
 
     @Test fun `erasing says what it will do and asks for a second tap`() {
