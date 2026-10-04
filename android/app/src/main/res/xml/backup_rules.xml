@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Android Auto Backup (Android 11 and older). In local mode this is the only copy of the diary, so it is backed up.
+  Only what is listed here is backed up. Deliberately NOT listed: session.xml (the server access token),
+  secrets.xml (the model key) and WorkManager's own database.
+-->
+<full-backup-content>
+    <include domain="database" path="diet.db" />
+    <include domain="database" path="diet.db-wal" />
+    <include domain="database" path="diet.db-shm" />
+    <include domain="sharedpref" path="app.xml" />
+</full-backup-content>

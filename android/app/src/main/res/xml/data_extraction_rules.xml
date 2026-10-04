@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Same policy for Android 12+: the diary and the chosen mode travel to a new phone, nothing else does.
+  Deliberately NOT listed: session.xml (the server access token), secrets.xml (the model key).
+-->
+<data-extraction-rules>
+    <cloud-backup>
+        <include domain="database" path="diet.db" />
+        <include domain="database" path="diet.db-wal" />
+        <include domain="database" path="diet.db-shm" />
+        <include domain="sharedpref" path="app.xml" />
+    </cloud-backup>
+    <device-transfer>
+        <include domain="database" path="diet.db" />
+        <include domain="database" path="diet.db-wal" />
+        <include domain="database" path="diet.db-shm" />
+        <include domain="sharedpref" path="app.xml" />
+    </device-transfer>
+</data-extraction-rules>

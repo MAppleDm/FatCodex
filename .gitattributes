@@ -1,0 +1,12 @@
+* text=auto
+*.bat text eol=crlf
+*.sh text eol=lf
+gradlew text eol=lf
+# data files that are compared byte for byte (prompt, tool schema, catalog, fixtures)
+*.txt text eol=lf
+*.json text eol=lf
+*.csv text eol=lf
+*.gz binary
+*.gzip binary
+*.png binary
+*.jar binary
