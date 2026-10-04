@@ -1,0 +1,118 @@
+name: dietapp
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-diet}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-diet}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  nutrition:
+    build: ./services/nutrition
+    environment:
+      NUTRITION_DB_PATH: /data/foods.db
+      NUTRITION_MIN_COVERAGE: ${NUTRITION_MIN_COVERAGE:-0.75}
+      # First start: downloads USDA SR Legacy (~7 MB) into the volume. Set to false to load your own data.
+      NUTRITION_AUTO_SEED: ${NUTRITION_AUTO_SEED:-true}
+    volumes:
+      - nutrition_data:/data
+    ports:
+      - "127.0.0.1:${NUTRITION_PORT:-8084}:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/healthz')"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  ai-parser:
+    build: ./services/ai-parser
+    environment:
+      # The only container that receives the DeepSeek key.
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
+      DEEPSEEK_BASE_URL: ${DEEPSEEK_BASE_URL:-https://api.deepseek.com}
+      DEEPSEEK_MODEL: ${DEEPSEEK_MODEL:-deepseek-flash}
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/healthz')"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  gateway:
+    build: ./services/gateway
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-diet}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-diet}
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in .env (see .env.example)}
+      AI_PARSER_URL: http://ai-parser:8000
+      NUTRITION_URL: http://nutrition:8000
+      STT_URL: http://stt:8000
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM: ${SMTP_FROM:-}
+    ports:
+      # Loopback by default (the Android emulator reaches it as 10.0.2.2). Set GATEWAY_BIND=0.0.0.0 to use a phone on your LAN.
+      - "${GATEWAY_BIND:-127.0.0.1}:${GATEWAY_PORT:-8080}:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      ai-parser:
+        condition: service_healthy
+      nutrition:
+        condition: service_healthy
+      stt:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/healthz')"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  stt:
+    build: ./services/stt
+    environment:
+      STT_MODEL: ${STT_MODEL:-small}
+      STT_MODEL_DIR: /models
+      STT_LANGUAGE: ${STT_LANGUAGE:-}
+    volumes:
+      - stt_models:/models
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/healthz')"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 30s  # the service answers right away; the model downloads in the background on first start
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  nutrition_data:
+  stt_models:

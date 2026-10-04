@@ -1,0 +1,42 @@
+# secrets
+.env
+*.jks
+*.keystore
+keystore.properties
+
+# python
+__pycache__/
+*.py[cod]
+.venv/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+
+# local data (food databases, downloads)
+data/
+*.db
+*.db-wal
+*.db-shm
+
+# android / gradle
+android/.gradle/
+android/build/
+android/**/build/
+android/local.properties
+android/captures/
+android/.idea/
+*.iml
+*.apk
+*.aab
+
+# editors / os
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# requests saved by android/tools/mock_deepseek.py
+android/tools/mock_requests/
+
+# screenshots (rendered locally by ScreenshotTest, not published)
+docs/screenshots/
