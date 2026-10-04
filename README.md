@@ -1,4 +1,4 @@
-<img src="docs/screenshots/app_icon.png" width="72" alt="">
+<img src="docs/icon-source.webp" width="96" alt="FatCodex app icon">
 
 # FatCodex
 
@@ -7,26 +7,6 @@
 
 Название: FatSecret + Codex, дневник питания, который ведёт агент. Личный проект без монетизации. Сервер не обязателен: приложение целиком работает на телефоне
 (см. «Без сервера»). Свой сервер нужен, если хочется лучшего разбора и распознавания речи.
-
-<p>
-  <img src="docs/screenshots/main_light.png" width="23%" alt="Лента и поле ввода">
-  <img src="docs/screenshots/main_expanded_light.png" width="23%" alt="Итог дня и тренд веса">
-  <img src="docs/screenshots/main_editing_dark.png" width="23%" alt="Правка записи на месте">
-  <img src="docs/screenshots/settings_dark.png" width="23%" alt="Цель и история">
-</p>
-
-<p>
-  <img src="docs/screenshots/main_chat_dark.png" width="23%" alt="День как чат: записанное зелёное, ждущее серое">
-  <img src="docs/screenshots/main_chat_opened_dark.png" width="23%" alt="Открытая запись: КБЖУ и как она выбрана">
-  <img src="docs/screenshots/main_chat_en_light.png" width="23%" alt="English">
-</p>
-
-<p>
-  <img src="docs/screenshots/login_email_light.png" width="23%" alt="Вход: можно без сервера">
-  <img src="docs/screenshots/login_key_light.png" width="23%" alt="Без сервера: свой ключ DeepSeek">
-  <img src="docs/screenshots/settings_local_light.png" width="23%" alt="Настройки без сервера: необязательный ключ DeepSeek">
-  <img src="docs/screenshots/foods_light.png" width="23%" alt="База продуктов">
-</p>
 
 ## Как это работает
 
