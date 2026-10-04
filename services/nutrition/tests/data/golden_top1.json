@@ -1,0 +1,525 @@
+{
+ "almonds": {
+  "name": "Nuts, almonds",
+  "score": 0.9
+ },
+ "apple": {
+  "name": "Apples, raw, without skin",
+  "score": 0.814
+ },
+ "apples, raw": {
+  "name": "Apples, raw, without skin",
+  "score": 0.744
+ },
+ "avocado": {
+  "name": "Avocados, raw, California",
+  "score": 0.893
+ },
+ "bacon cooked": {
+  "name": "Pork, cured, bacon, cooked, baked",
+  "score": 0.698
+ },
+ "banana": {
+  "name": "Bananas, raw",
+  "score": 0.927
+ },
+ "beef cooked": {
+  "name": "Beef, cured, breakfast strips, cooked",
+  "score": 0.705
+ },
+ "beef steak": {
+  "name": "Beef, chuck eye steak, boneless, separable lean and fat, trimmed to 0\" fat, choice, raw",
+  "score": 0.755
+ },
+ "beef, ground, cooked": {
+  "name": "Beef, ground, unspecified fat content, cooked",
+  "score": 0.717
+ },
+ "beer": {
+  "name": "Alcoholic beverage, beer, regular, all",
+  "score": 0.865
+ },
+ "beets": {
+  "name": "Beets, raw",
+  "score": 0.927
+ },
+ "bell pepper": null,
+ "blueberries": {
+  "name": "Blueberries, raw",
+  "score": 0.927
+ },
+ "borscht": null,
+ "bread white": {
+  "name": "Bread, white wheat",
+  "score": 0.833
+ },
+ "bread, white": {
+  "name": "Bread, white wheat",
+  "score": 0.833
+ },
+ "broccoli": {
+  "name": "Broccoli, raw",
+  "score": 0.927
+ },
+ "brown sugar": {
+  "name": "Sugars, brown",
+  "score": 0.9
+ },
+ "buckwheat cooked": {
+  "name": "Buckwheat groats, roasted, cooked",
+  "score": 0.592
+ },
+ "buckwheat groats, cooked": {
+  "name": "Buckwheat groats, roasted, cooked",
+  "score": 0.858
+ },
+ "butter": {
+  "name": "Butter, salted",
+  "score": 0.9
+ },
+ "cabbage": {
+  "name": "Cabbage, raw",
+  "score": 0.927
+ },
+ "carrot": {
+  "name": "Carrots, raw",
+  "score": 0.927
+ },
+ "cereal": {
+  "name": "Babyfood, cereal, with eggs, strained",
+  "score": 0.723
+ },
+ "cheddar cheese": {
+  "name": "Cheese, cheddar, sharp, sliced",
+  "score": 0.8
+ },
+ "cheese": {
+  "name": "Cheese, blue",
+  "score": 0.9
+ },
+ "cheese, cottage": {
+  "name": "Cheese, cottage, with vegetables",
+  "score": 0.833
+ },
+ "cherries": {
+  "name": "Cherries, sour, red, raw",
+  "score": 0.902
+ },
+ "chicken breast": {
+  "name": "Chicken, broiler or fryers, breast, skinless, boneless, meat only, raw",
+  "score": 0.772
+ },
+ "chicken breast cooked": {
+  "name": "Chicken, broilers or fryers, breast, meat only, cooked, roasted",
+  "score": 0.724
+ },
+ "chicken thigh cooked": {
+  "name": "Chicken, broilers or fryers, thigh, meat only, cooked, roasted",
+  "score": 0.724
+ },
+ "chicken, broilers or fryers, breast, meat only, cooked": {
+  "name": "Chicken, broilers or fryers, breast, meat only, cooked, roasted",
+  "score": 0.649
+ },
+ "cocoa": {
+  "name": "Cocoa, dry powder, unsweetened",
+  "score": 0.614
+ },
+ "cod cooked": {
+  "name": "Fish, cod, Pacific, cooked",
+  "score": 0.725
+ },
+ "coffee": {
+  "name": "Beverages, coffee, brewed, breakfast blend",
+  "score": 0.84
+ },
+ "cola": {
+  "name": "Beverages, carbonated, cola, regular",
+  "score": 0.875
+ },
+ "corn": {
+  "name": "Corn, sweet, white, raw",
+  "score": 0.875
+ },
+ "cornflakes": {
+  "name": "Cereals ready-to-eat, RALSTON Corn Flakes",
+  "score": 0.443
+ },
+ "cottage cheese": {
+  "name": "Cheese, cottage, with vegetables",
+  "score": 0.833
+ },
+ "crackers": {
+  "name": "Cracker, meal",
+  "score": 0.9
+ },
+ "cream": {
+  "name": "Cream, sour, cultured",
+  "score": 0.893
+ },
+ "cucumber": {
+  "name": "Cucumber, peeled, raw",
+  "score": 0.893
+ },
+ "dates": {
+  "name": "Dates, medjool",
+  "score": 0.9
+ },
+ "duck cooked": {
+  "name": "Duck, domesticated, meat only, cooked, roasted",
+  "score": 0.726
+ },
+ "dumplings pelmeni": null,
+ "egg": {
+  "name": "Egg, whole, raw, fresh",
+  "score": 0.929
+ },
+ "egg boiled": {
+  "name": "Egg, whole, cooked, hard-boiled",
+  "score": 0.726
+ },
+ "egg fried": {
+  "name": "Egg, whole, cooked, fried",
+  "score": 0.747
+ },
+ "egg, whole, hard-boiled": {
+  "name": "Egg, whole, cooked, hard-boiled",
+  "score": 0.735
+ },
+ "eggplant": {
+  "name": "Eggplant, raw",
+  "score": 0.927
+ },
+ "fish, salmon, cooked": {
+  "name": "Fish, salmon, coho, wild, cooked, moist heat",
+  "score": 0.602
+ },
+ "french fries": {
+  "name": "Potatoes, french fried, cross cut, frozen, unprepared",
+  "score": 0.7
+ },
+ "garlic": {
+  "name": "Garlic, raw",
+  "score": 0.927
+ },
+ "granola": {
+  "name": "Cereals ready-to-eat, granola, homemade",
+  "score": 0.84
+ },
+ "grapes": {
+  "name": "Grapes, muscadine, raw",
+  "score": 0.893
+ },
+ "green peas": {
+  "name": "Peas, green, raw",
+  "score": 0.858
+ },
+ "ground beef": {
+  "name": "Beef, ground, 70% lean meat / 30% fat, raw",
+  "score": 0.772
+ },
+ "ham": {
+  "name": "Ham, minced",
+  "score": 0.9
+ },
+ "hamburger": {
+  "name": "Fast foods, hamburger, large, single patty, with condiments",
+  "score": 0.655
+ },
+ "herring": {
+  "name": "Fish, herring, Atlantic, raw",
+  "score": 0.875
+ },
+ "honey": {
+  "name": "Honey",
+  "score": 1.0
+ },
+ "hot dog": {
+  "name": "Frankfurter, meat and poultry, unheated",
+  "score": 0.8
+ },
+ "hummus": {
+  "name": "Hummus, commercial",
+  "score": 0.9
+ },
+ "ice cream": {
+  "name": "Ice creams, strawberry",
+  "score": 0.933
+ },
+ "jam": {
+  "name": "Jams and preserves",
+  "score": 0.75
+ },
+ "kefir": {
+  "name": "Kefir, lowfat, plain, LIFEWAY",
+  "score": 0.552
+ },
+ "ketchup": {
+  "name": "Catsup",
+  "score": 1.0
+ },
+ "kiwi": {
+  "name": "Kiwifruit, green, raw",
+  "score": 0.893
+ },
+ "lamb cooked": {
+  "name": "Lamb, ground, cooked, broiled",
+  "score": 0.725
+ },
+ "lemon": {
+  "name": "Lemons, raw, without peel",
+  "score": 0.875
+ },
+ "lentils cooked": {
+  "name": "Lentils, mature seeds, cooked, boiled, with salt",
+  "score": 0.692
+ },
+ "lettuce": {
+  "name": "Lettuce, red leaf, raw",
+  "score": 0.902
+ },
+ "mackerel": {
+  "name": "Fish, mackerel, Atlantic, raw",
+  "score": 0.875
+ },
+ "mashed potatoes": {
+  "name": "Potatoes, mashed, ready-to-eat",
+  "score": 0.8
+ },
+ "mayonnaise": {
+  "name": "Salad dressing, mayonnaise, regular",
+  "score": 0.875
+ },
+ "milk": {
+  "name": "Milk, whole, 3.25% milkfat, with added vitamin D",
+  "score": 0.85
+ },
+ "milk chocolate": {
+  "name": "Candies, milk chocolate",
+  "score": 0.793
+ },
+ "milk whole": {
+  "name": "Milk, whole, 3.25% milkfat, with added vitamin D",
+  "score": 0.75
+ },
+ "milk, whole": {
+  "name": "Milk, whole, 3.25% milkfat, with added vitamin D",
+  "score": 0.75
+ },
+ "mushrooms": {
+  "name": "Mushrooms, Chanterelle, raw",
+  "score": 0.893
+ },
+ "oatmeal cooked": {
+  "name": "Cereals, oats, regular and quick, unenriched, cooked with water (includes boiling and microwaving), without salt",
+  "score": 0.678
+ },
+ "oats": {
+  "name": "Cereals, oats, regular and quick, not fortified, dry",
+  "score": 0.794
+ },
+ "oats cooked": {
+  "name": "Cereals, oats, regular and quick, unenriched, cooked with water (includes boiling and microwaving), without salt",
+  "score": 0.678
+ },
+ "oil, olive": {
+  "name": "Oil, olive, salad or cooking",
+  "score": 0.8
+ },
+ "okroshka": null,
+ "olive oil": {
+  "name": "Oil, olive, salad or cooking",
+  "score": 0.8
+ },
+ "olives": {
+  "name": "Olives, ripe, canned (jumbo-super colossal)",
+  "score": 0.798
+ },
+ "onion": {
+  "name": "Onions, raw",
+  "score": 0.927
+ },
+ "orange": {
+  "name": "Oranges, raw, Florida",
+  "score": 0.893
+ },
+ "orange juice": {
+  "name": "Orange juice, raw (Includes foods for USDA's Food Distribution Program)",
+  "score": 0.87
+ },
+ "pancakes": {
+  "name": "Pancakes, plain, prepared from recipe",
+  "score": 0.814
+ },
+ "pasta cooked": {
+  "name": "Pasta, cooked, enriched, with added salt",
+  "score": 0.803
+ },
+ "peach": {
+  "name": "Peaches, yellow, raw",
+  "score": 0.893
+ },
+ "peanut butter": {
+  "name": "Peanut butter, chunk style, with salt",
+  "score": 0.88
+ },
+ "peanuts": {
+  "name": "Peanuts, spanish, raw",
+  "score": 0.893
+ },
+ "pear": {
+  "name": "Pears, raw",
+  "score": 0.927
+ },
+ "peppers sweet": {
+  "name": "Peppers, sweet, red, raw",
+  "score": 0.849
+ },
+ "pickles": {
+  "name": "Pickles, cucumber, sour",
+  "score": 0.867
+ },
+ "plum": {
+  "name": "Plums, raw",
+  "score": 0.927
+ },
+ "pork belly": {
+  "name": "Pork, fresh, belly, raw",
+  "score": 0.849
+ },
+ "pork cooked": {
+  "name": "Pork, fresh, ground, cooked",
+  "score": 0.747
+ },
+ "potato boiled": {
+  "name": "Potatoes, boiled, cooked in skin, skin, with salt",
+  "score": 0.725
+ },
+ "potatoes, boiled": {
+  "name": "Potatoes, boiled, cooked in skin, skin, with salt",
+  "score": 0.725
+ },
+ "pumpkin": {
+  "name": "Pumpkin, raw",
+  "score": 0.927
+ },
+ "raisins": {
+  "name": "Raisins, seeded",
+  "score": 0.9
+ },
+ "red wine": {
+  "name": "Alcoholic beverage, wine, table, red",
+  "score": 0.705
+ },
+ "rice brown cooked": {
+  "name": "Rice, brown, long-grain, cooked (Includes foods for USDA's Food Distribution Program)",
+  "score": 0.671
+ },
+ "rice white cooked": {
+  "name": "Rice, white, long-grain, regular, enriched, cooked",
+  "score": 0.745
+ },
+ "rice, white, long-grain, cooked": {
+  "name": "Rice, white, long-grain, regular, enriched, cooked",
+  "score": 0.735
+ },
+ "rye bread": {
+  "name": "Bread, rye",
+  "score": 0.9
+ },
+ "salmon cooked": {
+  "name": "Fish, salmon, coho, wild, cooked, moist heat",
+  "score": 0.682
+ },
+ "sardines": {
+  "name": "Fish, sardine, Pacific, canned in tomato sauce, drained solids with bone",
+  "score": 0.765
+ },
+ "sausage": {
+  "name": "Sausage, turkey, fresh, raw",
+  "score": 0.902
+ },
+ "shawarma": null,
+ "shrimp cooked": {
+  "name": "Crustaceans, shrimp, cooked",
+  "score": 0.833
+ },
+ "sour cream": {
+  "name": "Cream, sour, cultured",
+  "score": 0.858
+ },
+ "spaghetti cooked": {
+  "name": "Spaghetti, spinach, cooked",
+  "score": 0.758
+ },
+ "spinach": {
+  "name": "Spinach, raw",
+  "score": 0.927
+ },
+ "strawberries": {
+  "name": "Strawberries, raw",
+  "score": 0.927
+ },
+ "sugar": {
+  "name": "Sugars, granulated",
+  "score": 0.927
+ },
+ "sunflower oil": {
+  "name": "Oil, sunflower, linoleic, (approx. 65%)",
+  "score": 0.78
+ },
+ "sushi": null,
+ "syrniki": null,
+ "tea": {
+  "name": "Beverages, tea, green, brewed, regular",
+  "score": 0.865
+ },
+ "tofu": {
+  "name": "Tofu, raw, regular, prepared with calcium sulfate",
+  "score": 0.822
+ },
+ "tomato": {
+  "name": "Tomatoes, red, ripe, raw, year round average",
+  "score": 0.905
+ },
+ "tomatoes, raw": {
+  "name": "Tomatoes, green, raw",
+  "score": 0.758
+ },
+ "tuna canned": {
+  "name": "Fish, tuna, white, canned in water, drained solids",
+  "score": 0.682
+ },
+ "turkey breast cooked": {
+  "name": "Turkey breast, pre-basted, meat and skin, cooked, roasted",
+  "score": 0.726
+ },
+ "walnuts": {
+  "name": "Nuts, walnuts, english",
+  "score": 0.867
+ },
+ "watermelon": {
+  "name": "Watermelon, raw",
+  "score": 0.927
+ },
+ "wheat flour": {
+  "name": "Wheat flour, whole-grain, soft wheat",
+  "score": 0.906
+ },
+ "whipped cream": {
+  "name": "Cream, whipped, cream topping, pressurized",
+  "score": 0.8
+ },
+ "white rice": {
+  "name": "Rice, white, long-grain, regular, raw, enriched",
+  "score": 0.827
+ },
+ "yogurt plain": {
+  "name": "Yogurt, plain, whole milk",
+  "score": 0.824
+ },
+ "zucchini": {
+  "name": "Squash, zucchini, baby, raw",
+  "score": 0.335
+ }
+}

@@ -161,6 +161,64 @@ class MainViewModelTest {
         assertTrue(diary.accepted.isEmpty())
     }
 
+    // ---------- a change to the food base that waits for a yes ----------
+
+    private fun baseChangeNote(id: Long = 8, resolved: Boolean = false) = Note(
+        id, TODAY, NoteKind.BaseChange, "Удалить «казеин» из базы?\n360 ккал · Б 80 · Ж 1,5 · У 8 на 100 г", null,
+        Instant.parse("2026-09-30T06:00:00Z"), "m1", resolved = resolved,
+    )
+
+    @Test fun `a change the agent may not make alone is asked above the input, not in the feed`() = runTest {
+        val (_, state) = viewModel()
+        diary.notes.value = listOf(baseChangeNote())
+        val ask = state.value.baseChange!!
+        assertEquals(8L, ask.noteId)
+        assertTrue(ask.question.startsWith("Удалить «казеин» из базы?"))
+        assertTrue(state.value.feed.none { it is FeedItem.NoteItem })
+    }
+
+    @Test fun `yes and no are sent to the diary, and the panel goes away`() = runTest {
+        val (vm, state) = viewModel()
+        diary.notes.value = listOf(baseChangeNote())
+        vm.onBaseChange(true)
+        assertEquals(listOf(8L to true), diary.baseChangeAnswers)
+        assertNull(state.value.baseChange)
+
+        diary.notes.value = listOf(baseChangeNote(id = 9))
+        vm.onBaseChange(false)
+        assertEquals(9L to false, diary.baseChangeAnswers.last())
+    }
+
+    @Test fun `a failure is shown as a notice and the question stays`() = runTest {
+        val (vm, state) = viewModel()
+        diary.notes.value = listOf(baseChangeNote())
+        diary.baseChangeResult = Result.failure(dev.dietapp.data.net.AppError("Не вышло.", "x"))
+        vm.onBaseChange(true)
+        assertEquals("Не вышло.", state.value.notice)
+        assertTrue(state.value.baseChange != null)
+        assertFalse(state.value.baseChange!!.busy)
+    }
+
+    @Test fun `it is asked before the confirmation and before a question, after a proposal`() = runTest {
+        val (_, state) = viewModel()
+        diary.entries.value = waiting()
+        diary.notes.value = listOf(baseChangeNote())
+        assertTrue(state.value.baseChange != null)
+        assertNull(state.value.confirm)
+        assertNull(state.value.question)
+
+        diary.notes.value = listOf(baseChangeNote(), proposalNote())
+        assertTrue(state.value.proposal != null)
+        assertNull("the proposal first", state.value.baseChange)
+    }
+
+    @Test fun `an answered change is not a line of the chat on its own`() = runTest {
+        val (_, state) = viewModel()
+        diary.notes.value = listOf(baseChangeNote(resolved = true))
+        assertNull(state.value.baseChange)
+        assertTrue(state.value.feed.none { it is FeedItem.NoteItem })
+    }
+
     // ---------- "Записать?" and the feed as a chat ----------
 
     private fun waiting() = listOf(

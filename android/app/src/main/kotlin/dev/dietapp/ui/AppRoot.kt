@@ -18,12 +18,17 @@ import dev.dietapp.ui.login.LoginViewModel
 import dev.dietapp.ui.main.MainScreen
 import dev.dietapp.ui.main.MainViewModel
 import dev.dietapp.ui.main.Screen
+import dev.dietapp.ui.export.ExportRoute
+import dev.dietapp.ui.export.ExportViewModel
 import dev.dietapp.ui.settings.SettingsScreen
 import dev.dietapp.ui.settings.SettingsViewModel
 
 /** One activity, one root: sign-in until there is a session and a goal, then the diary. */
 @Composable
-fun AppRoot(main: MainViewModel, login: LoginViewModel, settings: SettingsViewModel, foods: FoodsViewModel, journal: JournalViewModel) {
+fun AppRoot(
+    main: MainViewModel, login: LoginViewModel, settings: SettingsViewModel, foods: FoodsViewModel, journal: JournalViewModel,
+    export: ExportViewModel,
+) {
     val loginState by login.state.collectAsStateWithLifecycle()
     Box(Modifier.fillMaxSize().background(AppTheme.colors.background)) {
         when {
@@ -39,13 +44,13 @@ fun AppRoot(main: MainViewModel, login: LoginViewModel, settings: SettingsViewMo
                 onKey = login::onKey,
                 onSkipKey = login::onSkipKey,
             )
-            else -> Diary(main, settings, foods, journal)
+            else -> Diary(main, settings, foods, journal, export)
         }
     }
 }
 
 @Composable
-private fun Diary(main: MainViewModel, settings: SettingsViewModel, foods: FoodsViewModel, journal: JournalViewModel) {
+private fun Diary(main: MainViewModel, settings: SettingsViewModel, foods: FoodsViewModel, journal: JournalViewModel, export: ExportViewModel) {
     val state by main.uiState.collectAsStateWithLifecycle()
     val settingsState by settings.state.collectAsStateWithLifecycle()
 
@@ -58,6 +63,7 @@ private fun Diary(main: MainViewModel, settings: SettingsViewModel, foods: Foods
             state.editing != null -> main.onEditCommit()
             state.screen == Screen.Foods -> if (foodsState.editing != null) foods.onCancel() else main.onCloseFoods()
             state.screen == Screen.Journal -> main.onCloseJournal()
+            state.screen == Screen.Export -> main.onCloseExport()
             else -> main.onCloseSettings()
         }
     }
@@ -75,9 +81,11 @@ private fun Diary(main: MainViewModel, settings: SettingsViewModel, foods: Foods
             onPickDay = main::onSelectDay,
             onOpenFoods = main::onOpenFoods,
             onOpenJournal = main::onOpenJournal,
-            onToggleWebSearch = settings::onToggleWebSearch,
             onToggleRecordMode = settings::onToggleRecordMode,
             onToggleLanguage = settings::onToggleLanguage,
+            onToggleAgent = settings::onToggleAgent,
+            onTogglePrompt = settings::onTogglePrompt,
+            onOpenExport = main::onOpenExport,
             onLogout = {
                 settings.onLogout()
                 main.onCloseSettings()
@@ -85,5 +93,6 @@ private fun Diary(main: MainViewModel, settings: SettingsViewModel, foods: Foods
         )
         Screen.Foods -> FoodsRoute(foods, onBack = main::onCloseFoods)
         Screen.Journal -> JournalRoute(journal, onBack = main::onCloseJournal)
+        Screen.Export -> ExportRoute(export, onBack = main::onCloseExport)
     }
 }

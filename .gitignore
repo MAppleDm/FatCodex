@@ -12,8 +12,10 @@ __pycache__/
 .pytest_cache/
 .ruff_cache/
 
-# local data (food databases, downloads)
-data/
+# local data (food databases, downloads). Anchored: an unanchored "data/" also hid android/data (a Gradle module)
+# and services/nutrition/tests/data (test fixtures).
+/data/
+/services/*/data/
 *.db
 *.db-wal
 *.db-shm

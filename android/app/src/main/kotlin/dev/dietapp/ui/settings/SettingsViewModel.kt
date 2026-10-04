@@ -33,7 +33,6 @@ data class SettingsUiState(
     /** Running without a server: the diary lives only on this phone. */
     val local: Boolean = false,
     val hasKey: Boolean = false,
-    val webSearch: Boolean = true,
     val recordMode: RecordMode = RecordMode.Standard,
     val language: Language = Language.Ru,
     val keyInput: String = "",
@@ -41,6 +40,12 @@ data class SettingsUiState(
     val eraseArmed: Boolean = false,
     /** How many foods the user's own base holds. */
     val foodCount: Int = 0,
+    /** The "Агент" block (the key, the fixed model settings, the prompt) is opened. */
+    val agentOpen: Boolean = false,
+    /** The system prompt inside it is opened too. */
+    val promptOpen: Boolean = false,
+    /** What the agent is told before every message. Read-only. */
+    val agentPrompt: String = "",
 ) {
     val goalText get() = goalInput ?: savedGoal?.toString().orEmpty()
     val canSave get() = goalInput != null && goalInput.toIntOrNull() != null && goalInput.toIntOrNull() != savedGoal && !busy
@@ -54,6 +59,8 @@ private data class Edit(
     val message: String? = null,
     val isError: Boolean = false,
     val eraseArmed: Boolean = false,
+    val agentOpen: Boolean = false,
+    val promptOpen: Boolean = false,
 )
 
 @HiltViewModel
@@ -78,12 +85,14 @@ class SettingsViewModel @Inject constructor(
             messageIsError = e.isError,
             local = caps.local,
             hasKey = caps.modelKey,
-            webSearch = caps.webSearch,
             recordMode = caps.recordMode,
             language = caps.language,
             keyInput = e.keyInput,
             eraseArmed = e.eraseArmed,
             foodCount = foodList.size,
+            agentOpen = e.agentOpen,
+            promptOpen = e.promptOpen,
+            agentPrompt = localSettings.agentPrompt,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SettingsUiState())
 
@@ -95,7 +104,7 @@ class SettingsViewModel @Inject constructor(
         edit.update { it.copy(busy = true, message = null) }
         viewModelScope.launch {
             auth.setGoal(goal).fold(
-                onSuccess = { edit.update { e -> Edit(keyInput = e.keyInput, message = Texts.SAVED) } },
+                onSuccess = { edit.update { e -> Edit(keyInput = e.keyInput, message = Texts.SAVED, agentOpen = e.agentOpen, promptOpen = e.promptOpen) } },
                 onFailure = { e -> edit.update { it.copy(busy = false, message = e.message, isError = true) } },
             )
         }
@@ -112,7 +121,8 @@ class SettingsViewModel @Inject constructor(
         )
     }
 
-    fun onToggleWebSearch() = localSettings.setWebSearch(!state.value.webSearch)
+    fun onToggleAgent() = edit.update { it.copy(agentOpen = !it.agentOpen, eraseArmed = false) }
+    fun onTogglePrompt() = edit.update { it.copy(promptOpen = !it.promptOpen, eraseArmed = false) }
     fun onToggleRecordMode() =
         localSettings.setRecordMode(if (state.value.recordMode == RecordMode.Standard) RecordMode.Precise else RecordMode.Standard)
 

@@ -1,7 +1,5 @@
 package dev.dietapp.ui.journal
 
-import android.content.Context
-import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -20,8 +18,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.core.content.FileProvider
-import java.io.File
+import dev.dietapp.ui.shareTextFile
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import androidx.compose.ui.Alignment
@@ -110,7 +107,9 @@ fun JournalRoute(vm: JournalViewModel, onBack: () -> Unit) {
         onShare = {
             scope.launch {
                 val full = withContext(Dispatchers.IO) { vm.full() }
-                runCatching { shareFile(context, full) }.onFailure { vm.onSaved(false) }
+                runCatching {
+                    shareTextFile(context, JournalViewModel.fileName(), "text/plain", full, Texts.JOURNAL_SUBJECT, Texts.JOURNAL)
+                }.onFailure { vm.onSaved(false) }
             }
         },
         onClear = vm::clear,
@@ -154,22 +153,3 @@ fun JournalScreen(
     }
 }
 
-/**
- * The journal as a .txt attachment (a messenger would cut long text into pieces): written to the app's cache and handed
- * out through the FileProvider declared in the manifest, readable only by the app the user picks.
- */
-private fun shareFile(context: Context, text: String) {
-    val dir = File(context.cacheDir, "shared").apply { mkdirs() }
-    dir.listFiles()?.forEach { it.delete() } // only the latest one is ever needed
-    val file = File(dir, JournalViewModel.fileName()).apply { writeText(text, Charsets.UTF_8) }
-    val uri = FileProvider.getUriForFile(context, context.packageName + ".files", file)
-    val send = Intent(Intent.ACTION_SEND).setType("text/plain")
-        .putExtra(Intent.EXTRA_STREAM, uri)
-        .putExtra(Intent.EXTRA_SUBJECT, Texts.JOURNAL_SUBJECT)
-        .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-    send.clipData = android.content.ClipData.newRawUri(file.name, uri) // lets the share sheet itself read it, for the preview
-    val chooser = Intent.createChooser(send, Texts.JOURNAL)
-        .putExtra(Intent.EXTRA_EXCLUDE_COMPONENTS, arrayOf(android.content.ComponentName(context, dev.dietapp.MainActivity::class.java)))
-        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-    context.startActivity(chooser)
-}

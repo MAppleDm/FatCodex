@@ -72,6 +72,7 @@ interface MainActions {
     fun onProposalSkip()
     fun onProposalBack()
     fun onConfirm(record: Boolean)
+    fun onBaseChange(apply: Boolean)
     fun onQuestionSkip()
 }
 
@@ -206,6 +207,8 @@ class MainViewModel @Inject constructor(
     fun onCloseFoods() = update { it.copy(screen = Screen.Settings) }
     fun onOpenJournal() = update { it.copy(screen = Screen.Journal) }
     fun onCloseJournal() = update { it.copy(screen = Screen.Settings) }
+    fun onOpenExport() = update { it.copy(screen = Screen.Export) }
+    fun onCloseExport() = update { it.copy(screen = Screen.Settings) }
 
     // ---------- editing in place ----------
 
@@ -312,6 +315,24 @@ class MainViewModel @Inject constructor(
     override fun onQuestionSkip() {
         val q = uiState.value.question ?: return
         viewModelScope.launch { diary.skipQuestion(q.id) }
+    }
+
+    // ---------- a change to the food base that waits for a yes ----------
+
+    /** [apply]: the agent's change to the food base is made; otherwise it is dropped. */
+    override fun onBaseChange(apply: Boolean) {
+        val c = uiState.value.baseChange ?: return
+        if (local.value.baseChangeBusy != null) return
+        update { it.copy(baseChangeBusy = c.noteId) }
+        viewModelScope.launch {
+            diary.answerBaseChange(c.noteId, apply).fold(
+                onSuccess = { update { it.copy(baseChangeBusy = null) } },
+                onFailure = { e ->
+                    update { it.copy(baseChangeBusy = null) }
+                    showNotice(e.message ?: Texts.BASE_CHANGE_FAILED)
+                },
+            )
+        }
     }
 
     // ---------- "Записать?" ----------

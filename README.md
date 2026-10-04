@@ -23,6 +23,8 @@ The AI only names foods and amounts. Calories come from real food databases (USD
 
 No account and no server are needed: the diary lives on your phone and works offline. To understand photos and complex phrases the app uses DeepSeek with your own key, which needs internet. Only what you type or photograph is sent there.
 
+The app records; it does not write reports. To analyse your history, export it (Settings → Export history) as Markdown, JSON or CSV and give the file to any model or spreadsheet you like.
+
 ## Status
 
 An early personal project, free and non-commercial. It is not on Google Play yet and has not been tested on a real phone, so expect rough edges.

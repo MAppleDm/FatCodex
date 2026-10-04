@@ -145,6 +145,14 @@ class FakeDiary : DiaryRepository {
         notes.value = notes.value.map { if (it.id == noteId) it.copy(resolved = true) else it }
     }
 
+    val baseChangeAnswers = mutableListOf<Pair<Long, Boolean>>()
+    var baseChangeResult: Result<Unit> = Result.success(Unit)
+    override suspend fun answerBaseChange(noteId: Long, apply: Boolean): Result<Unit> {
+        baseChangeAnswers += noteId to apply
+        if (baseChangeResult.isSuccess) notes.value = notes.value.map { if (it.id == noteId) it.copy(resolved = true) else it }
+        return baseChangeResult
+    }
+
     val recorded = mutableListOf<Pair<List<String>, Boolean>>()
     override suspend fun recordPending(entryIds: List<String>, record: Boolean) {
         recorded += entryIds to record
@@ -205,6 +213,7 @@ class FakeAuth : AuthRepository {
 class FakeLocalSettings(local: Boolean = false, modelKey: Boolean = false) : LocalSettings {
     val state = MutableStateFlow(Capabilities(local = local, modelKey = modelKey))
     override val capabilities: Flow<Capabilities> = state
+    override val agentPrompt = "You are a food diary agent.\nNever estimate calories."
     val saved = mutableListOf<String>()
     var cleared = 0
 
@@ -216,7 +225,6 @@ class FakeLocalSettings(local: Boolean = false, modelKey: Boolean = false) : Loc
     }
 
     override fun clearKey() { cleared++; state.value = state.value.copy(modelKey = false) }
-    override fun setWebSearch(on: Boolean) { state.value = state.value.copy(webSearch = on) }
     override fun setRecordMode(mode: dev.dietapp.data.local.RecordMode) { state.value = state.value.copy(recordMode = mode) }
     override fun setLanguage(language: dev.dietapp.data.domain.Language) { state.value = state.value.copy(language = language) }
 }
