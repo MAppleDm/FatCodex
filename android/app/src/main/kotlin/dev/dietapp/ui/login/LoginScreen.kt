@@ -25,25 +25,23 @@ import dev.dietapp.coreui.AppTheme
 import dev.dietapp.coreui.TextAction
 import dev.dietapp.coreui.UnderlineField
 
-/** Sign-in and the one-time goal, on a single screen that reveals itself step by step. */
+/** Sign-in (or the DeepSeek key, without a server), on a single screen that reveals itself step by step. */
 @Composable
 fun LoginScreen(
     state: LoginUiState,
     onEmail: (String) -> Unit,
     onCode: (String) -> Unit,
-    onGoal: (String) -> Unit,
     onSubmit: () -> Unit,
     onChangeEmail: () -> Unit,
     onWithoutServer: () -> Unit,
     onKey: (String) -> Unit,
-    onSkipKey: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val canSubmit = !state.busy && when (state.step) {
         LoginStep.Email -> state.email.contains('@')
         LoginStep.Code -> state.code.length == 6
         LoginStep.Key -> state.key.isNotBlank()
-        LoginStep.Goal -> state.goal.isNotEmpty()
+        LoginStep.About -> false // never drawn here: AppRoot shows the questions' own screen
     }
     Column(
         modifier.fillMaxSize().background(AppTheme.colors.background).statusBarsPadding().navigationBarsPadding().imePadding()
@@ -78,24 +76,15 @@ fun LoginScreen(
                 )
                 Hint(Texts.KEY_STEP_HINT)
             }
-            LoginStep.Goal -> {
-                UnderlineField(
-                    state.goal, onGoal, Modifier.testTag("goal"), placeholder = Texts.GOAL,
-                    keyboardType = KeyboardType.Number, imeAction = ImeAction.Done, mono = true,
-                    onImeAction = { if (canSubmit) onSubmit() },
-                )
-                Hint(Texts.GOAL_HINT)
-            }
+            LoginStep.About -> Unit
         }
         state.error?.let {
             Text(it, style = AppTheme.type.secondary.copy(color = AppTheme.colors.error), modifier = Modifier.padding(top = 12.dp).testTag("error"))
         }
         Spacer(Modifier.height(16.dp))
         val withoutServerOffered = state.step == LoginStep.Email && state.serverEnabled
-        val skipOffered = state.step == LoginStep.Key
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = if (withoutServerOffered || skipOffered) Arrangement.SpaceBetween else Arrangement.End) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = if (withoutServerOffered) Arrangement.SpaceBetween else Arrangement.End) {
             if (withoutServerOffered) TextAction(Texts.NO_SERVER, onWithoutServer, Modifier.testTag("local"), color = AppTheme.colors.secondary)
-            if (skipOffered) TextAction(Texts.SKIP, onSkipKey, Modifier.testTag("skip"), color = AppTheme.colors.secondary)
             TextAction(if (state.busy) "…" else Texts.NEXT, onSubmit, Modifier.testTag("next"),
                 color = if (canSubmit) AppTheme.colors.foreground else AppTheme.colors.tertiary)
         }
@@ -103,6 +92,6 @@ fun LoginScreen(
 }
 
 @Composable
-private fun Hint(text: String) {
-    Text(text, style = AppTheme.type.caption, modifier = Modifier.padding(top = 8.dp).fillMaxWidth())
+private fun Hint(text: String, modifier: Modifier = Modifier) {
+    Text(text, style = AppTheme.type.caption, modifier = modifier.padding(top = 8.dp).fillMaxWidth())
 }

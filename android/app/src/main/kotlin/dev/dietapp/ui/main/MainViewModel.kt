@@ -14,7 +14,7 @@ import dev.dietapp.data.domain.Profile
 import dev.dietapp.data.domain.WeightCommand
 import dev.dietapp.data.local.Capabilities
 import dev.dietapp.data.local.LocalSettings
-import dev.dietapp.data.local.PHOTO_NEEDS_KEY
+import dev.dietapp.data.local.NEEDS_KEY
 import dev.dietapp.data.repo.DiaryRepository
 import dev.dietapp.data.repo.SpeechRepository
 import java.time.Clock
@@ -51,6 +51,12 @@ interface MainActions {
     fun onWeightTap(weightId: String)
     fun onWeightDelete(weightId: String)
     fun onMessageTap(messageId: String)
+
+    /** "Повторить": the agent reads the message again. */
+    fun onMessageRetry(messageId: String)
+
+    /** "убрать": a message that could not be read is taken back. */
+    fun onMessageDiscard(messageId: String)
     fun onNoteTap(noteId: Long)
     fun onBackToToday()
     fun onOpenSettings()
@@ -104,6 +110,14 @@ class MainViewModel @Inject constructor(
 
     init {
         viewModelScope.launch { diary.confirmations.collect { _effects.tryEmit(UiEffect.Confirm) } }
+        // a photo message gets its small picture in the chat: read from the phone once, kept while the screen lives
+        viewModelScope.launch {
+            local.map { it.day }.distinctUntilChanged().flatMapLatest { diary.observeDay(it) }.collect { content ->
+                content.messages.filter { it.hasImage && it.id !in local.value.thumbs }.forEach { m ->
+                    diary.thumbnail(m.id)?.let { bytes -> update { s -> s.copy(thumbs = s.thumbs + (m.id to bytes)) } }
+                }
+            }
+        }
     }
 
     private fun today(): LocalDate = LocalDate.now(clock)
@@ -132,9 +146,14 @@ class MainViewModel @Inject constructor(
         val l = local.value
         val text = l.draft.trim()
         if (text.isEmpty()) return
+        val kg = WeightCommand.parse(text)
+        // the agent reads everything but a weigh-in, and it cannot without a key: say so, and keep what was typed
+        if (kg == null && uiState.value.needsKey) {
+            showNotice(NEEDS_KEY)
+            return
+        }
         update { it.copy(draft = "", draftFromVoice = false, notice = null, voiceBase = "") }
         viewModelScope.launch {
-            val kg = WeightCommand.parse(text)
             if (kg != null) {
                 diary.addWeight(l.day, kg, clock.instant())
                 _effects.tryEmit(UiEffect.Confirm)
@@ -152,7 +171,7 @@ class MainViewModel @Inject constructor(
     }
 
     override fun onOpenCamera() {
-        if (uiState.value.photoNeedsKey) showNotice(PHOTO_NEEDS_KEY) else update { it.copy(cameraOpen = true, notice = null) }
+        if (uiState.value.needsKey) showNotice(NEEDS_KEY) else update { it.copy(cameraOpen = true, notice = null) }
     }
     override fun onCloseCamera() = update { it.copy(cameraOpen = false) }
     override fun onCameraFailed() {
@@ -206,9 +225,17 @@ class MainViewModel @Inject constructor(
     fun onOpenFoods() = update { it.copy(screen = Screen.Foods) }
     fun onCloseFoods() = update { it.copy(screen = Screen.Settings) }
     fun onOpenJournal() = update { it.copy(screen = Screen.Journal) }
-    fun onCloseJournal() = update { it.copy(screen = Screen.Settings) }
+    fun onCloseJournal() = update { it.copy(screen = Screen.About) }
+    fun onOpenMe() = update { it.copy(screen = Screen.Me) }
+    fun onCloseMe() = update { it.copy(screen = Screen.Settings) }
+    fun onOpenHistory() = update { it.copy(screen = Screen.History) }
+    fun onCloseHistory() = update { it.copy(screen = Screen.Settings) }
+    fun onOpenAbout() = update { it.copy(screen = Screen.About) }
+    fun onCloseAbout() = update { it.copy(screen = Screen.Settings) }
+    fun onOpenAgent() = update { it.copy(screen = Screen.Agent) }
+    fun onCloseAgent() = update { it.copy(screen = Screen.About) }
     fun onOpenExport() = update { it.copy(screen = Screen.Export) }
-    fun onCloseExport() = update { it.copy(screen = Screen.Settings) }
+    fun onCloseExport() = update { it.copy(screen = Screen.History) }
 
     // ---------- editing in place ----------
 
@@ -258,12 +285,18 @@ class MainViewModel @Inject constructor(
         viewModelScope.launch { diary.deleteWeight(weightId) }
     }
 
-    /** A failed message is taken back; a waiting one is nudged; a processed one has nothing to do. */
+    /** A waiting message is nudged; a failed one has its own buttons; a processed one has nothing to do. */
     override fun onMessageTap(messageId: String) {
         val pending = uiState.value.feed.filterIsInstance<FeedItem.MessageItem>().firstOrNull { it.message.id == messageId }?.pending ?: return
-        viewModelScope.launch {
-            if (pending.state == OutboxState.Failed) diary.discardOutbox(messageId) else diary.requestSync()
-        }
+        if (pending.state != OutboxState.Failed) viewModelScope.launch { diary.requestSync() }
+    }
+
+    override fun onMessageRetry(messageId: String) {
+        viewModelScope.launch { diary.retryOutbox(messageId) }
+    }
+
+    override fun onMessageDiscard(messageId: String) {
+        viewModelScope.launch { diary.discardOutbox(messageId) }
     }
 
     override fun onNoteTap(noteId: Long) {

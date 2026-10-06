@@ -29,7 +29,7 @@ private val DAY = LocalDate.parse("2026-09-30")
 private val NOW = ZonedDateTime.of(2026, 9, 30, 12, 0, 0, 0, ZoneOffset.ofHours(3))
 
 /**
- * The model as an agent over the food base, end to end: real Room, real catalog, MockWebServer playing DeepSeek.
+ * The model as an agent over the user's own food base, end to end: real Room, MockWebServer playing DeepSeek and the web.
  * The scripts follow what DeepSeek sends back for tool calls (OpenAI-compatible chat completions).
  */
 @RunWith(AndroidJUnit4::class)
@@ -66,11 +66,12 @@ class FoodAgentTest {
 
     @Test fun `a food the base lacks is proposed, not saved, and the entry waits for the user's choice`() = runTest {
         withKey()
+        val water = env.foods.save(FoodInput("вода", Per100(0.0, 0.0, 0.0, 0.0)))
         env.enqueue(200, turn("search_foods" to """{"query": "казеиновый протеин"}""", "search_foods" to """{"query": "вода"}"""))
         env.enqueue(200, turn("propose_food" to """{"for_item": "казеиновый протеин", "question": null, "options": [$caseinOption]}"""))
         env.enqueue(200, turn("record_food" to """{"items": [
             {"action": "add", "name": "казеиновый протеин", "grams": 30, "confidence": 0.9},
-            {"action": "add", "name": "вода", "query_en": "water, tap, drinking", "grams": 250, "confidence": 0.9}]}"""))
+            {"action": "add", "name": "вода", "grams": 250, "confidence": 0.9, "food_id": "my:${water.id}"}]}"""))
 
         say("казеиновый протеин 30 грамм с водой")
 
@@ -78,7 +79,7 @@ class FoodAgentTest {
         assertEquals(listOf("казеиновый протеин", "вода"), e.map { it.name })
         assertNull("no numbers until the user confirms", e[0].kcal)
         assertEquals(0.0, e[1].kcal!!, 0.5)
-        assertTrue("nothing went into the base yet", env.db.foods().all().isEmpty())
+        assertEquals("nothing went into the base yet: only the water that was there", listOf("вода"), env.db.foods().all().map { it.name })
 
         val message = messages().single()
         val proposal = notes().single()
@@ -97,7 +98,7 @@ class FoodAgentTest {
         val filled = entries()[0]
         assertEquals(108.0, filled.kcal!!, 0.01)
         assertEquals("typical values stay \"~\"", "uncertain", filled.status)
-        val food = env.db.foods().all().single()
+        val food = env.db.foods().all().single { it.name == "казеиновый протеин" }
         assertEquals("model", food.origin)
         val after = notes()
         assertTrue(after.first { it.id == proposal.id }.resolved)
@@ -116,7 +117,8 @@ class FoodAgentTest {
         val second = request()["messages"]!!.jsonArray
         val toolResults = second.drop(3).map { it.jsonObject }
         assertEquals(listOf("call_0", "call_1"), toolResults.map { it["tool_call_id"]!!.jsonPrimitive.content })
-        assertTrue("the model sees search results, water among them", toolResults[1]["content"]!!.jsonPrimitive.content.contains("Water", ignoreCase = true))
+        assertTrue("the model sees search results, water among them", toolResults[1]["content"]!!.jsonPrimitive.content.contains("\"my:${water.id}\""))
+        assertEquals("nothing is found for what the base never had", "{\"results\":[]}", toolResults[0]["content"]!!.jsonPrimitive.content)
     }
 
     @Test fun `the model cannot slip a guessed food into the base without the user`() = runTest {
@@ -209,23 +211,30 @@ class FoodAgentTest {
         assertEquals("ok", entries().single().status)
     }
 
-    @Test fun `a food added once is known without the model, offline`() = runTest {
-        env.foods.save(FoodInput("казеиновый протеин", Per100(360.0, 80.0, 1.5, 8.0), listOf("казеин"), estimated = true))
+    @Test fun `a food added once is found by the agent next time, by any of its names, with no web`() = runTest {
+        withKey()
+        val casein = env.foods.save(FoodInput("казеиновый протеин", Per100(360.0, 80.0, 1.5, 8.0), listOf("казеин"), estimated = true))
+        env.enqueue(200, turn("search_foods" to """{"query": "казеин"}"""))
+        env.enqueue(200, turn("record_food" to """{"items": [{"action": "add", "name": "казеиновый протеин", "grams": 30, "confidence": 0.9, "food_id": "my:${casein.id}"}]}"""))
         say("казеин 30 г")
         val e = entries().single()
         assertEquals("казеиновый протеин", e.name)
         assertEquals(108.0, e.kcal!!, 0.01)
-        assertEquals(0, env.server.requestCount)
-        assertTrue(notes().none { it.kind == "question" })
+        assertEquals(2, env.server.requestCount)
+        assertEquals("the web was not needed", 0, env.webServer.requestCount)
+        assertTrue(notes().none { it.kind == "question" || it.kind == "proposal" })
     }
 
-    @Test fun `when the model is unreachable the user's food base still answers`() = runTest {
+    @Test fun `when the model is unreachable nothing is recorded, even for a food the base has, and the message waits`() = runTest {
         withKey()
         env.foods.save(FoodInput("казеиновый протеин", Per100(360.0, 80.0, 1.5, 8.0), estimated = true))
         repeat(3) { env.enqueue(503, "{}") }
         say("казеиновый протеин 30 г")
-        assertEquals(108.0, entries().single().kcal!!, 0.01)
-        assertTrue(notes().single().text.startsWith("Нет связи с моделью (HTTP 503: {})."))
+        assertTrue(entries().isEmpty())
+        assertTrue(notes().isEmpty())
+        val failed = env.db.outbox().observeAll().first().single()
+        assertEquals("failed", failed.state)
+        assertEquals("Нет связи с агентом.", failed.error)
     }
 
     @Test fun `the food base can be managed from the chat`() = runTest {
@@ -238,7 +247,7 @@ class FoodAgentTest {
 
         assertTrue(env.db.foods().all().isEmpty())
         assertTrue(entries().isEmpty())
-        assertEquals(listOf("Удалил из базы: казеин", "Удалил казеин из базы."), notes().map { it.text })
+        assertEquals(listOf("Удалил из базы: казеин — 360 ккал · Б 80 · Ж 1,5 · У 8 на 100 г", "Удалил казеин из базы."), notes().map { it.text })
     }
 
     @Test fun `the user's own numbers are saved as given, not as an estimate`() = runTest {
@@ -253,8 +262,9 @@ class FoodAgentTest {
 
     @Test fun `the last round forces record_food so the agent always ends`() = runTest {
         withKey()
+        env.foods.save(FoodInput("гречка", Per100(92.0, 3.4, 0.6, 19.9)))
         repeat(7) { env.enqueue(200, turn("search_foods" to """{"query": "гречка"}""")) }
-        env.enqueue(200, turn("record_food" to """{"items": [{"action": "add", "name": "гречка", "query_en": "buckwheat groats, roasted, cooked", "grams": 200, "confidence": 0.9}]}"""))
+        env.enqueue(200, turn("record_food" to """{"items": [{"action": "add", "name": "гречка", "grams": 200, "confidence": 0.9}]}"""))
         say("гречка 200")
         val choices = (1..8).map { request()["tool_choice"]!! }
         assertTrue(choices.take(7).all { it is JsonPrimitive && it.content == "auto" })
@@ -289,7 +299,7 @@ class FoodAgentTest {
         env.enqueue(200, turn("record_food" to """{"items": []}"""))
         say("удали из базы казеин")
         assertTrue(env.db.foods().all().isEmpty())
-        assertEquals(listOf("Удалил из базы: казеин"), notes().map { it.text })
+        assertEquals(listOf("Удалил из базы: казеин — 360 ккал · Б 80 · Ж 1,5 · У 8 на 100 г"), notes().map { it.text })
         assertTrue(notes().none { it.kind == "base_change" })
     }
 
@@ -311,7 +321,7 @@ class FoodAgentTest {
         assertTrue(env.localDiary.answerBaseChange(ask.id, true).isSuccess)
         assertTrue(env.db.foods().all().isEmpty())
         assertTrue(notes().first { it.id == ask.id }.resolved)
-        assertEquals("Удалил из базы: казеин", notes().last().text)
+        assertEquals("Удалил из базы: казеин — 360 ккал · Б 80 · Ж 1,5 · У 8 на 100 г", notes().last().text)
         assertFalse("answered once is enough", env.localDiary.answerBaseChange(ask.id, true).isSuccess)
     }
 
@@ -324,18 +334,6 @@ class FoodAgentTest {
         assertEquals(1, env.db.foods().all().size)
         assertTrue(notes().first { it.kind == "base_change" }.resolved)
         assertEquals("Оставил как есть: казеин", notes().last().text)
-    }
-
-    @Test fun `precise mode - even a sure agent asks`() = runTest {
-        withKey(); withCasein()
-        env.mode.setRecordMode(RecordMode.Precise)
-        env.enqueue(200, turn("delete_food" to """{"id": "my:1", "sure": true}"""))
-        env.enqueue(200, turn("record_food" to """{"items": []}"""))
-        say("удали из базы казеин")
-        assertEquals("still there", 1, env.db.foods().all().size)
-        assertFalse(baseChange().resolved)
-        assertTrue(env.localDiary.answerBaseChange(baseChange().id, true).isSuccess)
-        assertTrue(env.db.foods().all().isEmpty())
     }
 
     @Test fun `a message that made the agent read the web cannot change the base by itself`() = runTest {
@@ -384,6 +382,13 @@ class FoodAgentTest {
         say("у казеина 370 ккал, белок 82, жиры 2, углеводы 6")
         assertEquals(370.0, env.db.foods().all().single().kcal, 0.0)
         assertTrue(notes().none { it.kind == "base_change" })
+        // what it was before is in the line, so a mistake can be put right by hand
+        assertEquals(
+            "Обновил в базе: казеин — 370 ккал · Б 82 · Ж 2 · У 6 на 100 г (было: 360 ккал · Б 80 · Ж 1,5 · У 8 на 100 г)",
+            notes().last().text,
+        )
+        // and the journal has it too
+        assertTrue(env.journal.read().contains("save_food: Обновил в базе: казеин"))
     }
 
     @Test fun `a food that is gone by the time the user says yes is reported, not a crash`() = runTest {
@@ -419,16 +424,23 @@ class FoodAgentTest {
     // ---------- the conversation around it (no key) ----------
 
     @Test fun `the same question is not asked twice in the same words`() = runTest {
+        withKey()
+        env.enqueue(200, turn("record_food" to """{"items": [{"action": "add", "name": "абырвалг", "grams": 30, "confidence": 0.9}]}"""))
         say("абырвалг 30 г")
         val first = notes().single { it.kind == "question" }
         assertEquals("Не нашёл «абырвалг» в базе продуктов. Что это точнее?", first.text)
+        env.enqueue(200, turn("record_food" to """{"items": [{"action": "update", "target_id": "${entries().single().id}", "name": "абырвалг", "grams": 30, "confidence": 0.9}]}"""))
         say("абырвалг")
         val again = notes().filter { it.kind == "question" }.last()
         assertTrue(again.text, again.text.startsWith("Всё ещё не нашёл «абырвалг»"))
     }
 
     @Test fun `a correction answers under its own message`() = runTest {
+        withKey()
+        env.foods.save(FoodInput("гречка", Per100(92.0, 3.4, 0.6, 19.9)))
+        env.enqueue(200, turn("record_food" to """{"items": [{"action": "add", "name": "гречка", "grams": 200, "confidence": 0.9}]}"""))
         say("гречка 200 г")
+        env.enqueue(200, turn("record_food" to """{"items": [{"action": "update", "target_id": "${entries().single().id}", "name": "гречка", "grams": 150, "confidence": 0.9}]}"""))
         say("гречки было 150")
         val first = messages().single { it.text == "гречка 200 г" }
         val second = messages().single { it.text == "гречки было 150" }
@@ -452,7 +464,6 @@ class FoodAgentTest {
 
     @Test fun `picking an option records the food, and the question stays with its entry`() = runTest {
         withKey()
-        env.mode.setRecordMode(RecordMode.Precise)
         env.enqueue(200, turn("propose_food" to """{"for_item": "казеиновый протеин", "options": [$caseinOption]}"""))
         env.enqueue(200, turn("record_food" to """{"items": [{"action": "add", "name": "казеиновый протеин", "grams": 30, "confidence": 0.9}]}"""))
         say("казеиновый протеин 30 г")
@@ -489,9 +500,11 @@ class FoodAgentTest {
 
     @Test fun `in the standard mode the agent decides what to ask about`() = runTest {
         withKey()
+        env.foods.save(FoodInput("гречка", Per100(92.0, 3.4, 0.6, 19.9)))
+        env.foods.save(FoodInput("сосиски", Per100(266.0, 11.0, 24.0, 1.5)))
         env.enqueue(200, turn("record_food" to """{"items": [
-            {"action": "add", "name": "гречка", "query_en": "buckwheat groats, roasted, cooked", "grams": 200, "confidence": 0.95, "needs_confirmation": false},
-            {"action": "add", "name": "сосиски", "query_en": "frankfurter, meat", "grams": 50, "confidence": 0.9, "needs_confirmation": true}]}"""))
+            {"action": "add", "name": "гречка", "grams": 200, "confidence": 0.95, "needs_confirmation": false},
+            {"action": "add", "name": "сосиски", "grams": 50, "confidence": 0.9, "needs_confirmation": true}]}"""))
         say("гречка 200 и сосиски 50")
         val (buckwheat, sausages) = entries()
         assertFalse("stable values: recorded at once", buckwheat.pending)

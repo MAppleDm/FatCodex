@@ -4,9 +4,6 @@ import dev.dietapp.data.domain.Per100
 
 enum class Action { Add, Update, Remove }
 
-/** Nutrition that is already known (copied from an earlier entry, or from the built-in table of Russian dishes). */
-data class Preset(val per100: Per100, val foodName: String, val approximate: Boolean)
-
 /** One thing the user said, as the parsers see it. Never carries calories the model made up: numbers come from the food database. */
 data class ParsedItem(
     val action: Action,
@@ -16,8 +13,7 @@ data class ParsedItem(
     val grams: Double,
     val confidence: Double,
     val clarifyQuestion: String? = null,
-    val preset: Preset? = null,
-    /** A food the model picked from the food base by id ("my:12", "usda:01001", "ru:борщ"); wins over the name. */
+    /** A food the model picked from the user's food database by id ("my:12"); wins over the name. */
     val foodId: String? = null,
     /** The model is not sure of this food's values (they depend on the brand, the recipe, the size): ask the user. */
     val ask: Boolean = false,
@@ -65,7 +61,7 @@ sealed interface BaseChange {
 
 data class ContextEntry(val id: String, val name: String, val grams: Double)
 
-data class FrequentItem(val name: String, val queryEn: String?, val grams: Double, val preset: Preset? = null)
+data class FrequentItem(val name: String, val queryEn: String?, val grams: Double)
 
 data class FrequentMeal(val label: String, val items: List<FrequentItem>)
 
@@ -87,10 +83,10 @@ data class ParseRequest(
     val context: ParseContext = ParseContext(),
 )
 
-/** Turns a message into items. Implemented by the language model and by the offline parser. */
+/** Turns a message into items. Implemented by the language model (the agent). */
 interface MessageParser {
     suspend fun parse(request: ParseRequest): ParseResult
 }
 
-/** The model answered, but with nothing usable. Worth another attempt, or the offline parser. */
+/** The model answered, but with nothing usable. Worth another attempt. */
 class BadModelOutput(message: String) : Exception(message)

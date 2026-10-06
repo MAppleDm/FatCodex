@@ -11,7 +11,6 @@ import dev.dietapp.data.domain.Lang.t
 import dev.dietapp.data.domain.NutrientMath
 import dev.dietapp.data.local.parse.Action
 import dev.dietapp.data.local.parse.ContextEntry
-import dev.dietapp.data.local.parse.Lexicon
 import dev.dietapp.data.local.parse.MessageParser
 import dev.dietapp.data.local.parse.ModelFailure
 import dev.dietapp.data.local.parse.ModelTrace
@@ -38,47 +37,46 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withTimeoutOrNull
 
-val PHOTO_NEEDS_KEY get() = t("Для разбора фото нужен ключ DeepSeek: добавь его в настройках.",
-    "Reading a photo needs a DeepSeek key: add it in settings.")
-val KEY_REFUSED_NOTE get() = t("Ключ DeepSeek не подошёл. Разобрано без модели, проверь ключ в настройках.",
-    "The DeepSeek key was refused. Read without the model; check the key in settings.")
-val MODEL_OFFLINE_NOTE get() = t("Нет связи с моделью. Разобрано без неё.", "Could not reach the model. Read without it.")
-val MODEL_CONFUSED_NOTE get() = t("Модель ответила непонятно. Разобрано без неё.", "The model's answer made no sense. Read without it.")
+val NEEDS_KEY get() = t("Нужен ключ DeepSeek: добавь его в «О приложении → Агент».", "A DeepSeek key is needed: add it in About → Agent.")
 val NO_FOOD_NOTE get() = t("Не нашёл в сообщении еды.", "Found no food in the message.")
-val JOURNAL_HINT get() = t("Подробности — в журнале (настройки).", "Details are in the journal (settings).")
+val JOURNAL_HINT get() = t("Подробности — в журнале (О приложении → Журнал).", "Details are in the journal (About → Journal).")
 
-/** "Нет связи с моделью (HTTP 503: Service busy). Разобрано без неё. Подробности — в журнале (настройки)." */
-fun modelNote(e: ModelFailure): String {
-    val base = when (e) {
-        is ModelFailure.Auth -> KEY_REFUSED_NOTE
-        is ModelFailure.BadOutput, is ModelFailure.Rejected -> MODEL_CONFUSED_NOTE
-        is ModelFailure.Unavailable -> MODEL_OFFLINE_NOTE
-    }
-    val (first, rest) = base.split(". ", limit = 2).let { it[0] to it.getOrElse(1) { "" } }
-    return "$first (${e.detail}). $rest $JOURNAL_HINT".replace("  ", " ")
+/**
+ * Why the agent could not read a message, in words for the person. The message stays in the chat, with "Повторить".
+ * A connection that did not work (no network, a timeout, a broken answer, a busy server) is one short line: the person can
+ * do nothing about it but try again, and the exact exception is in the journal. A refused key says what to do about it.
+ */
+fun modelError(e: ModelFailure): AppError = when (e) {
+    is ModelFailure.Auth -> AppError(
+        t("Ключ DeepSeek не подошёл (${e.detail}). Проверь его в «О приложении → Агент».", "The DeepSeek key was refused (${e.detail}). Check it in About → Agent."),
+        "bad_key", retryable = false,
+    )
+    is ModelFailure.Unavailable -> AppError(
+        t("Нет связи с агентом.", "No connection to the agent."),
+        "offline", retryable = true,
+    )
+    is ModelFailure.BadOutput, is ModelFailure.Rejected -> AppError(
+        t("Агент ответил непонятно.", "The agent's answer made no sense.") + " $JOURNAL_HINT",
+        "bad_output", retryable = e.retryable,
+    )
 }
 
 /**
- * Picks how a message is read. With a DeepSeek key the model reads it; if the model cannot be reached, text falls
- * back to the offline parser (and says so). A photo has no offline fallback: it needs the model.
+ * Hands a message to the agent. There is no other way to read one: no key, or an agent that cannot be reached, is an
+ * error the person sees under the message, with a way to try again. Nothing is guessed in its place.
  */
 class ParserChooser(
-    private val offline: MessageParser,
     private val model: MessageParser,
     private val hasKey: () -> Boolean,
     private val trace: ModelTrace = ModelTrace.None,
     /** However the model is doing (slow answers, retries, many tool rounds), a message never waits longer than this. */
     private val budgetMs: Long = 75_000,
 ) {
-    /** The parse result, plus a note for the user when the model could not be used. */
-    suspend fun parse(request: ParseRequest): Pair<ParseResult, String?> {
-        if (!hasKey()) {
-            if (request.imageBase64 != null) throw AppError(PHOTO_NEEDS_KEY, "photo_needs_key")
-            return offline.parse(request) to null
-        }
+    suspend fun parse(request: ParseRequest): ParseResult {
+        if (!hasKey()) throw AppError(NEEDS_KEY, "no_key")
         val failure = try {
             val parsed = withTimeoutOrNull(budgetMs) { model.parse(request) }
-            if (parsed != null) return parsed to null
+            if (parsed != null) return parsed
             trace.error("model", "no result within ${budgetMs / 1000} s, giving up on the model for this message")
             ModelFailure.Unavailable(t("нет ответа за ${budgetMs / 1000} с", "no answer in ${budgetMs / 1000} s"))
         } catch (e: CancellationException) {
@@ -90,40 +88,23 @@ class ParserChooser(
             trace.error("model", "unexpected error while talking to the model", e)
             ModelFailure.BadOutput("${e.javaClass.simpleName}: ${e.message}")
         }
-        trace.error("model", "the model did not help (${failure.kind}: ${failure.detail}); " +
-            if (request.imageBase64 != null) "a photo cannot be read without it" else "falling back to the offline parser")
-        if (request.imageBase64 != null) {
-            throw AppError(
-                when (failure) {
-                    is ModelFailure.Auth -> t("Ключ DeepSeek не подошёл (${failure.detail}). Проверь его в настройках.",
-                        "The DeepSeek key was refused (${failure.detail}). Check it in settings.")
-                    is ModelFailure.Unavailable -> t("Не удалось разобрать фото: нет связи с моделью (${failure.detail}).",
-                        "Could not read the photo: the model is unreachable (${failure.detail}).") + " $JOURNAL_HINT"
-                    else -> t("Не удалось разобрать фото (${failure.detail}).", "Could not read the photo (${failure.detail}).") + " $JOURNAL_HINT"
-                },
-                code = if (failure is ModelFailure.Auth) "bad_key" else "offline",
-                retryable = failure.retryable,
-            )
-        }
-        return offline.parse(request) to modelNote(failure)
+        trace.error("model", "the model did not help (${failure.kind}: ${failure.detail}); the message stays, to be tried again")
+        throw modelError(failure)
     }
 }
 
 /**
  * Local-mode counterpart of the gateway's `MessageProcessor`: one queued message in, diary changes out, all on the
- * phone. Same rules: the parser only names foods and grams, the numbers come from the catalog or the dictionary's
- * table, anything not found is kept without numbers and turned into one question.
+ * phone. Same rules: the agent only names foods and grams, the numbers come from the user's own food database, anything
+ * not found is kept without numbers and turned into one question.
  */
 class LocalMessageProcessor(
     private val db: AppDatabase,
     private val parsers: ParserChooser,
     private val resolver: FoodResolver,
-    private val lexicon: Lexicon,
     private val files: OutboxFiles,
     private val clock: Clock,
     private val threshold: Double = 0.6,
-    /** Who decides whether new food is recorded at once (see [RecordMode]). */
-    private val recordMode: () -> RecordMode = { RecordMode.Standard },
 ) {
     suspend fun process(row: OutboxRow) {
         val now = clock.millis()
@@ -142,10 +123,9 @@ class LocalMessageProcessor(
             localTime = "%02d:%02d".format(eaten.hour, eaten.minute),
             language = Lang.current.code,
         )
-        val (parsed, notice) = parsers.parse(ParseRequest(row.text, image, row.imageMime, context))
-        val precise = recordMode() == RecordMode.Precise
+        val parsed = parsers.parse(ParseRequest(row.text, image, row.imageMime, context))
 
-        // Looking foods up can take a moment (the catalog loads on first use): do it before the transaction.
+        // Looking foods up is done before the transaction.
         // A food the model proposed values for waits for the user's pick: a generic lookup ("frankfurter" for branded
         // sausages) would give it numbers that are not the product's, and the pick would have nothing to fill in.
         val proposedKeys = parsed.proposals.map { FoodBase.keyOf(it.forItem) }
@@ -157,7 +137,7 @@ class LocalMessageProcessor(
             val target = if (item.action == Action.Add) null else known[item.targetId]
             if (item.action == Action.Remove || (item.action != Action.Add && target == null)) null
             else if (item.action == Action.Add && proposedFor(item)) null
-            else if (needsLookup(item, target)) resolver.resolve(item.name, item.queryEn, item.preset, item.foodId) else null
+            else if (needsLookup(item, target)) resolver.resolve(item.name, item.foodId) else null
         }
 
         db.withTransaction {
@@ -194,9 +174,9 @@ class LocalMessageProcessor(
                             updatedAtMs = now, deleted = false, dirty = false,
                         )
                         val filled = withNutrition(fresh, item, resolved[idx])
-                        // Standard: food with known, stable values goes in at once; the agent's doubt, "~" values or no
-                        // values at all wait for the user. Precise: everything waits.
-                        val saved = filled.copy(pending = precise || item.ask || filled.status != EntryStatus.Ok.toWire())
+                        // Food with known, stable values goes in at once; the agent's doubt, "~" values or no values at
+                        // all wait for the user.
+                        val saved = filled.copy(pending = item.ask || filled.status != EntryStatus.Ok.toWire())
                         db.entries().upsert(saved)
                         touched += idx to saved
                     }
@@ -246,7 +226,6 @@ class LocalMessageProcessor(
             } else if (touched.isEmpty() && replies.isEmpty() && parsed.notes.isEmpty() && proposed.isEmpty() && parsed.changes.isEmpty()) {
                 note("info", NO_FOOD_NOTE)
             }
-            if (notice != null) note("info", notice)
             db.outbox().delete(row.id)
         }
     }
@@ -276,7 +255,7 @@ class LocalMessageProcessor(
     private fun needsLookup(item: ParsedItem, target: EntryRow?): Boolean = when (item.action) {
         Action.Add -> true
         Action.Remove -> false
-        Action.Update -> item.preset != null || !(target != null && target.kcal100 != null && sameName(item.name, target.name))
+        Action.Update -> !(target != null && target.kcal100 != null && sameName(item.name, target.name))
     }
 
     private fun rescale(target: EntryRow, item: ParsedItem): EntryRow {
@@ -287,9 +266,8 @@ class LocalMessageProcessor(
                 fat = NutrientMath.scale(row.fat100!!, item.grams), carbs = NutrientMath.scale(row.carbs100!!, item.grams),
             )
         }
-        // typical table values (Russian dishes) stay "~" however sure the amount is; anything else is confirmed by a clear answer
-        val sure = item.confidence >= threshold && lexicon.find(row.name)?.per100 == null
-        return row.copy(status = if (sure) "ok" else "uncertain")
+        // a clear amount confirms the entry
+        return row.copy(status = if (item.confidence >= threshold) "ok" else "uncertain")
     }
 
     private fun withNutrition(row: EntryRow, item: ParsedItem, found: Resolved?): EntryRow {
@@ -306,7 +284,7 @@ class LocalMessageProcessor(
             kcal = NutrientMath.scale(p.kcal, item.grams), protein = NutrientMath.scale(p.protein, item.grams),
             fat = NutrientMath.scale(p.fat, item.grams), carbs = NutrientMath.scale(p.carbs, item.grams),
             foodName = found.foodName,
-            // typical table values and low confidence both show as "~"
+            // an estimated food and low confidence both show as "~"
             status = if (found.approximate || item.confidence < threshold) "uncertain" else "ok",
         )
     }

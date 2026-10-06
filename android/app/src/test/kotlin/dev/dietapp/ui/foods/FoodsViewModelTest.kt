@@ -5,7 +5,6 @@ import dev.dietapp.MainDispatcherRule
 import dev.dietapp.Texts
 import dev.dietapp.data.domain.Food
 import dev.dietapp.data.domain.Per100
-import dev.dietapp.data.local.FoodHit
 import dev.dietapp.data.local.ImportResult
 import dev.dietapp.failure
 import java.time.Instant
@@ -48,18 +47,15 @@ class FoodsViewModelTest {
         assertEquals(2, state.value.total)
     }
 
-    @Test fun `the built-in base is searched too, the user's own hits are not repeated`() = runTest {
-        repo.hits = listOf(
-            FoodHit("my:7", "казеиновый протеин", casein.per100, FoodHit.Source.Mine, true),
-            FoodHit("usda:14063", "Beverages, protein powder whey based", Per100(352.0, 78.1, 1.6, 6.3), FoodHit.Source.Usda, false),
-        )
+    @Test fun `only the user's own foods are listed, there is no built-in base behind them`() = runTest {
+        repo.foods.value = listOf(bar, casein)
         val (vm, state) = viewModel()
         vm.onQuery("протеин")
         advanceTimeBy(200)
-        assertEquals(listOf("usda:14063"), state.value.builtIn.map { it.id })
-        vm.onQuery("")
+        assertEquals(listOf("казеиновый протеин"), state.value.mine.map { it.name })
+        vm.onQuery("борщ")
         advanceTimeBy(200)
-        assertTrue(state.value.builtIn.isEmpty())
+        assertTrue("nothing from anywhere else turns up", state.value.mine.isEmpty())
     }
 
     @Test fun `a new food starts from what was searched`() = runTest {
@@ -105,15 +101,6 @@ class FoodsViewModelTest {
         vm.onSave()
         assertTrue(state.value.messageIsError)
         assertEquals("x", state.value.editing!!.name)
-    }
-
-    @Test fun `a built-in food can be copied into the user's base`() = runTest {
-        val (vm, state) = viewModel()
-        vm.onCopy(FoodHit("usda:14063", "Beverages, protein powder whey based", Per100(352.0, 78.1, 1.6, 6.3), FoodHit.Source.Usda, false))
-        val edit = state.value.editing!!
-        assertNull(edit.id)
-        assertEquals("78.1", edit.protein)
-        assertEquals("USDA: Beverages, protein powder whey based", edit.note)
     }
 
     @Test fun `deleting from the editor`() = runTest {

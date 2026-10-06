@@ -2,14 +2,11 @@ package dev.dietapp.data.local.food
 
 import java.text.Normalizer
 
-/**
- * Text normalisation. A line-for-line port of services/nutrition/nutrition/text.py: the two must agree,
- * because the same catalog is ranked by both (FoodCatalogParityTest checks it on real data).
- */
+/** Text normalisation for matching the names of the user's own foods. */
 object Text {
     private val TOKEN = Regex("[\\p{L}\\p{N}]+")
 
-    /** Words that carry no signal in USDA-style names ("Egg, whole, raw" / "meat only"). */
+    /** Words that carry no signal in a food's name ("Egg, whole, raw" / "meat only"). */
     val STOPWORDS: Set<String> = setOf("a", "an", "and", "or", "of", "the", "with", "in", "on", "for", "to", "only", "from")
 
     /** Lowercase and strip diacritics (also maps ё->е, й->и). */
@@ -32,27 +29,23 @@ object Text {
         return seen.toList()
     }
 
-    private fun isAscii(token: String) = token.all { it.code < 128 }
-
-    /** Very light stemmer: English plurals, and Russian endings via a fixed-length cut. Crude on purpose. */
-    fun stem(token: String): String {
-        if (isAscii(token)) {
-            val n = token.length
-            return when {
-                n > 4 && token.endsWith("ies") -> token.dropLast(3) + "y"
-                n > 4 && (token.endsWith("oes") || token.endsWith("ches") || token.endsWith("shes") ||
-                    token.endsWith("xes") || token.endsWith("sses")) -> token.dropLast(2)
-                n > 3 && token.endsWith("s") && !token.endsWith("ss") && !token.endsWith("us") -> token.dropLast(1)
-                else -> token
-            }
+    /**
+     * Do two folded words name the same thing, allowing for case endings?
+     *  - three letters: exactly, or one more letter (рис / риса), never looser ("как" is not "какао");
+     *  - four letters: one more or fewer letter after the same first three;
+     *  - longer: the same start (at least four letters, the last one aside) and endings up to three letters apart.
+     */
+    fun similar(a: String, b: String): Boolean {
+        if (a == b) return true
+        val shorter = minOf(a.length, b.length)
+        val longer = maxOf(a.length, b.length)
+        if (shorter < 3) return false
+        var p = 0
+        while (p < shorter && a[p] == b[p]) p++
+        return when (shorter) {
+            3 -> longer == 4 && p == 3
+            4 -> longer - shorter <= 1 && p >= 3
+            else -> longer - shorter <= 3 && p >= shorter - 1 && p >= 4
         }
-        val cut = when {
-            token.length >= 5 -> 2
-            token.length == 4 -> 1
-            else -> 0
-        }
-        return token.dropLast(cut)
     }
-
-    fun stemSet(text: String): Set<String> = tokenize(text).mapTo(LinkedHashSet()) { stem(it) }
 }

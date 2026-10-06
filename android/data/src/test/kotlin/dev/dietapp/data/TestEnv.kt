@@ -5,7 +5,6 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import dev.dietapp.data.db.AppDatabase
 import dev.dietapp.data.di.DataProvidesModule
-import dev.dietapp.data.local.CatalogSource
 import dev.dietapp.data.local.DiagLog
 import dev.dietapp.data.local.FoodBase
 import dev.dietapp.data.local.FoodTools
@@ -16,12 +15,9 @@ import dev.dietapp.data.local.LocalMessageProcessor
 import dev.dietapp.data.local.LocalSettingsImpl
 import dev.dietapp.data.local.ModeStore
 import dev.dietapp.data.local.ParserChooser
-import dev.dietapp.data.local.RecordMode
 import dev.dietapp.data.local.SecretStore
 import dev.dietapp.data.local.TestFiles
 import dev.dietapp.data.local.parse.ModelParser
-import dev.dietapp.data.local.parse.LiveOfflineParser
-import dev.dietapp.data.local.parse.OfflineParserTest
 import dev.dietapp.data.local.parse.PromptAssets
 import dev.dietapp.data.net.DietApi
 import dev.dietapp.data.net.SessionStore
@@ -70,6 +66,8 @@ class TestEnv {
     val json = DataProvidesModule.json()
     val session = SessionStore(context).also { it.clear() }
     val files = OutboxFiles(Files.createTempDirectory("outbox").toFile())
+    val thumbs = dev.dietapp.data.media.PhotoThumbs(Files.createTempDirectory("thumbs").toFile())
+    val bodyStore = dev.dietapp.data.local.BodyStore(context).also { it.clear() }
     val clock = MutableClock()
     val trigger = RecordingTrigger()
     val api: DietApi = DataProvidesModule.api(
@@ -79,23 +77,24 @@ class TestEnv {
     val secrets = SecretStore(context, ReversibleCipher).also { it.clear() }
     private val scope = CoroutineScope(Dispatchers.Unconfined)
 
-    // local mode: the real dictionary and catalog from the repo, the model is whatever MockWebServer plays
+    // local mode: the real prompts from the repo, the user's own food base, the model is whatever MockWebServer plays
     val prompts = PromptAssets.load { FileInputStream(TestFiles.repoFile("android/data/src/main/assets/$it")) }
-    val foods = FoodBase(db, CatalogSource { OfflineParserTest.catalog }, OfflineParserTest.lexicon, clock)
+    val foods = FoodBase(db, clock)
     val journal = DiagLog(context, clock, secrets).also { it.clear() }
     /** Plays DuckDuckGo and the pages the model opens. Separate from [server], which plays DeepSeek. */
     val webServer = MockWebServer().apply { start() }
     val web = WebSearch(OkHttpClient(), journal, searchUrl = webServer.url("/html/").toString())
     val model = ModelParser(OkHttpClient(), prompts, { secrets.deepseekKey }, baseUrl = server.url("/").toString(),
-        pause = { }, tools = FoodTools(foods, web, strict = { mode.recordMode.value == RecordMode.Precise }), trace = journal)
-    val resolver = FoodResolver(CatalogSource { OfflineParserTest.catalog }, OfflineParserTest.lexicon, foods)
-    val chooser = ParserChooser(LiveOfflineParser { foods.lexicon() }, model, { secrets.hasKey.value }, journal)
-    val processor = LocalMessageProcessor(db, chooser, resolver, OfflineParserTest.lexicon, files, clock, recordMode = { mode.recordMode.value })
+        pause = { }, tools = FoodTools(foods, web), trace = journal)
+    val resolver = FoodResolver(foods)
+    val chooser = ParserChooser(model, { secrets.hasKey.value }, journal)
+    val processor = LocalMessageProcessor(db, chooser, resolver, files, clock)
     val localEngine = LocalEngine(db, processor, files, journal)
     val localSettings = LocalSettingsImpl(mode, secrets, prompts)
 
+    val bodyModel = dev.dietapp.data.repo.BodyModel(bodyStore, db, clock)
     val engine = SyncEngine(db, api, session, files, json, clock)
-    val diary = DiaryRepositoryImpl(db, files, session, trigger, mode, engine, localEngine, clock, foods)
+    val diary = DiaryRepositoryImpl(db, files, session, trigger, mode, engine, localEngine, clock, foods, thumbs, bodyModel)
 
     /** The same diary, but every queued message is processed on the spot, as the app does in local mode. */
     val localDiary = DiaryRepositoryImpl(
@@ -103,10 +102,11 @@ class TestEnv {
         object : dev.dietapp.data.repo.SyncTrigger {
             override fun requestSync(pull: Boolean) { runBlocking { localEngine.run() } }
         },
-        mode, engine, localEngine, clock, foods,
+        mode, engine, localEngine, clock, foods, thumbs, bodyModel,
     )
-    val exports = dev.dietapp.data.repo.ExportRepositoryImpl(db, clock)
-    val auth = AuthRepositoryImpl(db, api, session, files, trigger, json, mode, secrets, scope)
+    val exports = dev.dietapp.data.repo.ExportRepositoryImpl(db, clock, bodyModel)
+    val auth = AuthRepositoryImpl(db, api, session, files, trigger, json, mode, secrets, thumbs, bodyStore, scope)
+    val body = dev.dietapp.data.repo.BodyRepositoryImpl(bodyStore, bodyModel, diary, clock)
 
     fun loginAs(email: String = "me@example.com", token: String = "tok-123") = session.save(token, email)
 

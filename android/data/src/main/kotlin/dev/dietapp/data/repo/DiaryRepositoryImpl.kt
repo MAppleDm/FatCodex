@@ -24,6 +24,7 @@ import dev.dietapp.data.local.FoodTools
 import dev.dietapp.data.local.LocalEngine
 import dev.dietapp.data.net.AppError
 import dev.dietapp.data.local.ModeStore
+import dev.dietapp.data.media.PhotoThumbs
 import dev.dietapp.data.net.SessionStore
 import dev.dietapp.data.sync.OutboxFiles
 import dev.dietapp.data.sync.SyncEngine
@@ -51,6 +52,8 @@ class DiaryRepositoryImpl @Inject constructor(
     localEngine: LocalEngine,
     private val clock: Clock,
     private val foods: FoodBase,
+    private val thumbs: PhotoThumbs,
+    private val body: BodyModel,
 ) : DiaryRepository {
 
     /** In local mode nothing is ever sent to a server: edits are final at once and never marked unsent. */
@@ -82,13 +85,18 @@ class DiaryRepositoryImpl @Inject constructor(
     override fun observeDaySummaries(): Flow<List<DaySummary>> =
         db.entries().observeDaySummaries().map { rows -> rows.map { it.toDomain() } }
 
-    override fun observeProfile(): Flow<Profile> = db.profile().observe().map { it.toDomain(session.email) }
+    /** The goal is the one the person's answers and correction give, whatever the server may have stored. */
+    override fun observeProfile(): Flow<Profile> =
+        combine(db.profile().observe(), body.state) { row, b -> row.toDomain(session.email).copy(calorieGoal = b.goal) }
 
     override suspend fun sendMessage(text: String?, image: ByteArray?, day: LocalDate, now: ZonedDateTime, source: MessageSource) {
         require(!text.isNullOrBlank() || image != null) { "nothing to send" }
         val id = UUID.randomUUID().toString()
         val question = db.notes().latestOpenQuestion()
-        if (image != null) files.write(id, image)
+        if (image != null) {
+            files.write(id, image)
+            thumbs.save(id, image) // before the message appears, so the chat has its picture at once
+        }
         // viewing an earlier day: log it at the current time of day on that day (LocalDate is a TemporalAdjuster)
         val eatenAt = now.with(day).toOffsetDateTime()
         val kind = when (if (image != null) MessageSource.Photo else source) {
@@ -157,6 +165,17 @@ class DiaryRepositoryImpl @Inject constructor(
         )
         if (unsent) sync.requestSync()
     }
+
+    override suspend fun setWeightForDay(day: LocalDate, kg: Double, now: Instant) {
+        val existing = db.weights().latestForDay(day.toString())
+        db.weights().upsert(
+            WeightRow(id = existing?.id ?: UUID.randomUUID().toString(), day = day.toString(), kg = kg, updatedAtMs = now.toEpochMilli(),
+                deleted = false, dirty = unsent),
+        )
+        if (unsent) sync.requestSync()
+    }
+
+    override suspend fun thumbnail(messageId: String): ByteArray? = thumbs.read(messageId)
 
     override suspend fun deleteWeight(id: String) {
         db.weights().markDeleted(id, dirty = unsent)
@@ -269,6 +288,7 @@ class DiaryRepositoryImpl @Inject constructor(
             db.messages().delete(id)
         }
         files.delete(id)
+        thumbs.delete(id)
     }
 
     override suspend fun retryOutbox(id: String) {

@@ -1,6 +1,7 @@
 package dev.dietapp.ui
 
 import dev.dietapp.FakeAuth
+import dev.dietapp.FakeBody
 import dev.dietapp.FakeDiary
 import dev.dietapp.FakeLocalSettings
 import dev.dietapp.MainDispatcherRule
@@ -36,6 +37,7 @@ class LoginViewModelTest {
     private val auth = FakeAuth()
     private val diary = FakeDiary().also { it.profile.value = Profile(null, null) }
     private val localSettings = FakeLocalSettings()
+    private val body = FakeBody()
 
     init {
         // choosing "без сервера" is what makes the capabilities local
@@ -43,7 +45,7 @@ class LoginViewModelTest {
     }
 
     private fun TestScope.viewModel(serverEnabled: Boolean = true): Pair<LoginViewModel, StateFlow<LoginUiState>> {
-        val vm = LoginViewModel(auth, diary, localSettings, serverEnabled)
+        val vm = LoginViewModel(auth, diary, localSettings, body, serverEnabled)
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.state.collect {} }
         return vm to vm.state
     }
@@ -60,11 +62,13 @@ class LoginViewModelTest {
         assertTrue(viewModel().second.value.done)
     }
 
-    @Test fun `email, then code, then goal, each step on the same screen`() = runTest {
+    @Test fun `email, then code, then the questions, each step on the same screen`() = runTest {
         diary.profile.value = Profile(null, null)
         auth.afterVerify = { auth.signIn() }
-        auth.afterGoal = { diary.profile.value = Profile("me@example.com", it) }
-        val (vm, state) = viewModel()
+        val asking = FakeBody(asked = false)
+        val vm = LoginViewModel(auth, diary, localSettings, asking, true)
+        val state = vm.state
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { state.collect {} }
 
         vm.onEmail("me@example.com")
         vm.onSubmit()
@@ -75,12 +79,13 @@ class LoginViewModelTest {
         assertEquals("123456", state.value.code)
         vm.onSubmit()
         assertEquals("verify:me@example.com:123456", auth.calls.last())
-        assertEquals(LoginStep.Goal, state.value.step)
-        assertFalse("not done until there is a goal", state.value.done)
+        assertEquals(LoginStep.About, state.value.step)
+        assertFalse("not done until the questions are answered", state.value.done)
 
-        vm.onGoal("1900")
-        vm.onSubmit()
-        assertEquals("goal:1900", auth.calls.last())
+        // the answers make the goal, and the result is seen: only then is the diary opened
+        diary.profile.value = Profile("me@example.com", 2400)
+        assertFalse("a goal is not enough: the person has not seen the result yet", state.value.done)
+        asking.finishOnboarding()
         assertTrue(state.value.done)
     }
 
@@ -123,25 +128,15 @@ class LoginViewModelTest {
         assertEquals("typo@example.com", state.value.email)
     }
 
-    @Test fun `a goal that is not a number is refused locally`() = runTest {
+    @Test fun `a signed-in person whose goal is not known is asked the questions, whatever the server stored`() = runTest {
         auth.signIn()
-        val (vm, state) = viewModel()
-        vm.onSubmit()
-        assertEquals("Введи число, например 1900.", state.value.error)
-        assertTrue(auth.calls.isEmpty())
-    }
-
-    @Test fun `a goal below the floor shows the safety message`() = runTest {
-        auth.signIn()
-        auth.goalResult = failure("Цель ниже 1 200 ккал в день без наблюдения врача не рекомендуется. Выбери не меньше 1 200.", "goal_too_low")
-        val (vm, state) = viewModel()
-        vm.onGoal("900")
-        vm.onSubmit()
-        assertTrue(state.value.error!!.contains("врача"))
+        diary.profile.value = Profile("me@example.com", null)
+        val (_, state) = viewModel()
+        assertEquals(LoginStep.About, state.value.step)
         assertFalse(state.value.done)
     }
 
-    @Test fun `without a server the email steps give way to the key, then the goal`() = runTest {
+    @Test fun `without a server the email steps give way to the key, then the questions`() = runTest {
         val (vm, state) = viewModel()
         assertTrue(state.value.serverEnabled)
         vm.onWithoutServer()
@@ -154,10 +149,9 @@ class LoginViewModelTest {
         vm.onSubmit()
         assertEquals(listOf("sk-1234567890abcdef"), localSettings.saved)
         assertEquals("", state.value.key)
-        assertEquals(LoginStep.Goal, state.value.step)
+        assertEquals(LoginStep.About, state.value.step)
 
-        auth.afterGoal = { diary.profile.value = Profile(null, it) }
-        vm.onGoal("1900"); vm.onSubmit()
+        diary.profile.value = Profile(null, 1900) // the answers have made the goal; the person has seen the result
         assertTrue(state.value.done)
     }
 
@@ -173,12 +167,13 @@ class LoginViewModelTest {
         assertNull("editing clears the error", state.value.error)
     }
 
-    @Test fun `the key can be skipped, the dictionary still works`() = runTest {
+    @Test fun `the key cannot be skipped, there is no other way to read what is written`() = runTest {
         val (vm, state) = viewModel()
         vm.onWithoutServer()
         assertEquals(LoginStep.Key, state.value.step)
-        vm.onSkipKey()
-        assertEquals(LoginStep.Goal, state.value.step)
+        vm.onSubmit() // nothing typed
+        assertEquals(LoginStep.Key, state.value.step)
+        assertEquals("Это не похоже на ключ DeepSeek.", state.value.error)
         assertTrue(localSettings.saved.isEmpty())
     }
 
@@ -186,10 +181,10 @@ class LoginViewModelTest {
         localSettings.state.value = localSettings.state.value.copy(modelKey = true)
         val (vm, state) = viewModel()
         vm.onWithoutServer()
-        assertEquals(LoginStep.Goal, state.value.step)
+        assertEquals(LoginStep.About, state.value.step)
     }
 
-    @Test fun `once a goal is set the key step never comes back`() = runTest {
+    @Test fun `once the questions are over the key step never comes back`() = runTest {
         auth.afterLocal = { localSettings.state.value = localSettings.state.value.copy(local = true); diary.profile.value = Profile(null, 1900) }
         val (vm, state) = viewModel()
         vm.onWithoutServer()
@@ -201,7 +196,7 @@ class LoginViewModelTest {
         val (vm, state) = viewModel()
         vm.onEmail("me@example.com"); vm.onSubmit()
         vm.onCode("123456"); vm.onSubmit()
-        assertEquals(LoginStep.Goal, state.value.step)
+        assertEquals(LoginStep.About, state.value.step)
     }
 
     @Test fun `a build without a server goes straight to the key step, never the email step`() = runTest {
@@ -243,47 +238,20 @@ class SettingsViewModelTest {
         return vm to vm.state
     }
 
-    @Test fun `shows the account, the saved goal and the history`() = runTest {
+    @Test fun `shows the account, the goal that comes from about me and the history`() = runTest {
         diary.summaries.value = listOf(DaySummary(TODAY, Totals(1420.0, 90.0, 50.0, 140.0)))
         val (_, state) = viewModel()
         assertEquals("me@example.com", state.value.email)
-        assertEquals("1900", state.value.goalText)
-        assertEquals(1, state.value.history.size)
-        assertFalse(state.value.canSave)
-    }
-
-    @Test fun `saving is possible only for a changed, valid number`() = runTest {
-        val (vm, state) = viewModel()
-        vm.onGoalChange("1900")
-        assertFalse(state.value.canSave)
-        vm.onGoalChange("")
-        assertFalse(state.value.canSave)
-        vm.onGoalChange("2000x")
-        assertEquals("2000", state.value.goalText)
-        assertTrue(state.value.canSave)
-    }
-
-    @Test fun `a saved goal is confirmed`() = runTest {
-        auth.afterGoal = { diary.profile.value = Profile("me@example.com", it) }
-        val (vm, state) = viewModel()
-        vm.onGoalChange("2100")
-        vm.onSaveGoal()
-        assertEquals("goal:2100", auth.calls.last())
-        assertEquals(Texts.SAVED, state.value.message)
-        assertFalse(state.value.messageIsError)
-        assertEquals("2100", state.value.goalText)
-        assertFalse(state.value.canSave)
-    }
-
-    @Test fun `a refused goal shows the reason and keeps the input`() = runTest {
-        auth.goalResult = failure("Цель ниже 1 200 ккал в день без наблюдения врача не рекомендуется. Выбери не меньше 1 200.")
-        val (vm, state) = viewModel()
-        vm.onGoalChange("1000")
-        vm.onSaveGoal()
-        assertTrue(state.value.messageIsError)
-        assertTrue(state.value.message!!.contains("1 200"))
-        assertEquals("1000", state.value.goalText)
         assertEquals(1900, state.value.savedGoal)
+        assertEquals(1, state.value.history.size)
+    }
+
+    @Test fun `the goal follows the diary's profile, nobody types it here`() = runTest {
+        val (_, state) = viewModel()
+        diary.profile.value = Profile("me@example.com", 2250)
+        assertEquals(2250, state.value.savedGoal)
+        diary.profile.value = Profile("me@example.com", null)
+        assertNull(state.value.savedGoal)
     }
 
     @Test fun `logging out goes through the repository`() = runTest {
@@ -317,7 +285,7 @@ class SettingsViewModelTest {
         assertEquals(listOf("sk-1234567890abcdef"), localSettings.saved)
         assertTrue(state.value.hasKey)
         assertEquals("the field is emptied", "", state.value.keyInput)
-        assertEquals(Texts.SAVED, state.value.message)
+        assertEquals(Texts.SAVED, state.value.keyMessage)
     }
 
     @Test fun `something that cannot be a key is refused with the reason`() = runTest {
@@ -326,7 +294,7 @@ class SettingsViewModelTest {
         vm.onKeyChange("abc")
         vm.onSaveKey()
         assertTrue(localSettings.saved.isEmpty())
-        assertTrue(state.value.messageIsError)
+        assertTrue(state.value.keyMessageIsError)
         assertEquals("abc", state.value.keyInput)
         assertFalse(state.value.hasKey)
     }
@@ -370,36 +338,45 @@ class SettingsViewModelTest {
         assertEquals(1, state.value.foodCount)
     }
 
-    @Test fun `the agent block opens and closes, and the prompt inside it opens on its own`() = runTest {
+    @Test fun `the system prompt opens and closes on its own page`() = runTest {
         goLocal()
         val (vm, state) = viewModel()
-        assertFalse(state.value.agentOpen)
         assertFalse(state.value.promptOpen)
         assertEquals("the prompt is read from the settings", "You are a food diary agent.\nNever estimate calories.", state.value.agentPrompt)
-        vm.onToggleAgent()
-        assertTrue(state.value.agentOpen)
         vm.onTogglePrompt()
         assertTrue(state.value.promptOpen)
-        vm.onToggleAgent()
-        assertFalse(state.value.agentOpen)
+        vm.onTogglePrompt()
+        assertFalse(state.value.promptOpen)
     }
 
-    @Test fun `saving the goal keeps the agent block as it was`() = runTest {
+    @Test fun `saving the key keeps the prompt as it was`() = runTest {
         goLocal()
         val (vm, state) = viewModel()
-        vm.onToggleAgent()
         vm.onTogglePrompt()
-        vm.onGoalChange("2000")
-        vm.onSaveGoal()
-        assertTrue(state.value.agentOpen)
+        vm.onKeyChange("sk-1234567890")
+        vm.onSaveKey()
         assertTrue(state.value.promptOpen)
+    }
+
+    @Test fun `a refused key is explained for the agent page`() = runTest {
+        goLocal()
+        val (vm, state) = viewModel()
+        vm.onKeyChange("short")
+        vm.onSaveKey()
+        assertEquals("Это не похоже на ключ DeepSeek.", state.value.keyMessage)
+        assertTrue(state.value.keyMessageIsError)
+        vm.onKeyChange("sk-1234567890")
+        assertNull("typing again clears it", state.value.keyMessage)
+        vm.onSaveKey()
+        assertEquals(Texts.SAVED, state.value.keyMessage)
+        assertFalse(state.value.keyMessageIsError)
     }
 
     @Test fun `touching anything else disarms the erase`() = runTest {
         goLocal()
         val (vm, state) = viewModel()
         vm.onLogout()
-        vm.onGoalChange("2000")
+        vm.onKeyChange("sk-")
         assertFalse(state.value.eraseArmed)
     }
 }

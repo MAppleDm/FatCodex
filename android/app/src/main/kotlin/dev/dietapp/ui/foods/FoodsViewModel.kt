@@ -7,22 +7,14 @@ import dev.dietapp.Texts
 import dev.dietapp.data.domain.Food
 import dev.dietapp.data.domain.Per100
 import dev.dietapp.data.local.FoodBase
-import dev.dietapp.data.local.FoodHit
 import dev.dietapp.data.local.FoodInput
 import dev.dietapp.data.repo.FoodRepository
 import java.util.Locale
 import javax.inject.Inject
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.debounce
-import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -58,8 +50,6 @@ data class FoodsUiState(
     val query: String = "",
     /** The user's own foods (filtered by [query]). */
     val mine: List<Food> = emptyList(),
-    /** Matches from the built-in table and the USDA catalog: read-only, can be copied into the user's base. */
-    val builtIn: List<FoodHit> = emptyList(),
     val total: Int = 0,
     val editing: FoodEdit? = null,
     val message: String? = null,
@@ -69,19 +59,14 @@ data class FoodsUiState(
 private data class Local(val query: String = "", val editing: FoodEdit? = null, val message: String? = null, val isError: Boolean = false)
 
 /**
- * The "База продуктов" screen: the same table the model fills from the chat, open for the person to look at and
+ * The "База продуктов" screen: the same table the agent fills from the chat, open for the person to look at and
  * change. Also moves the whole base in and out as a JSON file.
  */
-@OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
 @HiltViewModel
 class FoodsViewModel @Inject constructor(private val repo: FoodRepository) : ViewModel(), FoodsActions {
     private val local = MutableStateFlow(Local())
 
-    private val searched = local.map { it.query.trim() }.distinctUntilChanged().debounce(150).mapLatest { q ->
-        if (q.isEmpty()) emptyList() else repo.search(q)
-    }
-
-    val state: StateFlow<FoodsUiState> = combine(local, repo.foods, flowOfEmptyThen(searched)) { l, foods, hits ->
+    val state: StateFlow<FoodsUiState> = combine(local, repo.foods) { l, foods ->
         val q = l.query.trim()
         val keys = FoodBase.keyOf(q).split(' ').filter { it.isNotEmpty() }
         FoodsUiState(
@@ -90,7 +75,6 @@ class FoodsViewModel @Inject constructor(private val repo: FoodRepository) : Vie
                 val words = FoodBase.keyOf((listOf(f.name) + f.aliases).joinToString(" "))
                 keys.all { words.contains(it) }
             },
-            builtIn = hits.filter { it.source != FoodHit.Source.Mine },
             total = foods.size,
             editing = l.editing,
             message = l.message,
@@ -109,18 +93,6 @@ class FoodsViewModel @Inject constructor(private val repo: FoodRepository) : Vie
                 kcal = num(food.per100.kcal), protein = num(food.per100.protein), fat = num(food.per100.fat), carbs = num(food.per100.carbs),
                 note = food.note.orEmpty(), estimated = food.estimated, original = food.per100,
                 createdAt = food.createdAt, updatedAt = food.updatedAt, origin = food.origin, url = food.url,
-            ),
-            message = null,
-        )
-    }
-
-    /** A built-in food as the start of the person's own (to rename it, correct it, give it other names). */
-    override fun onCopy(hit: FoodHit) = local.update {
-        it.copy(
-            editing = FoodEdit(
-                id = null, name = hit.name,
-                kcal = num(hit.per100.kcal), protein = num(hit.per100.protein), fat = num(hit.per100.fat), carbs = num(hit.per100.carbs),
-                note = if (hit.source == FoodHit.Source.Usda) "USDA: ${hit.name}" else "",
             ),
             message = null,
         )
@@ -179,8 +151,5 @@ class FoodsViewModel @Inject constructor(private val repo: FoodRepository) : Vie
     private companion object {
         fun num(v: Double): String =
             if (v == Math.rint(v)) v.toLong().toString() else String.format(Locale.ROOT, "%.1f", v)
-
-        fun <T> flowOfEmptyThen(flow: kotlinx.coroutines.flow.Flow<List<T>>) =
-            kotlinx.coroutines.flow.merge(flowOf(emptyList()), flow)
     }
 }

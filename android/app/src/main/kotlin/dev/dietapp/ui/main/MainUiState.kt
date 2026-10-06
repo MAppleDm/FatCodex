@@ -15,7 +15,7 @@ import dev.dietapp.data.local.Capabilities
 import java.time.Instant
 import java.time.LocalDate
 
-enum class Screen { Main, Settings, Foods, Journal, Export }
+enum class Screen { Main, Settings, Foods, Journal, Export, Agent, About, History, Me }
 
 enum class VoicePhase { Idle, Listening, Recording, Transcribing }
 
@@ -40,7 +40,7 @@ sealed interface FeedItem {
     }
 
     /** What the user sent. [pending] is set while it is waiting to be processed, or has failed. */
-    data class MessageItem(val message: Message, val pending: OutboxMessage?) : FeedItem {
+    data class MessageItem(val message: Message, val pending: OutboxMessage?, val thumb: ByteArray? = null) : FeedItem {
         override val key get() = "m:${message.id}"
     }
 
@@ -95,8 +95,8 @@ data class MainUiState(
     val isToday get() = day == today
     val isEmpty get() = feed.isEmpty()
 
-    /** Without a server and without a model key a photo cannot be read, so the camera does not open. */
-    val photoNeedsKey get() = capabilities.local && !capabilities.modelKey
+    /** Without a server and without a model key nothing but a weigh-in can be read, so sending and the camera say so instead. */
+    val needsKey get() = capabilities.local && !capabilities.modelKey
 }
 
 /**
@@ -159,6 +159,8 @@ internal data class Local(
     val proposalBusy: Long? = null,
     val baseChangeBusy: Long? = null,
     val confirmBusy: Boolean = false,
+    /** The small pictures of the day's photo messages, by message id, as they have been read from the phone. */
+    val thumbs: Map<String, ByteArray> = emptyMap(),
 )
 
 private const val TREND_POINTS = 30
@@ -184,7 +186,7 @@ internal fun buildState(
 
     data class Row(val at: Instant, val anchor: String, val order: Int, val sub: String, val item: FeedItem)
     val rows = buildList {
-        messages.values.filter { it.id !in fold.messages }.forEach { add(Row(it.at, "m:${it.id}", 0, "", FeedItem.MessageItem(it, pending[it.id]))) }
+        messages.values.filter { it.id !in fold.messages }.forEach { add(Row(it.at, "m:${it.id}", 0, "", FeedItem.MessageItem(it, pending[it.id], local.thumbs[it.id]))) }
         content.entries.forEach { e ->
             val m = e.mealId?.let(messages::get)
             val item = FeedItem.EntryItem(e, fold.history[e.id].orEmpty())

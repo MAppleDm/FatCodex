@@ -109,5 +109,6 @@ abstract class DataBindsModule {
     @Binds abstract fun diary(impl: DiaryRepositoryImpl): DiaryRepository
     @Binds abstract fun auth(impl: AuthRepositoryImpl): AuthRepository
     @Binds abstract fun speech(impl: SpeechRepositoryImpl): SpeechRepository
+    @Binds abstract fun body(impl: dev.dietapp.data.repo.BodyRepositoryImpl): dev.dietapp.data.repo.BodyRepository
     @Binds abstract fun export(impl: dev.dietapp.data.repo.ExportRepositoryImpl): dev.dietapp.data.repo.ExportRepository
 }

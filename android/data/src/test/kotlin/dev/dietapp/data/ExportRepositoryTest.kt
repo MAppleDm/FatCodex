@@ -1,10 +1,12 @@
 package dev.dietapp.data
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import dev.dietapp.data.db.ProfileRow
 import dev.dietapp.data.db.WeightRow
+import dev.dietapp.data.domain.Activity
+import dev.dietapp.data.domain.BodyProfile
 import dev.dietapp.data.domain.Lang
 import dev.dietapp.data.domain.Language
+import dev.dietapp.data.domain.Sex
 import dev.dietapp.data.export.ExportFormat
 import dev.dietapp.data.export.ExportPeriod
 import dev.dietapp.data.net.AppError
@@ -42,7 +44,9 @@ class ExportRepositoryTest {
     private fun at(day: String, h: Int, m: Int) = Instant.parse("${day}T%02d:%02d:00Z".format(h, m)).toEpochMilli()
 
     private suspend fun seed() {
-        env.db.profile().upsert(ProfileRow(email = null, calorieGoal = 1900))
+        // the goal is what a day costs plus the person's correction: a 30-year-old man of 178 cm, 82.6 kg (the latest weigh-in
+        // below), sitting all day, burns 2150 kcal; less 250 is 1900
+        env.bodyStore.update { BodyProfile(Sex.Male, 1996, 178, Activity.Sedentary, adjustment = -250) }
         env.db.entries().upsert(
             listOf(
                 entryRow("e1", "гречка", 200.0, day = "2026-09-30").copy(mealId = "m1", eatenAtMs = at("2026-09-30", 8, 15), position = 0),

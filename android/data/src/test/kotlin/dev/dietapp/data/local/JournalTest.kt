@@ -5,10 +5,9 @@ import dev.dietapp.data.TestEnv
 import dev.dietapp.data.domain.MessageSource
 import dev.dietapp.data.local.parse.ModelFailure
 import dev.dietapp.data.local.parse.MessageParser
-import dev.dietapp.data.local.parse.OfflineParser
-import dev.dietapp.data.local.parse.OfflineParserTest
 import dev.dietapp.data.local.parse.ParseRequest
 import dev.dietapp.data.local.parse.ParseResult
+import dev.dietapp.data.net.AppError
 import java.time.LocalDate
 import java.time.ZoneOffset
 import java.time.ZonedDateTime
@@ -44,6 +43,9 @@ class JournalTest {
     private suspend fun say(text: String) = env.localDiary.sendMessage(text, null, DAY, NOW, MessageSource.Text)
     private suspend fun notes() = env.db.notes().observeDay(DAY.toString()).first().map { it.text }
 
+    /** What the person sees under the message that the agent could not read. */
+    private suspend fun failure() = env.db.outbox().observeAll().first().single().also { assertEquals("failed", it.state) }.error!!
+
     private fun turn(name: String, args: String) =
         """{"choices": [{"finish_reason": "tool_calls", "message": {"role": "assistant", "content": null, "tool_calls": [{"id": "c1", "type": "function",
             "function": {"name": "$name", "arguments": ${Json.encodeToString(String.serializer(), args)}}}]}}], "usage": {"prompt_tokens": 900, "completion_tokens": 30}}"""
@@ -53,10 +55,10 @@ class JournalTest {
         say("гречка 200 г")
 
         assertEquals(
-            listOf("Модель ответила непонятно (HTTP 400: Model Not Exist). Разобрано без неё. Подробности — в журнале (настройки)."),
-            notes(),
+            "Агент ответил непонятно. Подробности — в журнале (О приложении → Журнал).",
+            failure(),
         )
-        assertEquals("the offline parser still made the entry", 1, env.db.entries().forDay(DAY.toString()).size)
+        assertTrue("nothing is recorded in the agent's place", env.db.entries().forDay(DAY.toString()).isEmpty())
         val log = env.journal.read()
         assertTrue(log, log.contains("[message] processing \"гречка 200 г\""))
         assertTrue(log, log.contains("→ POST ${env.server.url("/")}chat/completions · round 1, attempt 1"))
@@ -64,7 +66,7 @@ class JournalTest {
         assertTrue(log, log.contains("user: context: {\"local_time\":\"12:00\"}\n    message: гречка 200 г") || log.contains("message: гречка 200 г"))
         assertTrue(log, log.contains("← HTTP 400 in"))
         assertTrue(log, log.contains("Model Not Exist"))
-        assertTrue(log, log.contains("falling back to the offline parser"))
+        assertTrue(log, log.contains("the message stays, to be tried again"))
         assertFalse("the system prompt is not copied into the journal", log.contains("Never estimate or mention calories"))
     }
 
@@ -75,7 +77,8 @@ class JournalTest {
         assertTrue(log, log.contains("Authentication Fails (governor)"))
         assertFalse(log.contains(KEY))
         assertTrue(log, log.contains("sk-…8765"))
-        assertTrue(notes().single().contains("HTTP 401: Authentication Fails (governor)"))
+        assertTrue(failure().contains("HTTP 401: Authentication Fails (governor)"))
+        assertFalse("nor does it reach the screen", failure().contains(KEY))
     }
 
     @Test fun `a successful agent run is readable - rounds, tool calls, tool results and the outcome`() = runTest {
@@ -105,17 +108,17 @@ class JournalTest {
         say("гречка 200 г")
         val log = env.journal.read()
         assertTrue(log, log.contains("✕ no answer after"))
-        assertTrue(notes().single(), notes().single().startsWith("Нет связи с моделью (") && notes().single().contains("Exception"))
+        assertEquals("a connection that did not work is one short line", "Нет связи с агентом.", failure())
+        assertTrue("the exception is in the journal, not in the chat", log.contains("Exception"))
     }
 
     @Test fun `a bug on our side never loses the message, and is logged with its stack`() = runTest {
         val broken = object : MessageParser {
             override suspend fun parse(request: ParseRequest): ParseResult = throw IllegalStateException("boom")
         }
-        val chooser = ParserChooser(OfflineParser(OfflineParserTest.lexicon), broken, { true }, env.journal)
-        val (result, note) = chooser.parse(ParseRequest("гречка 200 г"))
-        assertEquals("гречка", result.items.single().name)
-        assertTrue(note!!, note.startsWith("Модель ответила непонятно (IllegalStateException: boom)."))
+        val chooser = ParserChooser(broken, { true }, env.journal)
+        val error = try { chooser.parse(ParseRequest("гречка 200 г")); null } catch (e: AppError) { e }
+        assertTrue("the message is kept, with a reason: ${error?.message}", error!!.message!!.startsWith("Агент ответил непонятно."))
         val log = env.journal.read()
         assertTrue(log, log.contains("java.lang.IllegalStateException: boom"))
         assertTrue(log, log.contains("    at "))
@@ -125,10 +128,9 @@ class JournalTest {
         val stuck = object : MessageParser {
             override suspend fun parse(request: ParseRequest): ParseResult = kotlinx.coroutines.awaitCancellation()
         }
-        val chooser = ParserChooser(OfflineParser(OfflineParserTest.lexicon), stuck, { true }, env.journal, budgetMs = 30_000)
-        val (result, note) = chooser.parse(ParseRequest("гречка 200 г"))
-        assertEquals("гречка", result.items.single().name)
-        assertEquals("Нет связи с моделью (нет ответа за 30 с). Разобрано без неё. Подробности — в журнале (настройки).", note)
+        val chooser = ParserChooser(stuck, { true }, env.journal, budgetMs = 30_000)
+        val error = try { chooser.parse(ParseRequest("гречка 200 г")); null } catch (e: AppError) { e }
+        assertEquals("Нет связи с агентом.", error!!.message)
         assertTrue(env.journal.read().contains("no result within 30 s"))
     }
 
@@ -145,8 +147,8 @@ class JournalTest {
     @Test fun `failure details are short and concrete`() {
         assertEquals("HTTP 400: x", ModelFailure.Rejected("HTTP 400: x").detail)
         assertEquals(
-            "Ключ DeepSeek не подошёл (HTTP 402: Insufficient Balance). Разобрано без модели, проверь ключ в настройках. Подробности — в журнале (настройки).",
-            modelNote(ModelFailure.Auth("HTTP 402: Insufficient Balance")),
+            "Ключ DeepSeek не подошёл (HTTP 402: Insufficient Balance). Проверь его в «О приложении → Агент».",
+            modelError(ModelFailure.Auth("HTTP 402: Insufficient Balance")).message,
         )
     }
 }

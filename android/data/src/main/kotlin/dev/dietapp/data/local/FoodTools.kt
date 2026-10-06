@@ -29,14 +29,12 @@ import kotlinx.serialization.json.putJsonObject
  *
  * Changing or deleting a food that exists is the one thing that cannot be undone from the chat, so it follows the same
  * rule as recording food: the agent says it is `sure` (the user asked for exactly this, one food matches) and the
- * change is made at once; otherwise, or when [strict] (the precise mode), the user is asked first. A message that
- * made the agent read the web is never "sure": a page can say anything, and what it says must not touch the base.
+ * change is made at once, with the old values written into the chat line; otherwise the user is asked first. A message
+ * that made the agent read the web is never "sure": a page can say anything, and what it says must not touch the base.
  */
 class FoodTools(
     private val base: FoodBase,
     private val web: WebSearch? = null,
-    /** The precise mode: every change to an existing food waits for the user's yes. */
-    private val strict: () -> Boolean = { false },
 ) : AgentTools {
 
     /** A search result or a page was read while this message was being read. */
@@ -97,10 +95,11 @@ class FoodTools(
     private val baseSpecs: List<JsonObject> = listOf(
         tool(
             "search_foods",
-            "Search the food base: the user's own foods, typical Russian dishes and the USDA catalog. Values per 100 g.",
+            "Search the user's own food database (the only one there is). Values per 100 g. Nothing found means the food " +
+                "is not in it yet: look it up on the web and propose it.",
             required = listOf("query"),
         ) {
-            putJsonObject("query") { put("type", "string"); put("description", "Food name, Russian or English") }
+            putJsonObject("query") { put("type", "string"); put("description", "Food name, in the user's words") }
         },
         tool(
             "save_food",
@@ -161,7 +160,6 @@ class FoodTools(
                         put("id", h.id)
                         put("name", h.name)
                         numbers(h.per100)
-                        put("source", h.source.name.lowercase(Locale.ROOT))
                         put("approximate", h.approximate)
                     }
                 }
@@ -207,8 +205,8 @@ class FoodTools(
         return decide(change, ask = mustAsk(sure(args)))
     }
 
-    /** The agent is not sure, the user wants everything confirmed, or a web page was read: the user decides. */
-    private fun mustAsk(sure: Boolean) = !sure || strict() || sawWeb
+    /** The agent is not sure, or a web page was read: the user decides. */
+    private fun mustAsk(sure: Boolean) = !sure || sawWeb
 
     /** Makes [change] now, or hands it to the user as a question and tells the model it is waiting. */
     private suspend fun decide(change: BaseChange, ask: Boolean): ToolOutcome {
@@ -304,9 +302,11 @@ class FoodTools(
         suspend fun applyChange(base: FoodBase, change: BaseChange): Applied = when (change) {
             is BaseChange.Delete -> {
                 val food = base.delete(change.id) ?: throw AppError(t("Такого продукта уже нет в базе.", "That food is no longer in the base."), "food_missing")
-                Applied(t("Удалил из базы: ", "Deleted from the base: ") + food.name, food)
+                // the numbers go into the line: it is the record to put the food back from
+                Applied(t("Удалил из базы: ", "Deleted from the base: ") + describe(food), food)
             }
             is BaseChange.Save -> {
+                val before = change.id?.let { base.get(it) }
                 val food = base.save(
                     FoodInput(
                         change.name, change.per100, change.aliases, change.estimated, change.note,
@@ -316,7 +316,12 @@ class FoodTools(
                     author = if (change.estimated) Author.Model else Author.User,
                 )
                 val verb = if (change.id != null) t("Обновил в базе: ", "Updated in the base: ") else t("Добавил в базу: ", "Added to the base: ")
-                Applied(verb + describe(food), food)
+                // a change names what it replaced, so it can be put back by hand
+                val was = before?.let {
+                    val name = if (it.name != food.name) "«${it.name}», " else ""
+                    t(" (было: $name${describePer100(it.per100)})", " (was: $name${describePer100(it.per100)})")
+                }.orEmpty()
+                Applied(verb + describe(food) + was, food)
             }
         }
 

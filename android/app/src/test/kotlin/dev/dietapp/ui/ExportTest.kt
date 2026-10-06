@@ -22,6 +22,7 @@ import dev.dietapp.data.repo.ExportRepository
 import dev.dietapp.ui.export.ExportScreen
 import dev.dietapp.ui.export.ExportUiState
 import dev.dietapp.ui.export.ExportViewModel
+import dev.dietapp.ui.history.HistoryScreen
 import dev.dietapp.ui.main.MainViewModel
 import dev.dietapp.ui.main.Screen
 import dev.dietapp.ui.settings.SettingsScreen
@@ -135,14 +136,14 @@ class ExportScreenTest {
         compose.onNodeWithText("В этом периоде записей нет.").assertIsDisplayed()
     }
 
-    @Test fun `settings lead to the export, with a server and without`() {
+    @Test fun `the history page leads to the export, with a server and without`() {
         var opened = 0
         compose.setContent {
             AppTheme(darkTheme = false) {
-                SettingsScreen(SettingsUiState(email = "me@example.com", savedGoal = 1900), {}, {}, {}, {}, {}, {}, {}, {}, onOpenExport = { opened++ })
+                HistoryScreen(emptyList(), 1900, onBack = {}, onPickDay = {}, onOpenExport = { opened++ })
             }
         }
-        compose.onNodeWithTag("export-entry").performScrollTo().performClick()
+        compose.onNodeWithTag("history-export").performClick()
         assertEquals(1, opened)
     }
 }
@@ -151,13 +152,66 @@ class ExportScreenTest {
 class ExportNavigationTest {
     @get:Rule val mainRule = MainDispatcherRule()
 
-    @Test fun `the main view model opens and closes the export screen, back to settings`() = runTest {
+    @Test fun `the main view model opens and closes the export screen, back to the history`() = runTest {
         val vm = MainViewModel(FakeDiary(), FakeSpeech(), FakeLocalSettings(), TEST_CLOCK)
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
         vm.onOpenSettings()
+        vm.onOpenHistory()
         vm.onOpenExport()
         assertEquals(Screen.Export, vm.uiState.value.screen)
         vm.onCloseExport()
+        assertEquals("the export is reached from the history, so back goes there", Screen.History, vm.uiState.value.screen)
+    }
+
+    @Test fun `the journal opens from the about page and back leads to the about page`() = runTest {
+        val vm = MainViewModel(FakeDiary(), FakeSpeech(), FakeLocalSettings(local = true), TEST_CLOCK)
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
+        vm.onOpenSettings()
+        vm.onOpenAbout()
+        vm.onOpenJournal()
+        assertEquals(Screen.Journal, vm.uiState.value.screen)
+        vm.onCloseJournal()
+        assertEquals(Screen.About, vm.uiState.value.screen)
+    }
+
+    @Test fun `the history page opens from settings and back leads to settings`() = runTest {
+        val vm = MainViewModel(FakeDiary(), FakeSpeech(), FakeLocalSettings(local = true), TEST_CLOCK)
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
+        vm.onOpenSettings()
+        vm.onOpenHistory()
+        assertEquals(Screen.History, vm.uiState.value.screen)
+        vm.onCloseHistory()
         assertEquals(Screen.Settings, vm.uiState.value.screen)
+    }
+
+    @Test fun `picking a day in the history leaves the settings and shows that day`() = runTest {
+        val vm = MainViewModel(FakeDiary(), FakeSpeech(), FakeLocalSettings(local = true), TEST_CLOCK)
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
+        vm.onOpenSettings()
+        vm.onOpenHistory()
+        vm.onSelectDay(java.time.LocalDate.parse("2026-09-28"))
+        assertEquals(Screen.Main, vm.uiState.value.screen)
+        assertEquals(java.time.LocalDate.parse("2026-09-28"), vm.uiState.value.day)
+    }
+
+    @Test fun `the about page opens from settings and back leads to settings`() = runTest {
+        val vm = MainViewModel(FakeDiary(), FakeSpeech(), FakeLocalSettings(local = true), TEST_CLOCK)
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
+        vm.onOpenSettings()
+        vm.onOpenAbout()
+        assertEquals(Screen.About, vm.uiState.value.screen)
+        vm.onCloseAbout()
+        assertEquals(Screen.Settings, vm.uiState.value.screen)
+    }
+
+    @Test fun `the agent page opens from the about page and back leads to the about page`() = runTest {
+        val vm = MainViewModel(FakeDiary(), FakeSpeech(), FakeLocalSettings(local = true), TEST_CLOCK)
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
+        vm.onOpenSettings()
+        vm.onOpenAbout()
+        vm.onOpenAgent()
+        assertEquals(Screen.Agent, vm.uiState.value.screen)
+        vm.onCloseAgent()
+        assertEquals(Screen.About, vm.uiState.value.screen)
     }
 }

@@ -6,7 +6,6 @@ import dev.dietapp.data.domain.Food
 import dev.dietapp.data.domain.MessageSource
 import dev.dietapp.data.domain.Profile
 import dev.dietapp.data.domain.Weight
-import dev.dietapp.data.local.FoodHit
 import dev.dietapp.data.local.FoodInput
 import dev.dietapp.data.local.ImportResult
 import java.time.Instant
@@ -34,6 +33,12 @@ interface DiaryRepository {
     suspend fun updateEntry(id: String, grams: Double?, name: String?)
     suspend fun deleteEntry(id: String)
     suspend fun addWeight(day: LocalDate, kg: Double, now: Instant)
+
+    /** Sets the weight of [day]: a weigh-in already made that day is corrected instead of another one being added. */
+    suspend fun setWeightForDay(day: LocalDate, kg: Double, now: Instant)
+
+    /** The small picture of a photo message, if this phone still has it. */
+    suspend fun thumbnail(messageId: String): ByteArray?
     suspend fun deleteWeight(id: String)
     suspend fun dismissNote(id: Long)
 
@@ -70,14 +75,49 @@ interface ExportRepository {
     suspend fun export(format: dev.dietapp.data.export.ExportFormat, period: dev.dietapp.data.export.ExportPeriod): Result<dev.dietapp.data.export.ExportFile>
 }
 
+/** What the person said about themselves, and the energy a day costs them worked out from it. */
+data class BodyState(
+    val sex: dev.dietapp.data.domain.Sex? = null,
+    val age: Int? = null,
+    val heightCm: Int? = null,
+    val activity: dev.dietapp.data.domain.Activity? = null,
+    /** The latest weigh-in of the diary. */
+    val weightKg: Double? = null,
+    /** Null until sex, age, height, weight and activity are all known. */
+    val estimate: dev.dietapp.data.domain.EnergyEstimate? = null,
+    /** The person's own correction of the goal, in kcal (minus to lose weight, plus to gain). */
+    val adjustment: Int = 0,
+    /** What a day costs plus the correction: the calorie goal of the diary. Null while the estimate is. */
+    val goal: Int? = null,
+    /** The correction would have taken the goal below the lowest the app allows, so the goal is held there. */
+    val goalLimited: Boolean = false,
+)
+
+interface BodyRepository {
+    val state: Flow<BodyState>
+
+    /** The first-run questions were answered or skipped: they are not asked again. */
+    val asked: Flow<Boolean>
+
+    fun setSex(sex: dev.dietapp.data.domain.Sex)
+    fun setAge(age: Int)
+    fun setHeight(cm: Int)
+    fun setActivity(activity: dev.dietapp.data.domain.Activity)
+
+    /** Moves the goal away from what a day costs, up or down. */
+    fun setAdjustment(kcal: Int)
+
+    /** Becomes a weigh-in of today, so the diary and this page agree. */
+    suspend fun setWeight(kg: Double)
+    fun finishOnboarding()
+}
+
 interface AuthRepository {
     val loggedIn: StateFlow<Boolean>
     suspend fun requestCode(email: String): Result<Unit>
 
     /** Logs in and loads the profile. Switching to a different account wipes the previous account's local data. */
     suspend fun verify(email: String, code: String): Result<Unit>
-
-    suspend fun setGoal(goal: Int): Result<Unit>
 
     /** Local mode: no account and no server. Everything is processed on this phone. */
     suspend fun useWithoutServer()
@@ -95,14 +135,11 @@ interface SpeechRepository {
 }
 
 /**
- * The user's own food base, as the "База продуктов" screen sees it. The model changes the same table from the chat.
+ * The user's own food base (the only one there is), as the "База продуктов" screen sees it. The agent changes the same table from the chat.
  * Failures come back as [Result] with a message that can be shown as is.
  */
 interface FoodRepository {
     val foods: Flow<List<Food>>
-
-    /** All sources, the user's own foods first (see FoodBase.search). */
-    suspend fun search(query: String): List<FoodHit>
 
     /** Creates a food, or changes [id]. */
     suspend fun save(input: FoodInput, id: Long?): Result<Food>

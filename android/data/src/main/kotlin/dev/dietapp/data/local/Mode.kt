@@ -19,13 +19,6 @@ import kotlinx.coroutines.flow.combine
 enum class AppMode { Server, Local }
 
 /**
- * [Standard]: food with stable, known values is recorded at once; the agent asks when values depend on the brand or
- * recipe, or it is not sure. [Precise]: every recognised food waits for the user's "записать". Recorded food is
- * counted and shown the same way in both.
- */
-enum class RecordMode { Standard, Precise }
-
-/**
  * The chosen mode, in its own preferences file (`app`), which Android may back up along with the database.
  * A person who was already signed in before local mode existed is a server user: the mode is inferred from the token.
  */
@@ -38,18 +31,6 @@ class ModeStore @Inject constructor(@ApplicationContext context: Context, sessio
     val mode: StateFlow<AppMode?> = _mode.asStateFlow()
 
     val isLocal: Boolean get() = _mode.value == AppMode.Local
-
-    private val _recordMode = MutableStateFlow(
-        prefs.getString(RECORD_MODE, null)?.let { runCatching { RecordMode.valueOf(it) }.getOrNull() } ?: RecordMode.Standard,
-    )
-
-    /** Who decides whether a recognised food is recorded at once: the agent ([RecordMode.Standard]) or the user. */
-    val recordMode: StateFlow<RecordMode> = _recordMode.asStateFlow()
-
-    fun setRecordMode(mode: RecordMode) {
-        prefs.edit { putString(RECORD_MODE, mode.name) }
-        _recordMode.value = mode
-    }
 
     private val _language = MutableStateFlow(
         (Language.of(prefs.getString(LANGUAGE, null)) ?: Language.forDevice()).also { Lang.current = it },
@@ -76,7 +57,6 @@ class ModeStore @Inject constructor(@ApplicationContext context: Context, sessio
 
     private companion object {
         const val KEY = "mode"
-        const val RECORD_MODE = "record_mode"
         const val LANGUAGE = "language"
     }
 }
@@ -139,13 +119,12 @@ class SecretStore @Inject constructor(@ApplicationContext context: Context, priv
 /** What this install can do right now, for the UI to enable or explain things. */
 data class Capabilities(
     val local: Boolean = false,
-    /** A model key is set, so photos and free-form text can be read by the model. */
+    /** A model key is set: the agent can read what is written. Without it nothing but a weigh-in can be recorded. */
     val modelKey: Boolean = false,
-    val recordMode: RecordMode = RecordMode.Standard,
     val language: Language = Language.Ru,
 )
 
-/** Local-mode settings the UI edits: the optional model key, the record mode and the language. */
+/** Local-mode settings the UI edits: the model key (required) and the language. */
 interface LocalSettings {
     val capabilities: Flow<Capabilities>
 
@@ -155,7 +134,6 @@ interface LocalSettings {
     /** Rejects keys that cannot be real; accepts anything that looks like one (it is verified on first use). */
     fun saveKey(key: String): Result<Unit>
     fun clearKey()
-    fun setRecordMode(mode: RecordMode)
     fun setLanguage(language: Language)
 }
 
@@ -166,8 +144,8 @@ class LocalSettingsImpl @Inject constructor(
     prompts: PromptAssets,
 ) : LocalSettings {
     override val capabilities: Flow<Capabilities> =
-        combine(mode.mode, secrets.hasKey, mode.recordMode, mode.language) { m, key, record, language ->
-            Capabilities(local = m == AppMode.Local, modelKey = key, recordMode = record, language = language)
+        combine(mode.mode, secrets.hasKey, mode.language) { m, key, language ->
+            Capabilities(local = m == AppMode.Local, modelKey = key, language = language)
         }
 
     override val agentPrompt: String = prompts.agentPrompt
@@ -181,8 +159,6 @@ class LocalSettingsImpl @Inject constructor(
     }
 
     override fun clearKey() = secrets.clear()
-
-    override fun setRecordMode(mode: RecordMode) = this.mode.setRecordMode(mode)
 
     override fun setLanguage(language: Language) = mode.setLanguage(language)
 }

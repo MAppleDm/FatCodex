@@ -68,6 +68,10 @@ interface WeightDao {
     @Query("SELECT * FROM weights WHERE deleted = 0 ORDER BY day, updatedAtMs")
     suspend fun all(): List<WeightRow>
 
+    /** The weigh-in that counts for [day] (the latest one), if there is one. */
+    @Query("SELECT * FROM weights WHERE day = :day AND deleted = 0 ORDER BY updatedAtMs DESC LIMIT 1")
+    suspend fun latestForDay(day: String): WeightRow?
+
     @Query("SELECT * FROM weights WHERE id = :id")
     suspend fun get(id: String): WeightRow?
 
@@ -134,6 +138,13 @@ interface NoteDao {
 
     @Query("DELETE FROM notes WHERE id = :id")
     suspend fun delete(id: Long)
+
+    /** The lines of the first versions that said a message was "read without the model": the app never does that now. */
+    @Query(
+        "DELETE FROM notes WHERE kind = 'info' AND (text LIKE '%Разобрано без неё%' OR text LIKE '%Разобрано без модели%' " +
+            "OR text LIKE '%Read without it%' OR text LIKE '%Read without the model%')",
+    )
+    suspend fun deleteLegacyFallback(): Int
 
     @Query("DELETE FROM notes")
     suspend fun clear()

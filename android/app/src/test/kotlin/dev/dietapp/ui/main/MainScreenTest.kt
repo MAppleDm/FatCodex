@@ -66,7 +66,8 @@ class MainScreenTest {
         compose.onNodeWithTag("entry").assertIsDisplayed().assertTextContains("гречка", substring = true)
         compose.onNodeWithTag("entry").assertTextContains("200 г", substring = true)
         compose.onNodeWithTag("entry").assertTextContains("184", substring = true)
-        compose.onNodeWithTag("summary").assertTextContains("184 / $goal ккал · Б 7 · Ж 1 · У 40")
+        compose.onNodeWithTag("summary").assertTextContains("184 / $goal ккал")
+        compose.onNodeWithTag("summary").assertTextContains("Б 7 · Ж 1 · У 40") // its own line: a long figure cannot break it apart
         // the input is empty again, so the send button has turned back into the microphone
         compose.onNodeWithContentDescription("Микрофон").assertIsDisplayed()
     }
@@ -122,6 +123,43 @@ class MainScreenTest {
         compose.waitForIdle()
         org.junit.Assert.assertEquals(listOf(7L to true), diary.baseChangeAnswers)
         compose.onNodeWithTag("base-change").assertDoesNotExist()
+    }
+
+    @Test fun `a message the agent could not read stays, with why, a red try again and remove`() {
+        diary.outbox.value = listOf(
+            dev.dietapp.data.domain.OutboxMessage(
+                "f1", "фиш бургер, мороженое", false, TODAY, java.time.Instant.parse("2026-09-30T06:00:00Z"),
+                dev.dietapp.data.domain.OutboxState.Failed, "Нет связи с агентом.", 3,
+            ),
+        )
+        show()
+        compose.onNodeWithTag("message").assertTextContains("фиш бургер, мороженое", substring = true)
+        compose.onNodeWithTag("failed-note").assertIsDisplayed()
+        compose.onNodeWithText("Нет связи с агентом.").assertIsDisplayed()
+        compose.onNodeWithTag("retry").assertIsDisplayed().assertTextContains(Texts.RETRY)
+        compose.onNodeWithTag("discard").assertIsDisplayed()
+
+        compose.onNodeWithTag("retry").performClick()
+        compose.waitForIdle()
+        org.junit.Assert.assertEquals(listOf("f1"), diary.retriedOutbox)
+        org.junit.Assert.assertTrue("trying again does not take it back", diary.discardedOutbox.isEmpty())
+
+        compose.onNodeWithTag("discard").performClick()
+        compose.waitForIdle()
+        org.junit.Assert.assertEquals(listOf("f1"), diary.discardedOutbox)
+    }
+
+    @Test fun `a message that is only waiting has no try again`() {
+        diary.outbox.value = listOf(
+            dev.dietapp.data.domain.OutboxMessage(
+                "w1", "гречка 200 г", false, TODAY, java.time.Instant.parse("2026-09-30T06:00:00Z"),
+                dev.dietapp.data.domain.OutboxState.Queued, null, 0,
+            ),
+        )
+        show()
+        compose.onNodeWithTag("message").assertIsDisplayed()
+        compose.onNodeWithTag("retry").assertDoesNotExist()
+        compose.onNodeWithTag("failed-note").assertDoesNotExist()
     }
 
     @Test fun `an empty day explains what can be typed`() {

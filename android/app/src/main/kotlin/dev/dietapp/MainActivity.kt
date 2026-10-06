@@ -16,6 +16,7 @@ import dev.dietapp.data.domain.Language
 import dev.dietapp.data.local.ModeStore
 import javax.inject.Inject
 import dev.dietapp.ui.AppRoot
+import dev.dietapp.ui.body.BodyViewModel
 import dev.dietapp.ui.export.ExportViewModel
 import dev.dietapp.ui.foods.FoodsViewModel
 import dev.dietapp.ui.journal.JournalViewModel
@@ -31,6 +32,7 @@ class MainActivity : ComponentActivity() {
     private val foods: FoodsViewModel by viewModels()
     private val journal: JournalViewModel by viewModels()
     private val export: ExportViewModel by viewModels()
+    private val body: BodyViewModel by viewModels()
 
     @Inject lateinit var modes: ModeStore
 
@@ -42,7 +44,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             val language by modes.language.collectAsState()
             CoreTexts.english = language == Language.En
-            key(language) { AppTheme { AppRoot(main, login, settings, foods, journal, export) } }
+            key(language) { AppTheme { AppRoot(main, login, settings, foods, journal, export, body) } }
         }
         if (savedInstanceState == null) takeSharedText(intent)
     }

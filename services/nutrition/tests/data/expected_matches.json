@@ -1,5 +1,5 @@
 {
-  "_comment": "Shared by services/nutrition (pytest) and android/data (JUnit). expected: query -> regex the best food must match. absent: not in the database, must come back unmatched. extra: more queries pinned by golden_top1.json.",
+  "_comment": "Used by services/nutrition (pytest); the Android app no longer has a catalog of its own. expected: query -> regex the best food must match. absent: not in the database, must come back unmatched. extra: more queries pinned by golden_top1.json.",
   "expected": {
     "chicken breast cooked": "^Chicken, broilers or fryers, breast.*cooked",
     "chicken breast": "^Chicken, broilers? or fryers, breast",

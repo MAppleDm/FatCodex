@@ -3,6 +3,7 @@ package dev.dietapp.coreui
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -14,12 +15,14 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -33,9 +36,11 @@ import androidx.compose.ui.composed
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -133,7 +138,7 @@ fun UnderlineField(
 
 // ---------- day summary ----------
 
-/** "1 420 / 1 900 ккал · Б 90 · Ж 50 · У 140". Tap to expand. */
+/** "1 420 / 1 900 ккал" over "Б 90 · Ж 50 · У 140", two lines so that a long figure never breaks the macros apart. Tap to expand. */
 @Composable
 fun DaySummary(
     kcal: Int,
@@ -147,13 +152,16 @@ fun DaySummary(
     details: @Composable ColumnScope.() -> Unit = {},
 ) {
     val mono = SpanStyle(fontFamily = FontFamily.Monospace)
-    val line = buildAnnotatedString {
+    val energy = buildAnnotatedString {
         withStyle(mono) { append(formatInt(kcal)) }
         if (goal != null) {
             append(" / ")
             withStyle(mono) { append(formatInt(goal)) }
         }
-        append(" ${CoreTexts.kcal} · ${CoreTexts.p} ")
+        append(" ${CoreTexts.kcal}")
+    }
+    val macros = buildAnnotatedString {
+        append("${CoreTexts.p} ")
         withStyle(mono) { append(formatInt(protein)) }
         append(" · ${CoreTexts.f} ")
         withStyle(mono) { append(formatInt(fat)) }
@@ -168,7 +176,8 @@ fun DaySummary(
             .padding(horizontal = 16.dp, vertical = 12.dp)
             .semantics(mergeDescendants = true) {},
     ) {
-        Text(line, style = AppTheme.type.body.copy(fontSize = 15.sp))
+        Text(energy, style = AppTheme.type.body.copy(fontSize = 15.sp))
+        Text(macros, style = AppTheme.type.secondary.copy(fontSize = 14.sp), modifier = Modifier.padding(top = 2.dp))
         if (expanded) {
             Spacer(Modifier.height(10.dp))
             details()
@@ -314,6 +323,9 @@ fun MessageRow(
     modifier: Modifier = Modifier,
     /** False for the user's answer to a question in the middle of a turn: no gap above it. */
     newTurn: Boolean = true,
+    /** A photo message: its small picture, in a rounded rectangle above the words (if there are any). */
+    thumbnail: ImageBitmap? = null,
+    thumbnailDescription: String? = null,
     onClick: () -> Unit,
 ) {
     val t = AppTheme.type
@@ -327,13 +339,29 @@ fun MessageRow(
             Text(status, style = t.monoSecondary.copy(color = if (isError) AppTheme.colors.error else AppTheme.colors.secondary))
             Spacer(Modifier.width(12.dp))
         }
-        Text(
-            text,
-            style = t.body.copy(color = AppTheme.colors.secondary, textAlign = TextAlign.End),
-            maxLines = 4,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f, fill = false),
-        )
+        Column(horizontalAlignment = Alignment.End, modifier = Modifier.weight(1f, fill = false)) {
+            if (thumbnail != null) {
+                // the longer side is at most 140dp, whatever the shape of the photo
+                val ratio = (thumbnail.width.toFloat() / thumbnail.height).coerceIn(0.5f, 2f)
+                Image(
+                    bitmap = thumbnail, contentDescription = thumbnailDescription, contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .then(if (ratio >= 1f) Modifier.width(140.dp) else Modifier.height(140.dp))
+                        .aspectRatio(ratio)
+                        .clip(RoundedCornerShape(14.dp))
+                        .testTag("message-thumb"),
+                )
+            }
+            if (text.isNotEmpty()) {
+                Text(
+                    text,
+                    style = t.body.copy(color = AppTheme.colors.secondary, textAlign = TextAlign.End),
+                    maxLines = 4,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.padding(top = if (thumbnail != null) 6.dp else 0.dp),
+                )
+            }
+        }
     }
 }
 

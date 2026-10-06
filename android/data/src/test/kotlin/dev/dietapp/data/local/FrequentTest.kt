@@ -85,16 +85,14 @@ class FrequentTest {
         assertEquals(emptyList<Any>(), Frequent.meals(emptyList()))
     }
 
-    @Test fun `nutrition of the latest entry travels with the meal`() {
+    @Test fun `the grams of the latest entry travel with the meal`() {
         val p = Per100(92.0, 3.38, 0.62, 19.94)
         val data = (0L..2L).flatMap { d ->
-            listOf(MealRow("m$d", "гречка", 200.0, 8 * 60, t0.plusSeconds(d * 86_400), 0, p, "Buckwheat groats, roasted, cooked"))
+            listOf(MealRow("m$d", "гречка", 100.0 + d * 50, 8 * 60, t0.plusSeconds(d * 86_400), 0, p, "гречка"))
         }
         val item = Frequent.meals(data).single().items.single()
-        assertEquals(p, item.preset!!.per100)
-        assertEquals("Buckwheat groats, roasted, cooked", item.preset!!.foodName)
-        assertEquals(false, item.preset!!.approximate)
+        assertEquals("гречка", item.name)
+        assertEquals(200.0, item.grams, 0.0)
         assertNull(item.queryEn)
-        assertNotNull(item.preset)
     }
 }
