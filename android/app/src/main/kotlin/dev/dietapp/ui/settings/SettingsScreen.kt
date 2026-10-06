@@ -1,29 +1,21 @@
 package dev.dietapp.ui.settings
 
-import dev.dietapp.data.domain.Lang
-import dev.dietapp.data.local.RecordMode
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import dev.dietapp.Texts
 import dev.dietapp.coreui.AppTheme
@@ -32,34 +24,23 @@ import dev.dietapp.coreui.Hairline
 import dev.dietapp.coreui.IconAction
 import dev.dietapp.coreui.StatRow
 import dev.dietapp.coreui.TextAction
-import dev.dietapp.coreui.UnderlineField
 import dev.dietapp.coreui.formatInt
-import java.time.LocalDate
-import java.time.format.DateTimeFormatter
-import java.util.Locale
-import kotlin.math.roundToInt
 
-private val HistoryFormat get() = DateTimeFormatter.ofPattern(if (Lang.en) "EEE, MMM d" else "d MMM, EEE", Lang.current.locale)
-
-/** Goal and history, reached from the corner icon. Nothing else lives here. */
+/**
+ * What a person comes here for sits on top: "о себе" (where the goal is: what a day costs plus a correction), the food base,
+ * the history. The language and "о приложении" sit at the very bottom, always in reach. The export is an action of the history page; the agent, the journal and
+ * "стереть всё" (set apart in red) live on the about page.
+ */
 @Composable
 fun SettingsScreen(
     state: SettingsUiState,
     onBack: () -> Unit,
-    onGoalChange: (String) -> Unit,
-    onSaveGoal: () -> Unit,
-    onKeyChange: (String) -> Unit,
-    onSaveKey: () -> Unit,
-    onClearKey: () -> Unit,
-    onPickDay: (LocalDate) -> Unit,
     onLogout: () -> Unit,
     onOpenFoods: () -> Unit = {},
-    onOpenJournal: () -> Unit = {},
-    onToggleRecordMode: () -> Unit = {},
+    onOpenMe: () -> Unit = {},
+    onOpenHistory: () -> Unit = {},
+    onOpenAbout: () -> Unit = {},
     onToggleLanguage: () -> Unit = {},
-    onToggleAgent: () -> Unit = {},
-    onTogglePrompt: () -> Unit = {},
-    onOpenExport: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     Column(modifier.fillMaxSize().background(AppTheme.colors.background).statusBarsPadding().navigationBarsPadding()) {
@@ -69,140 +50,27 @@ fun SettingsScreen(
         }
         Hairline()
 
-        // everything between the header and the footer scrolls as one list: on a short screen the footer stays visible
-        LazyColumn(Modifier.weight(1f).fillMaxWidth().testTag("history"), verticalArrangement = Arrangement.Top) {
-            item {
-                Column(Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
-                    if (state.local) Text(Texts.LOCAL_MODE, style = AppTheme.type.secondary)
-                    else state.email?.let { Text(it, style = AppTheme.type.secondary) }
-                    Spacer(Modifier.height(8.dp))
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        UnderlineField(
-                            value = state.goalText, onValueChange = onGoalChange, modifier = Modifier.width(120.dp).testTag("goal"),
-                            placeholder = Texts.GOAL, keyboardType = KeyboardType.Number, imeAction = ImeAction.Done,
-                            onImeAction = { if (state.canSave) onSaveGoal() }, mono = true,
-                        )
-                        Text(" ${Texts.KCAL}", style = AppTheme.type.monoSecondary)
-                        Spacer(Modifier.weight(1f))
-                        TextAction(Texts.SAVE, onSaveGoal, color = if (state.canSave) AppTheme.colors.foreground else AppTheme.colors.tertiary)
-                    }
-                    state.message?.let {
-                        Text(
-                            it,
-                            style = AppTheme.type.caption.copy(color = if (state.messageIsError) AppTheme.colors.error else AppTheme.colors.secondary),
-                            modifier = Modifier.padding(top = 8.dp),
-                        )
-                    }
-                }
-            }
-            if (state.local) {
-                item {
-                    Hairline()
-                    AgentSection(state, onToggleAgent, onTogglePrompt, onKeyChange, onSaveKey, onClearKey)
-                    Hairline()
-                    StatRow(Texts.FOODS, formatInt(state.foodCount), Modifier.testTag("foods-entry"), onClick = onOpenFoods)
-                    val precise = state.recordMode == RecordMode.Precise
-                    StatRow(Texts.RECORD_MODE, if (precise) Texts.MODE_PRECISE else Texts.MODE_STANDARD, Modifier.testTag("record-mode"),
-                        onClick = onToggleRecordMode)
-                    Text(if (precise) Texts.MODE_PRECISE_HINT else Texts.MODE_STANDARD_HINT, style = AppTheme.type.caption,
-                        modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 8.dp))
-                    StatRow(Texts.JOURNAL, "›", Modifier.testTag("journal-entry"), onClick = onOpenJournal)
-                }
-            }
-            item {
+        // the top scrolls if the screen is short; the bottom group below it stays where it is
+        Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).testTag("settings-top")) {
+            // who is signed in; where the diary lives is told on the "о приложении" page
+            state.email?.takeIf { !state.local }?.let {
+                Text(it, style = AppTheme.type.secondary, modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp))
                 Hairline()
-                StatRow(Texts.LANGUAGE, Texts.LANGUAGE_NAME, Modifier.testTag("language"), onClick = onToggleLanguage)
-                StatRow(Texts.EXPORT, "›", Modifier.testTag("export-entry"), onClick = onOpenExport)
-                Hairline()
-                Text(Texts.HISTORY, style = AppTheme.type.caption, modifier = Modifier.padding(start = 16.dp, top = 12.dp, bottom = 4.dp))
-                if (state.history.isEmpty()) {
-                    Text(Texts.NO_HISTORY, style = AppTheme.type.secondary, modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
-                }
             }
-            items(state.history, key = { it.day.toString() }) { day ->
-                val kcal = formatInt(day.totals.kcal.roundToInt())
-                StatRow(
-                    label = day.day.format(HistoryFormat),
-                    value = state.savedGoal?.let { "$kcal / ${formatInt(it)}" } ?: kcal,
-                    onClick = { onPickDay(day.day) },
-                )
-            }
+            StatRow(Texts.ME, "›", Modifier.testTag("me-entry"), onClick = onOpenMe)
+            if (state.local) StatRow(Texts.FOODS, formatInt(state.foodCount), Modifier.testTag("foods-entry"), onClick = onOpenFoods)
+            StatRow(Texts.HISTORY, "›", Modifier.testTag("history-entry"), onClick = onOpenHistory)
         }
+
+        // the bottom group: set once and left alone, then the page about the app
         Hairline()
-        Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-            if (state.local) Text(Texts.ERASE_HINT, style = AppTheme.type.caption, modifier = Modifier.padding(start = 8.dp).weight(1f))
-            else Spacer(Modifier.weight(1f))
-            val label = when {
-                !state.local -> Texts.LOG_OUT
-                state.eraseArmed -> Texts.ERASE_CONFIRM
-                else -> Texts.ERASE
-            }
-            TextAction(
-                label, onLogout, Modifier.testTag("logout"),
-                color = if (state.eraseArmed) AppTheme.colors.error else AppTheme.colors.secondary,
-            )
-        }
-    }
-}
-
-/**
- * "Агент": everything about the model that reads the messages, in one block that opens on a tap. The key comes from
- * DeepSeek's API (the only kind so far); the web search is always on, shown so nothing is hidden; the system prompt
- * can be read (it opens in turn) but not changed yet.
- */
-@Composable
-private fun AgentSection(
-    state: SettingsUiState,
-    onToggle: () -> Unit,
-    onTogglePrompt: () -> Unit,
-    onKeyChange: (String) -> Unit,
-    onSaveKey: () -> Unit,
-    onClearKey: () -> Unit,
-) {
-    StatRow(
-        Texts.AGENT, if (state.hasKey) Texts.AGENT_PROVIDER_DEEPSEEK else Texts.AGENT_NO_KEY, Modifier.testTag("agent"),
-        extra = if (state.agentOpen) "−" else "+", onClick = onToggle,
-    )
-    if (!state.agentOpen) return
-    StatRow(Texts.AGENT_PROVIDER, Texts.AGENT_PROVIDER_DEEPSEEK, Modifier.testTag("agent-provider"))
-    ModelKey(state, onKeyChange, onSaveKey, onClearKey)
-    StatRow(Texts.AGENT_WEB, Texts.AGENT_WEB_ON, Modifier.testTag("agent-web"))
-    Text(Texts.AGENT_WEB_HINT, style = AppTheme.type.caption, modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 8.dp))
-    StatRow(
-        Texts.AGENT_PROMPT, "", Modifier.testTag("agent-prompt"),
-        extra = if (state.promptOpen) "−" else "+", onClick = onTogglePrompt,
-    )
-    if (state.promptOpen) {
-        Text(Texts.AGENT_PROMPT_HINT, style = AppTheme.type.caption, modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 8.dp))
-        Text(
-            state.agentPrompt, style = AppTheme.type.caption.copy(fontFamily = FontFamily.Monospace),
-            modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 12.dp).testTag("agent-prompt-text"),
-        )
-    }
-}
-
-/** The optional DeepSeek key of the local mode: one line, plus one sentence on what it changes. */
-@Composable
-private fun ModelKey(state: SettingsUiState, onKeyChange: (String) -> Unit, onSave: () -> Unit, onClear: () -> Unit) {
-    Column(Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
-        if (state.hasKey) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(Texts.MODEL_KEY_SET, style = AppTheme.type.secondary, modifier = Modifier.weight(1f))
-                TextAction(Texts.REMOVE, onClear, Modifier.testTag("key-clear"), color = AppTheme.colors.secondary)
-            }
-        } else {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                UnderlineField(
-                    value = state.keyInput, onValueChange = onKeyChange, modifier = Modifier.weight(1f).testTag("key"),
-                    placeholder = Texts.MODEL_KEY, keyboardType = KeyboardType.Password, imeAction = ImeAction.Done,
-                    onImeAction = { if (state.canSaveKey) onSave() }, secret = true,
-                )
-                TextAction(
-                    Texts.SAVE, onSave, Modifier.testTag("key-save"),
-                    color = if (state.canSaveKey) AppTheme.colors.foreground else AppTheme.colors.tertiary,
-                )
+        StatRow(Texts.LANGUAGE, Texts.LANGUAGE_NAME, Modifier.testTag("language"), onClick = onToggleLanguage)
+        StatRow(Texts.ABOUT, "›", Modifier.testTag("about-entry"), onClick = onOpenAbout)
+        if (!state.local) {
+            Hairline()
+            Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp), horizontalArrangement = Arrangement.End) {
+                TextAction(Texts.LOG_OUT, onLogout, Modifier.testTag("logout"), color = AppTheme.colors.secondary)
             }
         }
-        Text(Texts.MODEL_KEY_HINT, style = AppTheme.type.caption, modifier = Modifier.padding(top = 4.dp))
     }
 }

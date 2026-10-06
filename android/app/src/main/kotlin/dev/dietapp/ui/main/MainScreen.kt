@@ -10,6 +10,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -23,12 +24,14 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.Text
+import android.graphics.BitmapFactory
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -149,7 +152,7 @@ fun MainScreen(state: MainUiState, actions: MainActions, effects: Flow<UiEffect>
                 },
                 onCamera = {
                     // no key (local mode): onOpenCamera explains instead, so do not ask for a permission first
-                    if (state.photoNeedsKey || granted(Manifest.permission.CAMERA)) actions.onOpenCamera()
+                    if (state.needsKey || granted(Manifest.permission.CAMERA)) actions.onOpenCamera()
                     else cameraPermission.launch(Manifest.permission.CAMERA)
                 },
                 listening = state.voice == VoicePhase.Listening || state.voice == VoicePhase.Recording,
@@ -224,11 +227,17 @@ private fun Feed(state: MainUiState, actions: MainActions, modifier: Modifier) {
                     val m = item.message
                     val p = item.pending
                     val failed = p?.state == OutboxState.Failed
+                    val thumb = remember(item.thumb) {
+                        item.thumb?.let { bytes -> BitmapFactory.decodeByteArray(bytes, 0, bytes.size)?.asImageBitmap() }
+                    }
                     MessageRow(
-                        text = listOfNotNull(Texts.PHOTO.takeIf { m.hasImage }, m.text).joinToString(" · "),
+                        // with its picture in the chat a photo needs no word for it
+                        text = listOfNotNull(Texts.PHOTO.takeIf { m.hasImage && thumb == null }, m.text).joinToString(" · "),
+                        thumbnail = thumb,
+                        thumbnailDescription = Texts.PHOTO,
                         status = when {
                             p == null -> null
-                            failed -> Texts.STATUS_FAILED
+                            failed -> null // the red line under the message says it
                             p.error == OFFLINE_MESSAGE -> Texts.STATUS_OFFLINE
                             p.attempts > 0 -> Texts.STATUS_RETRY
                             else -> Texts.STATUS_WAITING
@@ -237,8 +246,23 @@ private fun Feed(state: MainUiState, actions: MainActions, modifier: Modifier) {
                         onClick = { actions.onMessageTap(m.id) },
                         modifier = Modifier.testTag("message"),
                     )
-                    if (failed && p.error != null) {
-                        FeedNote("${p.error} ${Texts.TAP_TO_REMOVE}", NoteTone.Error, onClick = { actions.onMessageTap(m.id) })
+                    if (failed) {
+                        // the agent could not read it: one line of why, and the way to have it read again. A short reason and the
+                        // buttons share a line; a long one (a refused key) takes its own and the buttons go below it.
+                        FlowRow(
+                            Modifier.fillMaxWidth().padding(start = 16.dp, end = 8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            itemVerticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            p?.error?.let {
+                                Text(
+                                    it, style = AppTheme.type.secondary.copy(color = AppTheme.colors.error),
+                                    modifier = Modifier.padding(end = 8.dp).testTag("failed-note"),
+                                )
+                            }
+                            TextAction(Texts.RETRY, { actions.onMessageRetry(m.id) }, Modifier.testTag("retry"), color = AppTheme.colors.error)
+                            TextAction(Texts.REMOVE, { actions.onMessageDiscard(m.id) }, Modifier.testTag("discard"), color = AppTheme.colors.secondary)
+                        }
                     }
                 }
                 // the user's answer to a question sits on their side of the chat, like a message

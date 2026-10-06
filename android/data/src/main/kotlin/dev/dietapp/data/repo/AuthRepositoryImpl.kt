@@ -5,13 +5,13 @@ import androidx.room.withTransaction
 import dev.dietapp.data.db.AppDatabase
 import dev.dietapp.data.db.ProfileRow
 import dev.dietapp.data.di.AppScope
-import dev.dietapp.data.domain.CalorieGoal
 import dev.dietapp.data.local.AppMode
 import dev.dietapp.data.local.ModeStore
+import dev.dietapp.data.local.BodyStore
 import dev.dietapp.data.local.SecretStore
+import dev.dietapp.data.media.PhotoThumbs
 import dev.dietapp.data.net.AppError
 import dev.dietapp.data.net.DietApi
-import dev.dietapp.data.net.GoalBody
 import dev.dietapp.data.net.RequestCodeBody
 import dev.dietapp.data.net.SessionStore
 import dev.dietapp.data.net.VerifyBody
@@ -28,10 +28,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.serialization.json.Json
-
-val GOAL_TOO_LOW_MESSAGE get() = t("Цель ниже 1 200 ккал в день без наблюдения врача не рекомендуется. Выбери не меньше 1 200.",
-    "A goal below 1,200 kcal a day is not recommended without a doctor's supervision. Choose 1,200 or more.")
-val GOAL_TOO_HIGH_MESSAGE get() = t("Цель выше 6 000 ккал похожа на опечатку.", "A goal above 6,000 kcal looks like a typo.")
 
 /** Runs [block], turning every failure into an [AppError] with a message that can be shown as is. */
 internal suspend fun <T> guarded(block: suspend () -> T): Result<T> = try {
@@ -52,6 +48,8 @@ class AuthRepositoryImpl @Inject constructor(
     private val json: Json,
     private val modeStore: ModeStore,
     private val secrets: SecretStore,
+    private val thumbs: PhotoThumbs,
+    private val body: BodyStore,
     @AppScope scope: CoroutineScope,
 ) : AuthRepository {
 
@@ -77,23 +75,8 @@ class AuthRepositoryImpl @Inject constructor(
         sync.requestSync(pull = true)
     }
 
-    override suspend fun setGoal(goal: Int): Result<Unit> = guarded {
-        when (CalorieGoal.check(goal)) {
-            CalorieGoal.Check.TooLow -> throw AppError(GOAL_TOO_LOW_MESSAGE, "goal_too_low")
-            CalorieGoal.Check.TooHigh -> throw AppError(GOAL_TOO_HIGH_MESSAGE, "goal_too_high")
-            CalorieGoal.Check.Ok -> Unit
-        }
-        if (modeStore.isLocal) {
-            db.profile().upsert(ProfileRow(email = null, calorieGoal = goal))
-            return@guarded
-        }
-        val me = apiCall(json) { api.setGoal(GoalBody(goal)) }
-        db.profile().upsert(ProfileRow(email = me.email, calorieGoal = me.calorieGoal))
-    }
-
     override suspend fun useWithoutServer() {
-        val goal = db.profile().get()?.calorieGoal // a goal set earlier on this phone survives
-        db.profile().upsert(ProfileRow(email = null, calorieGoal = goal))
+        db.profile().upsert(ProfileRow(email = null, calorieGoal = null))
         modeStore.set(AppMode.Local)
     }
 
@@ -115,5 +98,7 @@ class AuthRepositoryImpl @Inject constructor(
             db.profile().clear()
         }
         files.clear()
+        thumbs.clear()
+        body.clear() // what the person said about themselves goes with the diary
     }
 }

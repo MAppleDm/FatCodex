@@ -31,7 +31,7 @@ data class EntryRow(
     val deleted: Boolean,
     /** Changed locally, not yet sent. While set, a sync pull never overwrites this row. */
     val dirty: Boolean,
-    /** Local mode: recognised, waiting for the user's "записать" (see RecordMode). Not counted in any total. */
+    /** Local mode: recognised, waiting for the user's "записать" (the agent was not sure, or the numbers are only approximate). Not counted in any total. */
     @ColumnInfo(defaultValue = "0") val pending: Boolean = false,
 )
 
@@ -103,7 +103,8 @@ data class MessageRow(
 )
 
 /**
- * The user's own foods: what the bundled catalog does not have (casein protein, a favourite bar, a home recipe).
+ * The user's own foods, the only nutrition database there is: what the agent found on the web and the user confirmed, and what
+ * the user added by hand (casein protein, a favourite bar, a home recipe).
  * Values are per 100 g. Added by the user on the "База продуктов" screen, by the model (marked [estimated] unless
  * the user gave the numbers), or imported from a JSON file. [key] is the folded name and is unique.
  */

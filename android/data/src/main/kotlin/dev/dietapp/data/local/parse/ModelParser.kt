@@ -50,7 +50,7 @@ class PromptAssets(val systemPrompt: String, val toolSpec: JsonObject, val local
         val withId = JsonObject(
             props + ("food_id" to buildJsonObject {
                 putJsonArray("type") { add("string"); add("null") }
-                put("description", "Id from search_foods or save_food ('my:…', 'ru:…', 'usda:…')")
+                put("description", "Id from search_foods or save_food ('my:…')")
             }) + ("needs_confirmation" to buildJsonObject {
                 putJsonArray("type") { add("boolean"); add("null") }
                 put(
@@ -122,8 +122,8 @@ interface ModelTrace {
 }
 
 /**
- * Why the model could not help. The caller decides whether the offline parser can take over. [detail] is short and
- * concrete ("HTTP 400: Model Not Exist", "SocketTimeoutException: timeout") and is shown to the user.
+ * Why the model could not help. The message stays in the chat for another try. [detail] is short and concrete
+ * ("HTTP 400: Model Not Exist", "SocketTimeoutException: timeout") and is shown to the user.
  */
 sealed class ModelFailure(val detail: String, val retryable: Boolean, summary: String) : Exception("$summary: $detail") {
     /** A name that survives R8 (class names in a release build do not), for the journal. */
@@ -228,7 +228,10 @@ class ModelParser(
                     buildJsonObject { put("ok", true) }
                 } else {
                     val outcome = tools.call(name, args)
-                    outcome.note?.let(notes::add)
+                    outcome.note?.let { note ->
+                        notes += note
+                        trace.log("model", "$name: $note") // what the agent changed, with the numbers, for the journal too
+                    }
                     outcome.proposal?.let { proposals[it.forItem.lowercase()] = it }
                     outcome.change?.let(changes::add)
                     outcome.result
@@ -395,7 +398,14 @@ class ModelParser(
             throw ModelFailure.Unavailable(why)
         }
         response.use {
-            val text = it.body?.string().orEmpty()
+            val text = try {
+                it.body?.string().orEmpty()
+            } catch (e: IOException) {
+                // the connection broke while the answer was coming: the same as no answer, the round is tried again
+                val why = "${e.javaClass.simpleName}: ${e.message}"
+                trace.error("model", "✕ the answer was cut off after ${ms()} ms: $why")
+                throw ModelFailure.Unavailable(why)
+            }
             val code = it.code
             if (code in 200..299) {
                 val json = try {
@@ -408,7 +418,7 @@ class ModelParser(
                 return json
             }
             trace.error("model", "← HTTP $code in ${ms()} ms: ${short(text, 2000)}")
-            val why = "HTTP $code: ${serverReason(text)}"
+            val why = "HTTP $code: ${serverReason(text).replace(key, "sk-…")}"
             when (code) {
                 401, 402, 403 -> throw ModelFailure.Auth(why)
                 408, 429 -> throw ModelFailure.Unavailable(why)

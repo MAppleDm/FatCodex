@@ -3,7 +3,6 @@ package dev.dietapp.data.local
 import dev.dietapp.data.domain.Per100
 import dev.dietapp.data.local.parse.FrequentItem
 import dev.dietapp.data.local.parse.FrequentMeal
-import dev.dietapp.data.local.parse.Preset
 import java.time.Instant
 
 /** One food of a past meal. A meal is everything logged from one message (they share [mealId]). */
@@ -48,9 +47,7 @@ object Frequent {
             val ordered = latest.sortedWith(compareBy({ it.eatenAt }, { it.position }))
             FrequentMeal(
                 label = "${ordered.take(MAX_LABEL_ITEMS).joinToString(", ") { it.name }} ($usual)",
-                items = ordered.map { r ->
-                    FrequentItem(r.name, null, r.grams, r.per100?.let { Preset(it, r.foodName ?: r.name, approximate = false) })
-                },
+                items = ordered.map { r -> FrequentItem(r.name, null, r.grams) },
             )
         }
     }

@@ -43,7 +43,6 @@ import dev.dietapp.coreui.formatInt
 import dev.dietapp.coreui.tap
 import dev.dietapp.data.domain.Food
 import dev.dietapp.data.domain.Per100
-import dev.dietapp.data.local.FoodHit
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -57,7 +56,6 @@ interface FoodsActions {
     fun onQuery(text: String)
     fun onNew()
     fun onEdit(food: Food)
-    fun onCopy(hit: FoodHit)
     fun onEditChange(edit: FoodEdit)
     fun onSave()
     fun onDelete()
@@ -104,10 +102,7 @@ fun FoodsRoute(vm: FoodsViewModel, onBack: () -> Unit) {
 
 private const val EXPORT_NAME = "dietapp-foods.json"
 
-/**
- * The user's own foods (what the model added and what they added themselves), searchable, editable, with the
- * built-in base underneath as a read-only reference.
- */
+/** The user's own foods (what the agent added with their yes and what they added themselves), searchable and editable. */
 @Composable
 fun FoodsScreen(
     state: FoodsUiState,
@@ -170,12 +165,6 @@ private fun FoodList(state: FoodsUiState, actions: FoodsActions) {
         }
         items(state.mine, key = { "my:${it.id}" }) { food ->
             FoodLine(food.name, food.per100, food.estimated, Modifier.testTag("food"), onClick = { actions.onEdit(food) })
-        }
-        if (state.builtIn.isNotEmpty()) {
-            item { Caption(Texts.FOODS_BUILT_IN) }
-            items(state.builtIn, key = { it.id }) { hit ->
-                FoodLine(hit.name, hit.per100, hit.approximate, Modifier.testTag("builtin"), muted = true, onClick = { actions.onCopy(hit) })
-            }
         }
     }
 }

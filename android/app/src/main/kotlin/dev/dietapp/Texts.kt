@@ -20,8 +20,7 @@ object Texts {
     val STATUS_WAITING get() = "…"
     val STATUS_OFFLINE get() = t("нет сети", "offline")
     val STATUS_RETRY get() = t("повтор", "retrying")
-    val STATUS_FAILED get() = t("ошибка", "failed")
-    val TAP_TO_REMOVE get() = t("Нажми, чтобы убрать.", "Tap to remove.")
+    val RETRY get() = t("Повторить", "Try again")
     val PHOTO get() = t("фото", "photo")
 
     // day summary details
@@ -47,11 +46,8 @@ object Texts {
     // login
     val EMAIL get() = t("Почта", "Email")
     val CODE get() = t("Код из письма", "Code from the email")
-    val GOAL get() = t("Цель, ккал в день", "Goal, kcal a day")
     val NEXT get() = t("Далее", "Next")
     val CODE_HINT get() = t("Код придёт на почту.", "The code will come by email.")
-    val GOAL_HINT get() = t("Цель можно изменить позже.", "The goal can be changed later.")
-    val GOAL_NOT_A_NUMBER get() = t("Введи число, например 1900.", "Enter a number, for example 1900.")
     val CHANGE_EMAIL get() = t("другая почта", "another email")
     val NO_SERVER get() = t("без сервера", "without a server")
     val NO_SERVER_HINT get() = t(
@@ -59,10 +55,142 @@ object Texts {
         "No server of your own? Everything is worked out on the phone. Only what you write or photograph goes to DeepSeek.",
     )
     val KEY_STEP_HINT get() = t(
-        "Нужен для фото и сложных фраз. Хранится только на этом телефоне, уходит только в DeepSeek.",
-        "Needed for photos and free-form phrases. Kept on this phone only, sent to DeepSeek only.",
+        "Без ключа приложение не работает: агент читает всё, что ты пишешь или снимаешь, и ведёт твою базу продуктов. Хранится только на этом телефоне, уходит только в DeepSeek.",
+        "The app does not work without a key: the agent reads everything you write or photograph and keeps your food database. Kept on this phone only, sent to DeepSeek only.",
     )
     val SKIP get() = t("пропустить", "skip")
+
+    // about me: what the person says about themselves, and what a day costs them
+    val ME get() = t("О себе", "About me")
+    val ME_SEX get() = t("Пол", "Sex")
+    val ME_MALE get() = t("Мужской", "Male")
+    val ME_FEMALE get() = t("Женский", "Female")
+    val ME_AGE get() = t("Возраст", "Age")
+    val ME_YEARS get() = t("лет", "years")
+    val ME_HEIGHT get() = t("Рост", "Height")
+    val ME_CM get() = t("см", "cm")
+    val ME_WEIGHT get() = t("Вес", "Weight")
+    val ME_WEIGHT_HINT get() = t(
+        "Это последнее взвешивание из дневника. Напиши в чате «вес 82.4», и здесь оно обновится само.",
+        "This is the latest weigh-in of the diary. Write “weight 82.4” in the chat and it updates here by itself.",
+    )
+    val ME_ACTIVITY get() = t("Активность", "Activity")
+    val ME_ENERGY get() = t("Средний расход в день", "Average energy use a day")
+    val ME_KCAL_A_DAY get() = t("ккал в день", "kcal a day")
+    val ME_INCOMPLETE get() = t(
+        "Заполни все пункты ниже, и здесь появятся средний расход и цель.",
+        "Fill in everything below and your average energy use and your goal appear here.",
+    )
+    val ME_GOAL get() = t("Цель на день", "Goal for the day")
+    val ME_ADJUSTMENT get() = t("Корректировка", "Correction")
+    val ME_ADJUSTMENT_HINT get() = t(
+        "Минус, чтобы худеть, плюс, чтобы набирать. Ноль оставляет цель равной расходу.",
+        "Minus to lose weight, plus to gain. Zero keeps the goal equal to what a day costs.",
+    )
+
+    /** "Расход 2 710, корректировка −300" */
+    fun meGoalSum(tdee: Int, adjustment: Int): String = t(
+        "Расход ${dev.dietapp.coreui.formatInt(tdee)}, корректировка ${signedKcal(adjustment)}",
+        "Energy use ${dev.dietapp.coreui.formatInt(tdee)}, correction ${signedKcal(adjustment)}",
+    )
+
+    fun meGoalFloor(min: Int): String = t(
+        "Ниже ${dev.dietapp.coreui.formatInt(min)} ккал цель не опускается: меньше без наблюдения врача не рекомендуется.",
+        "The goal does not go below ${dev.dietapp.coreui.formatInt(min)} kcal: less is not recommended without a doctor's supervision.",
+    )
+
+    /** "+300", "−300" (a real minus sign), "0". */
+    fun signedKcal(v: Int): String = when {
+        v > 0 -> "+${dev.dietapp.coreui.formatInt(v)}"
+        v < 0 -> "−${dev.dietapp.coreui.formatInt(-v)}"
+        else -> "0"
+    }
+    val ME_FORMULA get() = t(
+        "Считается по формуле Миффлина — Сан-Жеора: энергия в покое, умноженная на коэффициент активности. Это оценка для среднего взрослого человека, а не медицинская рекомендация.",
+        "Worked out with the Mifflin–St Jeor equation: the energy at rest times an activity multiplier. It is an estimate for an average adult, not medical advice.",
+    )
+
+    fun meRest(bmr: Int, factor: String): String =
+        t("В покое ${dev.dietapp.coreui.formatInt(bmr)} ккал, умножено на $factor", "${dev.dietapp.coreui.formatInt(bmr)} kcal at rest, times $factor")
+
+    fun activityName(a: dev.dietapp.data.domain.Activity): String = when (a) {
+        dev.dietapp.data.domain.Activity.Sedentary -> t("Почти не двигаюсь", "Hardly move")
+        dev.dietapp.data.domain.Activity.Light -> t("Немного", "A little")
+        dev.dietapp.data.domain.Activity.Moderate -> t("Умеренно", "Moderately")
+        dev.dietapp.data.domain.Activity.High -> t("Много", "A lot")
+        dev.dietapp.data.domain.Activity.Extreme -> t("Очень много", "A great deal")
+    }
+
+    fun activityHint(a: dev.dietapp.data.domain.Activity): String = when (a) {
+        dev.dietapp.data.domain.Activity.Sedentary -> t("Сидячая работа, тренировок нет.", "A desk job, no workouts.")
+        dev.dietapp.data.domain.Activity.Light -> t("Прогулки или лёгкие тренировки 1–3 раза в неделю.", "Walks or light workouts 1–3 times a week.")
+        dev.dietapp.data.domain.Activity.Moderate -> t("Тренировки 3–5 раз в неделю или работа на ногах.", "Workouts 3–5 times a week, or a job on your feet.")
+        dev.dietapp.data.domain.Activity.High -> t("Интенсивные тренировки 6–7 раз в неделю.", "Hard workouts 6–7 times a week.")
+        dev.dietapp.data.domain.Activity.Extreme -> t("Тяжёлый физический труд или две тренировки в день.", "Heavy physical work, or two workouts a day.")
+    }
+
+    // the first-run questions, one at a time
+    val WIZARD_BACK get() = t("назад", "back")
+    val WIZARD_DONE get() = t("Готово", "Done")
+    val WIZARD_SEX_Q get() = t("Какой у тебя пол?", "What is your sex?")
+    val WIZARD_SEX_WHY get() = t("Нужно для формулы: у мужчин и женщин разный обмен веществ.", "The formula needs it: men and women burn energy differently.")
+    val WIZARD_AGE_Q get() = t("Сколько тебе лет?", "How old are you?")
+    val WIZARD_AGE_WHY get() = t("С возрастом обмен веществ замедляется.", "Metabolism slows down with age.")
+    val WIZARD_HEIGHT_Q get() = t("Какой у тебя рост?", "How tall are you?")
+    val WIZARD_HEIGHT_WHY get() = t("Чем выше человек, тем больше энергии уходит в покое.", "The taller a person is, the more energy goes at rest.")
+    val WIZARD_WEIGHT_Q get() = t("Сколько ты весишь?", "How much do you weigh?")
+    val WIZARD_WEIGHT_WHY get() = t(
+        "Это станет первой записью веса в дневнике. Дальше его можно писать в чате: «вес 82.4».",
+        "This becomes the first weight in the diary. Later you can write it in the chat: “weight 82.4”.",
+    )
+    val WIZARD_ACTIVITY_Q get() = t("Насколько ты активен?", "How active are you?")
+    val WIZARD_ACTIVITY_WHY get() = t("Выбери то, что больше похоже на обычную неделю.", "Pick what looks most like an ordinary week.")
+    val WIZARD_RESULT_Q get() = t("Твой средний расход", "Your average energy use")
+    val WIZARD_RESULT_HINT get() = t(
+        "Цель на день считается от него. Корректировку и всё остальное можно поменять потом в настройках, в разделе «О себе».",
+        "The goal for the day is worked out from it. You can change the correction and all the rest later in settings, under “About me”.",
+    )
+
+    fun wizardProgress(step: Int, total: Int): String = t("$step из $total", "$step of $total")
+
+    // about
+    val ABOUT get() = t("О приложении", "About")
+    val ABOUT_TAGLINE get() = t(
+        "Дневник питания в одном поле ввода. Личный проект, бесплатный и некоммерческий.",
+        "A food diary in a single text box. A personal project, free and non-commercial.",
+    )
+    val ABOUT_VERSION get() = t("Версия", "Version")
+    val ABOUT_DATA get() = t("Данные", "Your data")
+    val ABOUT_LOCAL_COPY get() = t(
+        "Это единственная копия дневника. Если стереть всё, вернуть её нельзя. Дневник входит в автобэкап Android, если он включён на телефоне.",
+        "This is the only copy of the diary. If you erase everything it cannot be brought back. The diary is part of Android's auto-backup, if that is on for the phone.",
+    )
+    val ABOUT_SERVER_COPY get() = t(
+        "Дневник синхронизируется с твоим сервером, на телефоне лежит его копия.",
+        "The diary is synchronised with your server; the phone holds a copy.",
+    )
+    val ABOUT_LOCAL_SENT get() = t(
+        "В DeepSeek уходит только то, что ты пишешь или фотографируешь, в DuckDuckGo только название продукта при поиске. Ключ DeepSeek лежит на телефоне в зашифрованном виде и в резервные копии не попадает.",
+        "Only what you write or photograph goes to DeepSeek, and only a food's name goes to DuckDuckGo when searching. The DeepSeek key is kept on the phone, encrypted, and is not part of backups.",
+    )
+    val ABOUT_SERVER_SENT get() = t(
+        "Сообщения разбирает твой сервер, ключа DeepSeek на телефоне нет.",
+        "Your server reads the messages; there is no DeepSeek key on the phone.",
+    )
+    val ABOUT_DANGER get() = t("Опасная зона", "Danger zone")
+    val ABOUT_ERASE_DETAILS get() = t(
+        "Удалит с этого телефона дневник, базу продуктов, вес и ключ DeepSeek. Вернуть их нельзя. Чтобы не стереть случайно, нажать нужно дважды.",
+        "Deletes the diary, the food base, the weights and the DeepSeek key from this phone. They cannot be brought back. To keep it from happening by accident, you have to tap twice.",
+    )
+    val ABOUT_MODEL get() = t("Модель", "The model")
+    val ABOUT_JOURNAL_HINT get() = t(
+        "Что приложение отправило модели, что она ответила и почему что-то не получилось. Журнал можно сохранить или отправить.",
+        "What the app sent to the model, what it answered and why something did not work. The journal can be saved or sent.",
+    )
+    val ABOUT_LINKS get() = t("Ссылки", "Links")
+    val ABOUT_GITHUB get() = "GitHub"
+    val ABOUT_LICENSE get() = t("Лицензия", "License")
+    val ABOUT_LICENSE_NAME get() = "MIT"
 
     // settings
     val SETTINGS get() = t("Настройки", "Settings")
@@ -75,28 +203,14 @@ object Texts {
     val MODEL_KEY get() = t("Ключ DeepSeek", "DeepSeek key")
     val MODEL_KEY_SET get() = t("Ключ DeepSeek задан", "DeepSeek key is set")
     val MODEL_KEY_HINT get() = t(
-        "Нужен для фото и сложных фраз. Без него еда разбирается по встроенному словарю. Ключ хранится только на этом телефоне.",
-        "Needed for photos and free-form phrases. Without it food is read with the built-in (Russian) dictionary. The key is kept on this phone only.",
+        "Без ключа приложение не работает: агент читает каждое сообщение и фото и ведёт твою базу продуктов. Ключ хранится только на этом телефоне.",
+        "The app does not work without a key: the agent reads every message and photo and keeps your food database. The key is kept on this phone only.",
     )
     val REMOVE get() = t("убрать", "remove")
-    val ERASE get() = t("стереть всё", "erase all")
-    val ERASE_CONFIRM get() = t("точно? нажми ещё раз", "sure? tap again")
-    val ERASE_HINT get() = t("Это единственная копия дневника.", "This is the only copy of the diary.")
+    val ERASE get() = t("Стереть всё", "Erase all")
+    val ERASE_CONFIRM get() = t("Точно? Нажми ещё раз", "Sure? Tap again")
     val LANGUAGE get() = t("Язык", "Language")
     val LANGUAGE_NAME get() = t("Русский", "English")
-
-    // record modes
-    val RECORD_MODE get() = t("Режим", "Mode")
-    val MODE_STANDARD get() = t("стандартный", "standard")
-    val MODE_PRECISE get() = t("точный", "precise")
-    val MODE_STANDARD_HINT get() = t(
-        "Привычная еда с известными цифрами записывается сразу, а продукт в базе агент меняет или удаляет, только если уверен. Если нет, он спросит.",
-        "Familiar food with known values is recorded at once, and a food in your base is changed or deleted only when the agent is sure. Otherwise it asks.",
-    )
-    val MODE_PRECISE_HINT get() = t(
-        "Любая еда записывается только после «записать», а любое изменение или удаление продукта в базе — только после «да». До этого еда серая и не считается.",
-        "Every food is recorded only after “record”, and every change or deletion in your base only after “yes”. Until then food is grey and not counted.",
-    )
 
     // proposals: values the model found, to confirm
     val PROPOSAL_OWN get() = t("свой вариант", "my own values")
@@ -117,6 +231,9 @@ object Texts {
     val ENTRY_NAME get() = t("название", "name")
     val ENTRY_GRAMS get() = t("граммы", "grams")
     val ENTRY_HISTORY get() = t("Как выбрано", "How it was chosen")
+
+    // the history page
+    val HISTORY_EXPORT get() = t("экспорт", "export")
 
     // export of the history
     val EXPORT get() = t("Экспорт истории", "Export history")
@@ -160,7 +277,6 @@ object Texts {
 
     // agent settings
     val AGENT get() = t("Агент", "Agent")
-    val AGENT_NO_KEY get() = t("нет ключа", "no key")
     val AGENT_PROVIDER get() = t("Ключ", "Key")
     val AGENT_PROVIDER_DEEPSEEK get() = "DeepSeek API"
     val AGENT_WEB get() = t("Поиск в интернете", "Web search")
@@ -182,10 +298,9 @@ object Texts {
     val FOODS_EXPORT get() = t("экспорт", "export")
     val FOODS_IMPORT get() = t("импорт", "import")
     val FOODS_MINE get() = t("Мои продукты", "My foods")
-    val FOODS_BUILT_IN get() = t("Встроенная база. Нажми, чтобы сделать свою копию.", "Built-in base. Tap to make your own copy.")
     val FOODS_EMPTY get() = t(
-        "Пока пусто. Сюда попадают продукты, которых нет во встроенной базе: их добавляет модель из чата или ты сам.",
-        "Nothing yet. Foods the built-in base lacks land here: added by the model from the chat, or by you.",
+        "Пока пусто. Продукты попадают сюда, когда агент находит их в интернете и ты подтверждаешь значения, или когда ты добавляешь их сам.",
+        "Nothing yet. Foods land here when the agent finds them on the web and you confirm the values, or when you add them yourself.",
     )
     val FOODS_NOTHING_FOUND get() = t("Среди своих продуктов такого нет.", "None of your foods match.")
     val FOODS_ESTIMATED get() = t("оценка", "estimate")

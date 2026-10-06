@@ -16,7 +16,7 @@ import dev.dietapp.data.domain.OutboxMessage
 import dev.dietapp.data.domain.OutboxState
 import dev.dietapp.data.domain.Profile
 import dev.dietapp.data.local.Capabilities
-import dev.dietapp.data.local.PHOTO_NEEDS_KEY
+import dev.dietapp.data.local.NEEDS_KEY
 import dev.dietapp.data.net.AppError
 import dev.dietapp.entry
 import java.time.Clock
@@ -456,25 +456,56 @@ class MainViewModelTest {
     @Test fun `without a server and without a key the camera explains instead of opening`() = runTest {
         localSettings.state.value = Capabilities(local = true, modelKey = false)
         val (vm, state) = viewModel()
-        assertTrue(state.value.photoNeedsKey)
+        assertTrue(state.value.needsKey)
         vm.onOpenCamera()
         assertFalse(state.value.cameraOpen)
-        assertEquals(PHOTO_NEEDS_KEY, state.value.notice)
+        assertEquals(NEEDS_KEY, state.value.notice)
+    }
+
+    @Test fun `without a key a message is not sent, the notice says why and what was typed stays`() = runTest {
+        localSettings.state.value = Capabilities(local = true, modelKey = false)
+        val (vm, state) = viewModel()
+        vm.onDraftChange("гречка 200 г")
+        vm.onSend()
+        assertTrue("nothing reads it, so nothing is queued", diary.sent.isEmpty())
+        assertEquals(NEEDS_KEY, state.value.notice)
+        assertEquals("гречка 200 г", state.value.draft)
+    }
+
+    @Test fun `without a key a weigh-in still goes through, the agent is not needed for it`() = runTest {
+        localSettings.state.value = Capabilities(local = true, modelKey = false)
+        val (vm, state) = viewModel()
+        vm.onDraftChange("вес 82.4")
+        vm.onSend()
+        assertEquals(listOf(TODAY to 82.4), diary.addedWeights)
+        assertEquals("", state.value.draft)
+        assertTrue(diary.sent.isEmpty())
     }
 
     @Test fun `adding the key opens the camera again`() = runTest {
         localSettings.state.value = Capabilities(local = true, modelKey = false)
         val (vm, state) = viewModel()
         localSettings.state.value = Capabilities(local = true, modelKey = true)
-        assertFalse(state.value.photoNeedsKey)
+        assertFalse(state.value.needsKey)
         vm.onOpenCamera()
         assertTrue(state.value.cameraOpen)
+    }
+
+    @Test fun `adding the key lets the message through`() = runTest {
+        localSettings.state.value = Capabilities(local = true, modelKey = false)
+        val (vm, state) = viewModel()
+        vm.onDraftChange("гречка 200 г")
+        vm.onSend()
+        localSettings.state.value = Capabilities(local = true, modelKey = true)
+        vm.onSend()
+        assertEquals("гречка 200 г", diary.sent.single().text)
+        assertEquals("", state.value.draft)
     }
 
     @Test fun `with a server the camera never needs a key`() = runTest {
         localSettings.state.value = Capabilities(local = false, modelKey = false)
         val (vm, state) = viewModel()
-        assertFalse(state.value.photoNeedsKey)
+        assertFalse(state.value.needsKey)
         vm.onOpenCamera()
         assertTrue(state.value.cameraOpen)
     }
@@ -653,7 +684,7 @@ class MainViewModelTest {
         assertEquals(listOf("w1"), diary.deletedWeights)
     }
 
-    @Test fun `tapping a failed message removes it, tapping a waiting one retries`() = runTest {
+    @Test fun `tapping a waiting message nudges it, a failed one is left to its own buttons`() = runTest {
         val (vm, _) = viewModel()
         diary.outbox.value = listOf(
             outboxMessage("failed", state = OutboxState.Failed, error = "Не удалось обработать."),
@@ -661,8 +692,25 @@ class MainViewModelTest {
         )
         vm.onMessageTap("failed")
         vm.onMessageTap("waiting")
-        assertEquals(listOf("failed"), diary.discardedOutbox)
+        assertTrue("a tap never takes a message back", diary.discardedOutbox.isEmpty())
+        assertTrue(diary.retriedOutbox.isEmpty())
         assertEquals(listOf(false), diary.syncRequests)
+    }
+
+    @Test fun `try again has the agent read the failed message once more`() = runTest {
+        val (vm, _) = viewModel()
+        diary.outbox.value = listOf(outboxMessage("failed", state = OutboxState.Failed, error = "Агент недоступен."))
+        vm.onMessageRetry("failed")
+        assertEquals(listOf("failed"), diary.retriedOutbox)
+        assertTrue(diary.discardedOutbox.isEmpty())
+    }
+
+    @Test fun `remove takes a failed message back`() = runTest {
+        val (vm, _) = viewModel()
+        diary.outbox.value = listOf(outboxMessage("failed", state = OutboxState.Failed, error = "Агент недоступен."))
+        vm.onMessageDiscard("failed")
+        assertEquals(listOf("failed"), diary.discardedOutbox)
+        assertTrue(diary.retriedOutbox.isEmpty())
     }
 
     @Test fun `the chat keeps its notes, only an error goes away when tapped`() = runTest {

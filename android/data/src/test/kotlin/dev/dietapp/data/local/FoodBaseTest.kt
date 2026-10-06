@@ -3,8 +3,6 @@ package dev.dietapp.data.local
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import dev.dietapp.data.TestEnv
 import dev.dietapp.data.domain.Per100
-import dev.dietapp.data.local.parse.OfflineParser
-import dev.dietapp.data.local.parse.ParseRequest
 import dev.dietapp.data.net.AppError
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -87,41 +85,47 @@ class FoodBaseTest {
 
     // ---------- searching ----------
 
-    @Test fun `search covers the user's foods first, then the table and the catalog`() = runTest {
+    @Test fun `search covers the user's own foods and nothing else`() = runTest {
         base.save(casein)
         val hits = base.search("казеиновый протеин")
-        assertEquals(FoodHit.Source.Mine, hits.first().source)
+        assertEquals(listOf("Казеиновый протеин"), hits.map { it.name })
         assertTrue(hits.first().approximate)
+        assertTrue(hits.first().id.startsWith("my:"))
+        assertEquals("by another name too", listOf("Казеиновый протеин"), base.search("казеин").map { it.name })
 
-        val borscht = base.search("борщ")
-        assertTrue(borscht.any { it.id == "ru:борщ" && it.source == FoodHit.Source.Table })
+        // there is no catalog and no table of dishes behind it: what the user never saved is not found
+        assertTrue(base.search("борщ").isEmpty())
+        assertTrue(base.search("гречка").isEmpty())
+        assertTrue(base.search("buckwheat groats cooked").isEmpty())
+        assertTrue(base.search("water tap").isEmpty())
+    }
 
-        val buckwheat = base.search("гречка")
-        assertTrue("the dictionary's USDA query is followed: ${buckwheat.map { it.name }}",
-            buckwheat.any { it.source == FoodHit.Source.Usda && it.name.startsWith("Buckwheat groats") })
-
-        val english = base.search("water tap")
-        assertTrue(english.any { it.source == FoodHit.Source.Usda && it.name.contains("Water", ignoreCase = true) })
+    @Test fun `search ranks the closest match first and ignores words that are not names`() = runTest {
+        base.save(FoodInput("Колбаса Любительская (Мясновъ)", Per100(300.0, 12.0, 28.0, 0.1)))
+        base.save(FoodInput("Колбаса докторская", Per100(257.0, 12.8, 22.2, 1.5)))
+        assertEquals("Колбаса Любительская (Мясновъ)", base.search("любительская колбаса").first().name)
+        assertEquals(2, base.search("колбаса").size)
+        assertTrue(base.search("   ").isEmpty())
     }
 
     @Test fun `a hit can be fetched again by its id`() = runTest {
         val saved = base.save(casein)
         assertEquals("Казеиновый протеин", base.byId("my:${saved.id}")!!.name)
-        assertEquals(FoodHit.Source.Table, base.byId("ru:борщ")!!.source)
-        val usda = base.search("buckwheat groats roasted cooked").first { it.source == FoodHit.Source.Usda }
-        assertEquals(usda.per100, base.byId(usda.id)!!.per100)
         assertNull(base.byId("my:999"))
+        assertNull(base.byId("ru:борщ"))
+        assertNull(base.byId("usda:01001"))
         assertNull(base.byId("nonsense"))
     }
 
-    @Test fun `the offline parser recognises the user's own foods by name`() = runTest {
-        base.save(casein)
-        val parsed = OfflineParser(base.lexicon()).parse(ParseRequest("казеиновый протеин 30 грамм"))
-        assertEquals("Казеиновый протеин", parsed.items.single().name)
-        assertEquals(30.0, parsed.items.single().grams, 0.0)
-        val resolved = env.resolver.resolve(parsed.items.single().name, null)!!
-        assertEquals(360.0, resolved.per100.kcal, 0.0)
-        assertTrue(resolved.approximate)
+    @Test fun `the resolver takes a food by id, or by the user's own name for it, and invents nothing`() = runTest {
+        val saved = base.save(casein)
+        val byId = env.resolver.resolve("что-то другое", "my:${saved.id}")!!
+        assertEquals(360.0, byId.per100.kcal, 0.0)
+        assertEquals("Казеиновый протеин", byId.foodName)
+        assertTrue(byId.approximate)
+        assertEquals(360.0, env.resolver.resolve("казеин", null)!!.per100.kcal, 0.0)
+        assertNull(env.resolver.resolve("борщ", null))
+        assertNull("an id that is not the user's own is not followed", env.resolver.resolve("борщ", "usda:01001"))
     }
 
     // ---------- the file ----------

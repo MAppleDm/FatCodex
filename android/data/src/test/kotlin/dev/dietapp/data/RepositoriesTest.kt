@@ -10,6 +10,7 @@ import dev.dietapp.data.net.AppError
 import java.time.LocalDate
 import java.time.ZoneOffset
 import java.time.ZonedDateTime
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -271,22 +272,10 @@ class AuthRepositoryTest {
         assertTrue(env.db.entries().get(E1)!!.dirty)
     }
 
-    @Test fun `goals below the floor are refused without asking the server`() = runTest {
-        val error = env.auth.setGoal(1100).exceptionOrNull() as AppError
-        assertEquals("goal_too_low", error.code)
-        assertTrue(error.message!!.contains("1 200"))
-        assertEquals(0, env.server.requestCount)
-        assertEquals("goal_too_high", (env.auth.setGoal(6001).exceptionOrNull() as AppError).code)
-    }
-
-    @Test fun `a valid goal is saved on the server and locally`() = runTest {
-        env.loginAs()
-        env.enqueue(200, """{"email": "me@example.com", "calorie_goal": 1900}""")
-        assertTrue(env.auth.setGoal(1900).isSuccess)
-        val req = env.server.takeRequest()
-        assertEquals("PUT", req.method)
-        assertEquals("""{"calorie_goal":1900}""", req.body.readUtf8())
-        assertEquals(1900, env.db.profile().get()!!.calorieGoal)
+    @Test fun `the goal is never taken from the server, it comes from what the person said about themselves`() = runTest {
+        env.db.profile().upsert(dev.dietapp.data.db.ProfileRow(email = "me@example.com", calorieGoal = 1900))
+        assertNull("no answers, no goal, whatever the server stored", env.diary.observeProfile().first().calorieGoal)
+        assertEquals("me@example.com", env.diary.observeProfile().first().email)
     }
 
     @Test fun `logout forgets the session and all local data`() = runTest {

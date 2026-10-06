@@ -8,8 +8,6 @@ import dev.dietapp.data.db.toDomain
 import dev.dietapp.data.domain.Food
 import dev.dietapp.data.domain.Per100
 import dev.dietapp.data.local.food.Text
-import dev.dietapp.data.local.parse.LexEntry
-import dev.dietapp.data.local.parse.Lexicon
 import dev.dietapp.data.net.AppError
 import java.time.Clock
 import java.time.Instant
@@ -25,10 +23,8 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
-/** A food found by [FoodBase.search]. The id says where it lives: `my:12` (the user's), `ru:борщ` (the table), `usda:01001`. */
-data class FoodHit(val id: String, val name: String, val per100: Per100, val source: Source, val approximate: Boolean) {
-    enum class Source { Mine, Table, Usda }
-}
+/** A food found by [FoodBase.search]. The id is `my:12`: every food comes from the user's own database. */
+data class FoodHit(val id: String, val name: String, val per100: Per100, val approximate: Boolean)
 
 /** What a food is saved with, from the screen, the model or a file. Values per 100 g. */
 data class FoodInput(
@@ -54,82 +50,49 @@ interface FoodLookup {
 }
 
 /**
- * Every food the app knows, in one place: the user's own foods (a Room table, editable by the user, by the model
- * and through a JSON file), the bundled table of typical Russian dishes and the bundled USDA catalog. The last two
- * are read-only.
+ * The user's own food database, the only source of nutrition numbers: a Room table that the agent fills (each new food
+ * with the user's yes) and uses, that the user can edit, and that moves in and out as a JSON file. There is no built-in
+ * catalog behind it.
  */
 @Singleton
 class FoodBase @Inject constructor(
     private val db: AppDatabase,
-    private val catalog: CatalogSource,
-    private val bundled: Lexicon,
     private val clock: Clock,
 ) : FoodLookup {
     private val lock = Mutex()
 
-    /** The user's foods in memory (small), with a dictionary that knows them; null until first read or after a change. */
-    @Volatile private var cache: Pair<List<FoodRow>, Lexicon>? = null
+    /** The foods in memory (the base is small); null until first read or after a change. */
+    @Volatile private var cache: List<FoodRow>? = null
 
     val foods: Flow<List<Food>> = db.foods().observeAll().map { rows -> rows.map { it.toDomain() } }
 
-    private suspend fun loaded(): Pair<List<FoodRow>, Lexicon> = cache ?: lock.withLock {
-        cache ?: db.foods().all().let { rows -> rows to Lexicon(rows.map(::lexEntry) + bundled.entries) }.also { cache = it }
-    }
+    private suspend fun loaded(): List<FoodRow> = cache ?: lock.withLock { cache ?: db.foods().all().also { cache = it } }
 
     private fun invalidate() { cache = null }
 
-    /** The bundled dictionary with the user's foods in front, so the offline parser recognises them by name. */
-    suspend fun lexicon(): Lexicon = loaded().second
-
     // ---------- reading ----------
 
-    /** The best matches for [query] (Russian or English) from all three sources, the user's own first. */
+    /** The best matches for [query] among the user's foods: every word of it, or all but one when it has three or more. */
     suspend fun search(query: String, limit: Int = 10): List<FoodHit> {
         val tokens = Text.tokenize(query)
         if (tokens.isEmpty()) return emptyList()
-        val hits = LinkedHashMap<String, FoodHit>()
-
-        loaded().first
+        return loaded()
             .map { it to matched(tokens, it) }
             .filter { (_, n) -> n == tokens.size || (tokens.size >= 3 && n >= tokens.size - 1) }
             .sortedWith(compareBy({ -it.second }, { it.first.name.length }))
-            .forEach { (row, _) -> mineHit(row).let { hits[it.id] = it } }
-
-        // the dictionary: its table values, or the USDA row its query points at
-        val queries = mutableListOf<String>(query)
-        var i = 0
-        while (i < tokens.size) {
-            val (entry, len) = bundled.matchAt(tokens, i) ?: (null to 1)
-            if (entry != null) {
-                entry.per100?.let { hits.putIfAbsent("ru:${entry.name}", FoodHit("ru:${entry.name}", entry.name, it, FoodHit.Source.Table, true)) }
-                entry.query?.let(queries::add)
-            }
-            i += len
-        }
-        val cat = catalog.get()
-        for (q in queries) {
-            cat.search(listOf(q), limit = if (q == query) 6 else 2)
-                .filter { it.coverage >= 0.5 }
-                .forEach { m -> hits.putIfAbsent("usda:${m.food.id}", usdaHit(m.food.id, m.food.name, Per100(m.food.kcal, m.food.protein, m.food.fat, m.food.carbs))) }
-        }
-        return hits.values.take(limit)
+            .take(limit)
+            .map { (row, _) -> mineHit(row) }
     }
 
     override suspend fun byId(id: String): FoodHit? {
-        val (kind, rest) = id.split(':', limit = 2).takeIf { it.size == 2 }?.let { it[0] to it[1] } ?: return null
-        return when (kind) {
-            "my" -> rest.toLongOrNull()?.let { db.foods().get(it) }?.let(::mineHit)
-            "ru" -> bundled.entries.firstOrNull { it.name == rest && it.per100 != null }
-                ?.let { FoodHit(id, it.name, it.per100!!, FoodHit.Source.Table, true) }
-            "usda" -> catalog.get().byId(rest)?.let { usdaHit(it.id, it.name, Per100(it.kcal, it.protein, it.fat, it.carbs)) }
-            else -> null
-        }
+        val rest = id.removePrefix("my:").takeIf { it != id } ?: return null
+        return rest.toLongOrNull()?.let { db.foods().get(it) }?.let(::mineHit)
     }
 
     /** One of the user's foods called exactly [name] (or one of its other names). */
     override suspend fun mine(name: String): FoodHit? {
         val key = keyOf(name).takeIf { it.isNotEmpty() } ?: return null
-        return loaded().first.firstOrNull { row -> row.key == key || row.aliases.lines().any { keyOf(it) == key } }?.let(::mineHit)
+        return loaded().firstOrNull { row -> row.key == key || row.aliases.lines().any { keyOf(it) == key } }?.let(::mineHit)
     }
 
     suspend fun get(id: Long): Food? = db.foods().get(id)?.toDomain()
@@ -217,19 +180,11 @@ class FoodBase @Inject constructor(
 
     private fun matched(query: List<String>, row: FoodRow): Int {
         val words = (Text.tokenize(row.name) + row.aliases.lines().flatMap(Text::tokenize)).toSet()
-        return query.count { q -> words.any { w -> Lexicon.similar(q, w) || (q.length >= 3 && w.startsWith(q)) } }
+        return query.count { q -> words.any { w -> Text.similar(q, w) || (q.length >= 3 && w.startsWith(q)) } }
     }
 
     private fun mineHit(row: FoodRow) =
-        FoodHit("my:${row.id}", row.name, Per100(row.kcal, row.protein, row.fat, row.carbs), FoodHit.Source.Mine, row.estimated)
-
-    private fun usdaHit(id: String, name: String, per100: Per100) = FoodHit("usda:$id", name, per100, FoodHit.Source.Usda, false)
-
-    private fun lexEntry(row: FoodRow) = LexEntry(
-        name = row.name,
-        phrases = (listOf(row.name) + row.aliases.lines()).map(Text::tokenize).filter { it.isNotEmpty() },
-        query = null, per100 = null, defaultGrams = 100.0, units = emptyMap(), withGrams = null, variable = false, bareSpoon = null,
-    )
+        FoodHit("my:${row.id}", row.name, Per100(row.kcal, row.protein, row.fat, row.carbs), row.estimated)
 
     companion object {
         const val FORMAT = "dietapp-foods"

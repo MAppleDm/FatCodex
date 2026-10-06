@@ -32,7 +32,6 @@ import androidx.compose.ui.unit.dp
 import dev.dietapp.data.domain.Food
 import dev.dietapp.data.domain.Message
 import dev.dietapp.data.domain.Per100
-import dev.dietapp.data.local.FoodHit
 import dev.dietapp.ui.foods.FoodEdit
 import dev.dietapp.ui.foods.FoodsActions
 import dev.dietapp.ui.foods.FoodsScreen
@@ -46,6 +45,9 @@ import dev.dietapp.ui.main.MainScreen
 import dev.dietapp.ui.main.MainUiState
 import dev.dietapp.ui.main.buildState
 import dev.dietapp.ui.main.Local
+import dev.dietapp.ui.about.AboutScreen
+import dev.dietapp.ui.agent.AgentScreen
+import dev.dietapp.ui.history.HistoryScreen
 import dev.dietapp.ui.settings.SettingsScreen
 import dev.dietapp.ui.settings.SettingsUiState
 import java.io.File
@@ -94,6 +96,8 @@ class ScreenshotTest {
         override fun onWeightTap(weightId: String) = Unit
         override fun onWeightDelete(weightId: String) = Unit
         override fun onMessageTap(messageId: String) = Unit
+        override fun onMessageRetry(messageId: String) = Unit
+        override fun onMessageDiscard(messageId: String) = Unit
         override fun onNoteTap(noteId: Long) = Unit
         override fun onBackToToday() = Unit
         override fun onOpenSettings() = Unit
@@ -114,7 +118,6 @@ class ScreenshotTest {
         override fun onQuery(text: String) = Unit
         override fun onNew() = Unit
         override fun onEdit(food: Food) = Unit
-        override fun onCopy(hit: FoodHit) = Unit
         override fun onEditChange(edit: FoodEdit) = Unit
         override fun onSave() = Unit
         override fun onDelete() = Unit
@@ -276,10 +279,6 @@ class ScreenshotTest {
                     Food(1, "казеиновый протеин", listOf("казеин"), Per100(360.0, 80.0, 1.5, 8.0), true, "типичная этикетка", now),
                     Food(2, "протеиновый батончик Bombbar", emptyList(), Per100(316.0, 30.0, 10.0, 26.0), false, "с упаковки", now),
                 ),
-                builtIn = listOf(
-                    FoodHit("usda:14063", "Beverages, protein powder whey based", Per100(352.0, 78.1, 1.6, 6.3), FoodHit.Source.Usda, false),
-                    FoodHit("usda:16122", "Soy protein isolate", Per100(335.0, 88.3, 3.4, 0.0), FoodHit.Source.Usda, false),
-                ),
                 total = 2,
             ),
             NoopFoods, {}, {}, {},
@@ -305,16 +304,16 @@ class ScreenshotTest {
 
     @Test fun loginLight() = shot("login_light", dark = false) {
         LoginScreen(LoginUiState(loading = false, step = LoginStep.Code, email = "me@example.com", code = "48", error = null),
-            {}, {}, {}, {}, {}, {}, {}, {})
+            {}, {}, {}, {}, {}, {})
     }
 
     @Test fun loginEmailLight() = shot("login_email_light", dark = false) {
-        LoginScreen(LoginUiState(loading = false, step = LoginStep.Email), {}, {}, {}, {}, {}, {}, {}, {})
+        LoginScreen(LoginUiState(loading = false, step = LoginStep.Email), {}, {}, {}, {}, {}, {})
     }
 
     @Test fun loginKeyLight() = shot("login_key_light", dark = false) {
         LoginScreen(LoginUiState(loading = false, serverEnabled = false, step = LoginStep.Key, key = "sk-3f9a2c61d0b84e7a"),
-            {}, {}, {}, {}, {}, {}, {}, {})
+            {}, {}, {}, {}, {}, {})
     }
 
     @Test fun settingsDark() = shot("settings_dark", dark = true) {
@@ -325,18 +324,168 @@ class ScreenshotTest {
                     dev.dietapp.data.domain.DaySummary(LocalDate.parse("2026-09-$d"), dev.dietapp.data.domain.Totals(1420.0 + i * 130, 90.0, 50.0, 140.0))
                 },
             ),
-            {}, {}, {}, {}, {}, {}, {}, {},
+            {}, {},
         )
     }
 
-    @Test fun settingsAgentLight() = shot("settings_agent_light", dark = false) {
-        SettingsScreen(
+    @Test fun agentLight() = shot("agent_light", dark = false) {
+        AgentScreen(
             SettingsUiState(
-                savedGoal = 1900, local = true, hasKey = true, agentOpen = true, promptOpen = true,
+                savedGoal = 1900, local = true, hasKey = true, promptOpen = true,
                 agentPrompt = "You turn what a person ate into foods and grams.\nNever estimate or mention calories.\n\nLocal mode. Besides record_food you have these tools: search_foods(query), propose_food(...), delete_food(id, sure).",
             ),
-            {}, {}, {}, {}, {}, {}, {}, {},
+            {}, {}, {}, {}, {},
         )
+    }
+
+    @Test fun historyLight() = shot("history_light", dark = false) {
+        HistoryScreen(
+            days = listOf(29, 28, 27, 26, 25).mapIndexed { i, d ->
+                dev.dietapp.data.domain.DaySummary(LocalDate.parse("2026-09-$d"), dev.dietapp.data.domain.Totals(1420.0 + i * 130, 90.0, 50.0, 140.0))
+            },
+            goal = 1900, onBack = {}, onPickDay = {},
+        )
+    }
+
+    private object NoopBody : dev.dietapp.ui.body.BodyActions {
+        override fun onSex(sex: dev.dietapp.data.domain.Sex) = Unit
+        override fun onAge(age: Int) = Unit
+        override fun onHeight(cm: Int) = Unit
+        override fun onWeight(kg: Double) = Unit
+        override fun onActivity(activity: dev.dietapp.data.domain.Activity) = Unit
+        override fun onAdjustment(kcal: Int) = Unit
+        override fun onNext() = Unit
+        override fun onBack() = Unit
+        override fun onFinish() = Unit
+    }
+
+    private val answeredEstimate =
+        dev.dietapp.data.domain.Energy.estimate(dev.dietapp.data.domain.Sex.Male, 31, 178, 78.5, dev.dietapp.data.domain.Activity.Moderate)
+    private val answered = dev.dietapp.ui.body.BodyUiState(
+        sex = dev.dietapp.data.domain.Sex.Male, age = 31, heightCm = 178, weightKg = 78.5,
+        activity = dev.dietapp.data.domain.Activity.Moderate,
+        estimate = answeredEstimate,
+        adjustment = -300, goal = dev.dietapp.data.domain.DailyGoal.of(answeredEstimate, -300),
+    )
+
+    @Test fun wizardSexLight() = shot("wizard_sex_light", dark = false) {
+        dev.dietapp.ui.body.BodyWizardScreen(dev.dietapp.ui.body.BodyUiState(sex = dev.dietapp.data.domain.Sex.Female, step = 0), NoopBody)
+    }
+
+    @Test fun wizardAgeDark() = shot("wizard_age_dark", dark = true) {
+        dev.dietapp.ui.body.BodyWizardScreen(answered.copy(step = 1), NoopBody)
+    }
+
+    @Test fun wizardWeightLight() = shot("wizard_weight_light", dark = false) {
+        dev.dietapp.ui.body.BodyWizardScreen(answered.copy(step = 3), NoopBody)
+    }
+
+    @Test fun wizardActivityLight() = shot("wizard_activity_light", dark = false) {
+        dev.dietapp.ui.body.BodyWizardScreen(answered.copy(step = 4), NoopBody)
+    }
+
+    @Test fun wizardResultDark() = shot("wizard_result_dark", dark = true) {
+        dev.dietapp.ui.body.BodyWizardScreen(answered.copy(step = dev.dietapp.ui.body.BodyUiState.RESULT), NoopBody)
+    }
+
+    @Test fun meLight() = shot("me_light", dark = false) {
+        dev.dietapp.ui.body.MeScreen(answered, NoopBody, onBack = {})
+    }
+
+    @Test fun meLimitedDark() = shot("me_limited_dark", dark = true) {
+        val low = dev.dietapp.data.domain.Energy.estimate(dev.dietapp.data.domain.Sex.Female, 60, 150, 45.0, dev.dietapp.data.domain.Activity.Sedentary)
+        dev.dietapp.ui.body.MeScreen(
+            answered.copy(
+                sex = dev.dietapp.data.domain.Sex.Female, age = 60, heightCm = 150, weightKg = 45.0,
+                activity = dev.dietapp.data.domain.Activity.Sedentary, estimate = low,
+                adjustment = -300, goal = 1200, goalLimited = true,
+            ),
+            NoopBody, onBack = {},
+        )
+    }
+
+    @Test fun chatFailedLight() = shot("chat_failed_light", dark = false) {
+        val at = Instant.parse("2026-09-30T13:40:00Z")
+        val content = DayContent(
+            entries = emptyList(), notes = emptyList(), weights = emptyList(),
+            outbox = listOf(
+                OutboxMessage(
+                    "f1", "Фиш бургер, мороженое, биг хит", false, TODAY, at, OutboxState.Failed,
+                    "Нет связи с агентом.", 3,
+                ),
+            ),
+            messages = listOf(Message("f1", TODAY, "Фиш бургер, мороженое, биг хит", false, at)),
+        )
+        MainScreen(buildState(Local(TODAY, TODAY), content, emptyList(), Profile(null, 2200)), Noop, emptyFlow())
+    }
+
+    @Test fun chatFailedKeyDark() = shot("chat_failed_key_dark", dark = true) {
+        val at = Instant.parse("2026-09-30T13:40:00Z")
+        val content = DayContent(
+            entries = listOf(entry("e1", name = "обед", grams = 800.0, kcal = 2196.0, protein = 105.0, fat = 117.0, carbs = 182.0)),
+            notes = emptyList(), weights = emptyList(),
+            outbox = listOf(
+                OutboxMessage(
+                    "f1", "Батон 50 грамм, любительская колбаса мясновъ 100 грамм", false, TODAY, at, OutboxState.Failed,
+                    "Ключ DeepSeek не подошёл (HTTP 402: Insufficient Balance). Проверь его в «О приложении → Агент».", 1,
+                ),
+                OutboxMessage("f2", "Фиш бургер, мороженое", false, TODAY, at.plusSeconds(60), OutboxState.Failed, "Нет связи с агентом.", 3),
+            ),
+            messages = listOf(
+                Message("f1", TODAY, "Батон 50 грамм, любительская колбаса мясновъ 100 грамм", false, at),
+                Message("f2", TODAY, "Фиш бургер, мороженое", false, at.plusSeconds(60)),
+            ),
+        )
+        MainScreen(
+            buildState(Local(TODAY, TODAY), content, emptyList(), Profile(null, 2440)),
+            Noop, emptyFlow(),
+        )
+    }
+
+    @Test fun meEmptyDark() = shot("me_empty_dark", dark = true) {
+        dev.dietapp.ui.body.MeScreen(dev.dietapp.ui.body.BodyUiState(), NoopBody, onBack = {})
+    }
+
+    @Test fun chatWithPhotoLight() = shot("chat_photo_light", dark = false) {
+        fun picture(width: Int, height: Int, color: Int): ByteArray {
+            val bitmap = android.graphics.Bitmap.createBitmap(width, height, android.graphics.Bitmap.Config.ARGB_8888)
+            android.graphics.Canvas(bitmap).apply {
+                drawColor(color)
+                drawCircle(width / 2f, height / 2f, height / 3f, android.graphics.Paint().apply { this.color = android.graphics.Color.rgb(240, 240, 235) })
+            }
+            return java.io.ByteArrayOutputStream().also { bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 85, it) }.toByteArray()
+        }
+        val at = { h: Int, m: Int -> Instant.parse("2026-09-30T%02d:%02d:00Z".format(h, m)) }
+        val content = DayContent(
+            entries = emptyList(), outbox = emptyList(), notes = emptyList(), weights = emptyList(),
+            messages = listOf(
+                Message("p1", TODAY, null, true, at(8, 5)),
+                Message("p2", TODAY, "обед в кафе", true, at(13, 10)),
+                Message("p3", TODAY, "гречка 200 г", false, at(14, 0)),
+            ),
+        )
+        val thumbs = mapOf("p1" to picture(300, 400, android.graphics.Color.rgb(176, 140, 96)), "p2" to picture(400, 300, android.graphics.Color.rgb(96, 128, 112)))
+        MainScreen(buildState(Local(TODAY, TODAY, thumbs = thumbs), content, emptyList(), Profile(null, 2200)), Noop, emptyFlow())
+    }
+
+    @Test fun aboutLight() = shot("about_light", dark = false) {
+        AboutScreen(local = true, version = "0.2.0", onBack = {}, onOpenUrl = {})
+    }
+
+    @Test fun aboutDark() = shot("about_dark", dark = true) {
+        AboutScreen(local = false, version = "0.2.0", onBack = {}, onOpenUrl = {})
+    }
+
+    @Test fun aboutEraseLight() = shot("about_erase_light", dark = false) {
+        AboutScreen(local = true, version = "0.2.0", onBack = {}, onOpenUrl = {}, eraseArmed = false)
+    }
+
+    @Test fun aboutEraseArmedDark() = shot("about_erase_armed_dark", dark = true) {
+        AboutScreen(local = true, version = "0.2.0", onBack = {}, onOpenUrl = {}, eraseArmed = true)
+    }
+
+    @Test fun agentDark() = shot("agent_dark", dark = true) {
+        AgentScreen(SettingsUiState(savedGoal = 1900, local = true, hasKey = false), {}, {}, {}, {}, {})
     }
 
     @Test fun settingsLocalLight() = shot("settings_local_light", dark = false) {
@@ -347,7 +496,7 @@ class ScreenshotTest {
                     dev.dietapp.data.domain.DaySummary(LocalDate.parse("2026-09-$d"), dev.dietapp.data.domain.Totals(1420.0 + i * 130, 90.0, 50.0, 140.0))
                 },
             ),
-            {}, {}, {}, {}, {}, {}, {}, {},
+            {}, {},
         )
     }
 }

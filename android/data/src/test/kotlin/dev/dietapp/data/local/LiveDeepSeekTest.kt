@@ -3,9 +3,7 @@ package dev.dietapp.data.local
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import dev.dietapp.data.TestEnv
 import dev.dietapp.data.domain.MessageSource
-import dev.dietapp.data.local.parse.LiveOfflineParser
 import dev.dietapp.data.local.parse.ModelParser
-import dev.dietapp.data.local.parse.OfflineParserTest
 import dev.dietapp.data.repo.DiaryRepositoryImpl
 import dev.dietapp.data.repo.SyncTrigger
 import java.io.File
@@ -48,16 +46,16 @@ class LiveDeepSeekTest {
         val http = OkHttpClient.Builder().connectTimeout(15, TimeUnit.SECONDS).readTimeout(60, TimeUnit.SECONDS).build()
         val model = ModelParser(
             http, env.prompts, { env.secrets.deepseekKey },
-            tools = FoodTools(env.foods, WebSearch(http, env.journal), strict = { env.mode.recordMode.value == RecordMode.Precise }),
+            tools = FoodTools(env.foods, WebSearch(http, env.journal)),
             trace = env.journal,
         )
-        val chooser = ParserChooser(LiveOfflineParser { env.foods.lexicon() }, model, { true }, env.journal, budgetMs = 150_000)
-        val processor = LocalMessageProcessor(env.db, chooser, env.resolver, OfflineParserTest.lexicon, env.files, env.clock)
+        val chooser = ParserChooser(model, { true }, env.journal, budgetMs = 150_000)
+        val processor = LocalMessageProcessor(env.db, chooser, env.resolver, env.files, env.clock)
         val engine = LocalEngine(env.db, processor, env.files, env.journal)
         val now = { runBlocking { engine.run() } }
         diary = DiaryRepositoryImpl(
             env.db, env.files, env.session, object : SyncTrigger { override fun requestSync(pull: Boolean) = now() },
-            env.mode, env.engine, engine, env.clock, env.foods,
+            env.mode, env.engine, engine, env.clock, env.foods, env.thumbs, env.bodyModel,
         )
     }
 
@@ -74,17 +72,21 @@ class LiveDeepSeekTest {
     private fun entries() = runBlocking { env.db.entries().forDay(day.toString()) }
     private fun notes() = runBlocking { env.db.notes().observeDay(day.toString()).first() }
 
-    @Test fun `a plain food, then adding it to the base without naming it`() {
+    @Test fun `a plain food the base lacks is looked up and offered, and once picked it is in the base`() {
         say("Макароны вареные 200 грамм")
+        val proposal = notes().firstOrNull { it.kind == "proposal" }
+        assertNotNull("a proposal: ${notes().map { it.kind + ": " + it.text }}", proposal)
+        val choices = ProposalCodec.decode(proposal!!.payload)
+        assertTrue(runBlocking { diary.acceptProposal(proposal.id, choices.first()) }.isSuccess)
         val pasta = entries().single()
-        assertNotNull("numbers from the catalog: ${notes().map { it.text }}", pasta.kcal)
-        assertTrue("about 300 kcal: ${pasta.kcal}", pasta.kcal!! in 250.0..360.0)
-        assertTrue("plain pasta needs no question in the standard mode", !pasta.pending)
+        assertNotNull("numbers from what was picked", pasta.kcal)
+        assertTrue("about 300 kcal: ${pasta.kcal}", pasta.kcal!! in 250.0..400.0)
+        assertEquals(1, runBlocking { env.db.foods().all() }.size)
 
-        say("Добавь в базу данных")
-        val foods = runBlocking { env.db.foods().all() }
-        assertEquals("the latest entry went into the base: ${notes().map { it.text }}", 1, foods.size)
-        assertTrue(foods.single().name, foods.single().name.contains("макарон", ignoreCase = true))
+        // the same food again: now the base has it, no web and no question
+        say("Макароны вареные 150 грамм")
+        assertEquals(2, entries().size)
+        assertTrue("found in the user's base: ${notes().map { it.text }}", entries().last().kcal != null)
     }
 
     @Test fun `a branded product is looked up on the web and offered for confirmation`() {

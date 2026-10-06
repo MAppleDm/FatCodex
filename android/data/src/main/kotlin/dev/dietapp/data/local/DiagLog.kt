@@ -27,7 +27,7 @@ interface Journal {
 /**
  * A plain-text journal of what the app did with the model and why something went wrong: every request (without
  * the key and without image bytes), every answer or HTTP error with the server's own words, every tool the model
- * used, every fallback to the offline parser. Kept on the phone (the last ~256 KB, in `files/diagnostics.log`),
+ * used, every message the agent could not read. Kept on the phone (the last ~256 KB, in `files/diagnostics.log`),
  * mirrored to logcat under the tag "FatCodex", shown on the "Журнал" screen.
  */
 @Singleton

@@ -1,7 +1,6 @@
 package dev.dietapp.ui.settings
 
 import dev.dietapp.data.domain.Language
-import dev.dietapp.data.local.RecordMode
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -23,44 +22,35 @@ import kotlinx.coroutines.launch
 
 data class SettingsUiState(
     val email: String? = null,
+    /** The goal of the diary, worked out from "О себе" (what a day costs plus the person's correction). Never typed in. */
     val savedGoal: Int? = null,
-    /** What is typed in the goal field; null means "untouched, show the saved goal". */
-    val goalInput: String? = null,
     val history: List<DaySummary> = emptyList(),
-    val busy: Boolean = false,
-    val message: String? = null,
-    val messageIsError: Boolean = false,
     /** Running without a server: the diary lives only on this phone. */
     val local: Boolean = false,
     val hasKey: Boolean = false,
-    val recordMode: RecordMode = RecordMode.Standard,
     val language: Language = Language.Ru,
     val keyInput: String = "",
     /** The first tap on "стереть всё" was made; the second one does it. */
     val eraseArmed: Boolean = false,
     /** How many foods the user's own base holds. */
     val foodCount: Int = 0,
-    /** The "Агент" block (the key, the fixed model settings, the prompt) is opened. */
-    val agentOpen: Boolean = false,
-    /** The system prompt inside it is opened too. */
+    /** On the agent page: the system prompt is opened. */
     val promptOpen: Boolean = false,
     /** What the agent is told before every message. Read-only. */
     val agentPrompt: String = "",
+    /** What saving the key said ("Сохранено." / why it was refused). Shown on the agent page, where the key is. */
+    val keyMessage: String? = null,
+    val keyMessageIsError: Boolean = false,
 ) {
-    val goalText get() = goalInput ?: savedGoal?.toString().orEmpty()
-    val canSave get() = goalInput != null && goalInput.toIntOrNull() != null && goalInput.toIntOrNull() != savedGoal && !busy
     val canSaveKey get() = keyInput.isNotBlank()
 }
 
 private data class Edit(
-    val goalInput: String? = null,
     val keyInput: String = "",
-    val busy: Boolean = false,
-    val message: String? = null,
-    val isError: Boolean = false,
     val eraseArmed: Boolean = false,
-    val agentOpen: Boolean = false,
     val promptOpen: Boolean = false,
+    val keyMessage: String? = null,
+    val keyMessageIsError: Boolean = false,
 )
 
 @HiltViewModel
@@ -78,60 +68,39 @@ class SettingsViewModel @Inject constructor(
         SettingsUiState(
             email = profile.email,
             savedGoal = profile.calorieGoal,
-            goalInput = e.goalInput,
             history = history,
-            busy = e.busy,
-            message = e.message,
-            messageIsError = e.isError,
             local = caps.local,
             hasKey = caps.modelKey,
-            recordMode = caps.recordMode,
             language = caps.language,
             keyInput = e.keyInput,
             eraseArmed = e.eraseArmed,
             foodCount = foodList.size,
-            agentOpen = e.agentOpen,
             promptOpen = e.promptOpen,
             agentPrompt = localSettings.agentPrompt,
+            keyMessage = e.keyMessage,
+            keyMessageIsError = e.keyMessageIsError,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SettingsUiState())
 
-    fun onGoalChange(text: String) =
-        edit.update { it.copy(goalInput = text.filter(Char::isDigit).take(5), message = null, eraseArmed = false) }
-
-    fun onSaveGoal() {
-        val goal = state.value.goalInput?.toIntOrNull() ?: return
-        edit.update { it.copy(busy = true, message = null) }
-        viewModelScope.launch {
-            auth.setGoal(goal).fold(
-                onSuccess = { edit.update { e -> Edit(keyInput = e.keyInput, message = Texts.SAVED, agentOpen = e.agentOpen, promptOpen = e.promptOpen) } },
-                onFailure = { e -> edit.update { it.copy(busy = false, message = e.message, isError = true) } },
-            )
-        }
-    }
-
     fun onKeyChange(text: String) =
-        edit.update { it.copy(keyInput = text.filterNot(Char::isWhitespace), message = null, eraseArmed = false) }
+        edit.update { it.copy(keyInput = text.filterNot(Char::isWhitespace), keyMessage = null, eraseArmed = false) }
 
     fun onSaveKey() {
         val key = edit.value.keyInput.takeIf { it.isNotBlank() } ?: return
         localSettings.saveKey(key).fold(
-            onSuccess = { edit.update { it.copy(keyInput = "", message = Texts.SAVED, isError = false) } },
-            onFailure = { e -> edit.update { it.copy(message = e.message, isError = true) } },
+            onSuccess = { edit.update { it.copy(keyInput = "", keyMessage = Texts.SAVED, keyMessageIsError = false) } },
+            onFailure = { e -> edit.update { it.copy(keyMessage = e.message, keyMessageIsError = true) } },
         )
     }
 
-    fun onToggleAgent() = edit.update { it.copy(agentOpen = !it.agentOpen, eraseArmed = false) }
     fun onTogglePrompt() = edit.update { it.copy(promptOpen = !it.promptOpen, eraseArmed = false) }
-    fun onToggleRecordMode() =
-        localSettings.setRecordMode(if (state.value.recordMode == RecordMode.Standard) RecordMode.Precise else RecordMode.Standard)
 
     /** The screens are rebuilt in the other language at once (MainActivity keys the content on it). */
     fun onToggleLanguage() = localSettings.setLanguage(if (state.value.language == Language.Ru) Language.En else Language.Ru)
 
     fun onClearKey() {
         localSettings.clearKey()
-        edit.update { it.copy(keyInput = "", message = null) }
+        edit.update { it.copy(keyInput = "", keyMessage = null) }
     }
 
     /**

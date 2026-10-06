@@ -14,7 +14,6 @@ import dev.dietapp.data.domain.Source
 import dev.dietapp.data.domain.Weight
 import dev.dietapp.data.domain.Food
 import dev.dietapp.data.local.Capabilities
-import dev.dietapp.data.local.FoodHit
 import dev.dietapp.data.local.FoodInput
 import dev.dietapp.data.local.ImportResult
 import dev.dietapp.data.repo.FoodRepository
@@ -123,6 +122,16 @@ class FakeDiary : DiaryRepository {
         addedWeights += day to kg
         weights.value = weights.value + Weight("w${addedWeights.size}", day, kg, now)
     }
+    val weightsForDay = mutableListOf<Pair<LocalDate, Double>>()
+    override suspend fun setWeightForDay(day: LocalDate, kg: Double, now: Instant) {
+        weightsForDay += day to kg
+        weights.value = weights.value.filter { it.day != day } + Weight("d$day", day, kg, now)
+    }
+
+    /** The small pictures of photo messages, by message id. */
+    val thumbs = mutableMapOf<String, ByteArray>()
+    override suspend fun thumbnail(messageId: String): ByteArray? = thumbs[messageId]
+
     override suspend fun deleteWeight(id: String) { deletedWeights += id }
     override suspend fun dismissNote(id: Long) { dismissedNotes += id; notes.value = notes.value.filter { it.id != id } }
 
@@ -165,7 +174,8 @@ class FakeDiary : DiaryRepository {
         }
     }
     override suspend fun discardOutbox(id: String) { discardedOutbox += id }
-    override suspend fun retryOutbox(id: String) = Unit
+    val retriedOutbox = mutableListOf<String>()
+    override suspend fun retryOutbox(id: String) { retriedOutbox += id }
     override fun requestSync(pull: Boolean) { syncRequests += pull }
 }
 
@@ -185,21 +195,14 @@ class FakeAuth : AuthRepository {
     val calls = mutableListOf<String>()
     var requestCodeResult: Result<Unit> = Result.success(Unit)
     var verifyResult: Result<Unit> = Result.success(Unit)
-    var goalResult: Result<Unit> = Result.success(Unit)
     /** What a successful verify does to the world (log in, load the goal...). */
     var afterVerify: () -> Unit = { _loggedIn.value = true }
-    var afterGoal: (Int) -> Unit = {}
 
     override suspend fun requestCode(email: String): Result<Unit> { calls += "code:$email"; return requestCodeResult }
     override suspend fun verify(email: String, code: String): Result<Unit> {
         calls += "verify:$email:$code"
         if (verifyResult.isSuccess) afterVerify()
         return verifyResult
-    }
-    override suspend fun setGoal(goal: Int): Result<Unit> {
-        calls += "goal:$goal"
-        if (goalResult.isSuccess) afterGoal(goal)
-        return goalResult
     }
     override suspend fun useWithoutServer() { calls += "local"; _loggedIn.value = true; afterLocal() }
     override suspend fun logout() { calls += "logout"; _loggedIn.value = false }
@@ -225,21 +228,51 @@ class FakeLocalSettings(local: Boolean = false, modelKey: Boolean = false) : Loc
     }
 
     override fun clearKey() { cleared++; state.value = state.value.copy(modelKey = false) }
-    override fun setRecordMode(mode: dev.dietapp.data.local.RecordMode) { state.value = state.value.copy(recordMode = mode) }
     override fun setLanguage(language: dev.dietapp.data.domain.Language) { state.value = state.value.copy(language = language) }
 }
 
-/** The user's food base in memory; [hits] is what a search returns from the built-in sources. */
+/** What the person said about themselves, in memory. The first-run questions count as dealt with unless a test says otherwise. */
+class FakeBody(asked: Boolean = true) : dev.dietapp.data.repo.BodyRepository {
+    val current = MutableStateFlow(dev.dietapp.data.repo.BodyState())
+    val askedFlow = MutableStateFlow(asked)
+    override val state: Flow<dev.dietapp.data.repo.BodyState> = current
+    override val asked: Flow<Boolean> = askedFlow
+    val weights = mutableListOf<Double>()
+
+    private fun change(block: (dev.dietapp.data.repo.BodyState) -> dev.dietapp.data.repo.BodyState) {
+        val n = block(current.value)
+        val estimate = if (n.sex != null && n.age != null && n.heightCm != null && n.weightKg != null && n.activity != null) {
+            dev.dietapp.data.domain.Energy.estimate(n.sex!!, n.age!!, n.heightCm!!, n.weightKg!!, n.activity!!)
+        } else {
+            null
+        }
+        current.value = n.copy(
+            estimate = estimate,
+            goal = dev.dietapp.data.domain.DailyGoal.of(estimate, n.adjustment),
+            goalLimited = dev.dietapp.data.domain.DailyGoal.limited(estimate, n.adjustment),
+        )
+    }
+
+    override fun setSex(sex: dev.dietapp.data.domain.Sex) = change { it.copy(sex = sex) }
+    override fun setAge(age: Int) = change { it.copy(age = age) }
+    override fun setHeight(cm: Int) = change { it.copy(heightCm = cm) }
+    override fun setActivity(activity: dev.dietapp.data.domain.Activity) = change { it.copy(activity = activity) }
+    override fun setAdjustment(kcal: Int) = change { it.copy(adjustment = kcal) }
+    override suspend fun setWeight(kg: Double) {
+        weights += kg
+        change { it.copy(weightKg = kg) }
+    }
+    override fun finishOnboarding() { askedFlow.value = true }
+}
+
+/** The user's food base in memory. */
 class FakeFoods : FoodRepository {
     override val foods = MutableStateFlow<List<Food>>(emptyList())
-    var hits: List<FoodHit> = emptyList()
     val saved = mutableListOf<Pair<FoodInput, Long?>>()
     var saveResult: Result<Unit> = Result.success(Unit)
     var imported: String? = null
     var importResult: Result<ImportResult> = Result.success(ImportResult(1, 0, emptyList()))
     private var nextId = 1L
-
-    override suspend fun search(query: String): List<FoodHit> = hits
 
     override suspend fun save(input: FoodInput, id: Long?): Result<Food> {
         saved += input to id

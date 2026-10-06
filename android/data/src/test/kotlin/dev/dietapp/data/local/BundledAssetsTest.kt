@@ -15,28 +15,28 @@ import org.junit.runner.RunWith
  * The other local-mode tests read the assets straight from the repository. This one goes through a real
  * AssetManager over what the build actually packages, which is what the phone sees. It exists because the Android
  * Gradle Plugin turns `foo.tsv.gz` into a decompressed `foo.tsv`: every test passed and the app would still have
- * crashed on its first message.
+ * crashed on its first message. (There is no catalog or dictionary in the APK any more: the user's own food database
+ * is the only one, and the agent's prompt is all that ships.)
  */
 @RunWith(AndroidJUnit4::class)
 class BundledAssetsTest {
     private val context: Context = ApplicationProvider.getApplicationContext()
 
-    @Test fun `the food catalog loads from the packaged assets`() {
-        val catalog = AssetCatalogSource(context).get()
-        assertTrue("catalog has ${catalog.size} foods", catalog.size > 7_000)
-        assertTrue(catalog.search(listOf("chicken breast")).isNotEmpty())
-    }
-
-    @Test fun `the russian dictionary loads from the packaged assets`() {
-        val lexicon = LocalModule.lexicon(context)
-        assertTrue("dictionary has ${lexicon.entries.size} entries", lexicon.entries.size > 200)
-        assertTrue(lexicon.find("гречка") != null)
-    }
-
     @Test fun `the model prompt and tool schema load from the packaged assets`() {
         val prompts = LocalModule.promptAssets(context)
         assertTrue(prompts.systemPrompt.isNotBlank())
         assertEquals("record_food", prompts.toolName)
+        assertTrue("the agent's local rules ship too", prompts.localAgent.contains("search_foods"))
+    }
+
+    @Test fun `no food catalog or dictionary is packaged`() {
+        val names = walk("")
+        assertTrue("nothing named like a catalog: ${names.joinToString()}", names.none { it.contains("usda", true) || it.contains("foods_sr") || it.contains("ru_foods") })
+    }
+
+    @Test fun `the agent is told there is no built-in catalog`() {
+        val rules = LocalModule.promptAssets(context).localAgent
+        assertTrue(!rules.contains("usda:") && !rules.contains("USDA SR Legacy") && !rules.contains("\"ru:"))
     }
 
     @Test fun `no packaged asset has a name that the build rewrites`() {
@@ -44,10 +44,12 @@ class BundledAssetsTest {
         val names = walk("")
         assertTrue(names.isNotEmpty())
         names.filter { it.endsWith(".gz") }.forEach { fail("asset $it would be rewritten by the build: do not use the .gz extension") }
-        try {
-            context.assets.open("foods_sr_legacy.tsv.gzip").close()
-        } catch (e: FileNotFoundException) {
-            fail("the catalog is not in the packaged assets under its own name: ${names.joinToString()}")
+        for (asset in listOf("parse/system_prompt.txt", "parse/tool_spec.json", "parse/local_agent.txt")) {
+            try {
+                context.assets.open(asset).close()
+            } catch (e: FileNotFoundException) {
+                fail("$asset is not in the packaged assets under its own name: ${names.joinToString()}")
+            }
         }
     }
 

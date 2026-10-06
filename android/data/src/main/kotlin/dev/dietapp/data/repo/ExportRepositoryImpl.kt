@@ -16,7 +16,11 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class ExportRepositoryImpl @Inject constructor(private val db: AppDatabase, private val clock: Clock) : ExportRepository {
+class ExportRepositoryImpl @Inject constructor(
+    private val db: AppDatabase,
+    private val clock: Clock,
+    private val body: BodyModel,
+) : ExportRepository {
 
     override suspend fun export(format: ExportFormat, period: ExportPeriod): Result<ExportFile> = guarded {
         val today = LocalDate.now(clock)
@@ -27,7 +31,7 @@ class ExportRepositoryImpl @Inject constructor(private val db: AppDatabase, priv
         if (entries.isEmpty() && weights.isEmpty()) {
             throw AppError(t("В этом периоде записей нет.", "There are no records in this period."), "empty")
         }
-        val data = ExportData(entries, weights, db.profile().get()?.calorieGoal, clock.zone, clock.instant())
+        val data = ExportData(entries, weights, body.goal(), clock.zone, clock.instant())
         ExportFile(format.fileName(period, today), format.mime, HistoryExport.render(format, data))
     }
 
