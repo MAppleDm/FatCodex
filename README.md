@@ -34,6 +34,8 @@ An early personal project, free and non-commercial. It is not on Google Play yet
 
 To try it, build the app from source: see [docs/development.md](docs/development.md).
 
+For subsequent versions, open **Settings → About → Updates** to check GitHub, read the release notes and download the APK. Android confirms the installation. The download survives closing the app; a damaged or incompatibly signed APK is rejected.
+
 ## License
 
 MIT, see [LICENSE](LICENSE).

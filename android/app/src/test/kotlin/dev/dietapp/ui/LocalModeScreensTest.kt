@@ -271,7 +271,7 @@ class LocalModeScreensTest {
         compose.onNodeWithTag("about-version").assertTextContains("0.2.0", substring = true)
         compose.onNodeWithText(Texts.LOCAL_MODE).assertIsDisplayed()
         compose.onNodeWithText(Texts.ABOUT_LOCAL_COPY).assertIsDisplayed()
-        compose.onNodeWithText(Texts.ABOUT_LOCAL_SENT).assertIsDisplayed()
+        compose.onNodeWithText(Texts.ABOUT_LOCAL_SENT).performScrollTo().assertIsDisplayed()
         compose.onNodeWithText(Texts.ABOUT_SERVER_COPY).assertDoesNotExist()
     }
 

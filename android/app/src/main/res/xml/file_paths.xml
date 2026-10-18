@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Only this cache folder can be shared, and only what the user explicitly sends from it. -->
+<!-- Shared exports and the downloaded APK only; never the diary or private settings. -->
 <paths>
     <cache-path name="shared" path="shared/" />
+    <external-files-path name="updates" path="updates/" />
 </paths>

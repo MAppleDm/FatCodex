@@ -101,6 +101,7 @@ tasks.withType<Test>().configureEach {
 dependencies {
     implementation(project(":core-ui"))
     implementation(project(":data"))
+    implementation(libs.okhttp)
 
     implementation(platform(libs.compose.bom))
     implementation(libs.compose.ui)

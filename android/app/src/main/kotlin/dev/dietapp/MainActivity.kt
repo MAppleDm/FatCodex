@@ -23,6 +23,7 @@ import dev.dietapp.ui.journal.JournalViewModel
 import dev.dietapp.ui.login.LoginViewModel
 import dev.dietapp.ui.main.MainViewModel
 import dev.dietapp.ui.settings.SettingsViewModel
+import dev.dietapp.ui.update.UpdateViewModel
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -33,6 +34,7 @@ class MainActivity : ComponentActivity() {
     private val journal: JournalViewModel by viewModels()
     private val export: ExportViewModel by viewModels()
     private val body: BodyViewModel by viewModels()
+    private val updates: UpdateViewModel by viewModels()
 
     @Inject lateinit var modes: ModeStore
 
@@ -44,7 +46,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             val language by modes.language.collectAsState()
             CoreTexts.english = language == Language.En
-            key(language) { AppTheme { AppRoot(main, login, settings, foods, journal, export, body) } }
+            key(language) { AppTheme { AppRoot(main, login, settings, foods, journal, export, body, updates) } }
         }
         if (savedInstanceState == null) takeSharedText(intent)
     }

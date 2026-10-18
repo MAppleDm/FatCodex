@@ -87,6 +87,16 @@ adb install -r app/build/outputs/apk/release/app-release.apk
 - The release APK is signed with the debug key, which is enough for personal use. For your own key create `android/keystore.properties` with `storeFile`, `storePassword`, `keyAlias`, `keyPassword` (the file is in `.gitignore`).
 - The release APK is about 3 MB: there is no food catalog in it.
 
+## GitHub updates
+
+Settings → About → **Updates** checks `MAppleDm/FatCodex` on GitHub when tapped. No periodic checks or automatic downloads run. The latest stable release is read through the public GitHub API using a separate HTTP client without diary tokens or model keys. Stable `vMAJOR.MINOR.PATCH` tags are compared numerically; drafts, prereleases and downgrades are not offered. Notes and APK size are shown before downloading. With several APK assets, a single explicitly named `universal` APK is preferred; otherwise the person is directed to the release page instead of guessing an ABI.
+
+Android's DownloadManager downloads into the app's `external-files/updates/` folder, with progress, cancellation and a system notification. Its ID and release metadata are kept in `updates` preferences (excluded from backup), so a download survives closing or restarting the app. Before installation the app verifies the size, GitHub's SHA-256 digest when provided, package name, release version, increasing version code, minimum Android version and signing certificate (including key rotation). A failed check deletes the tracked download and offers retry. A verified APK is shared read-only with the system installer through the existing FileProvider. Android asks for permission to install from this source if needed, then asks to confirm the installation; canceling leaves the downloaded file available.
+
+To publish an update, increase **both** `versionCode` and `versionName` in `android/app/build.gradle.kts`, build with the **same signing key** as the installed application, and attach the APK to a published stable GitHub release with the matching version tag, such as `v0.3.0`. A tag or source archive alone is not an installable update. A different signing key is reported explicitly; uninstalling the diary is never offered as a workaround. No release is published by the app or this change.
+
+Implementation and tests are in `app/.../ui/update/`. API references: [GitHub Releases](https://docs.github.com/en/rest/releases/releases#get-the-latest-release), [Android DownloadManager](https://developer.android.com/reference/android/app/DownloadManager).
+
 ## Repository layout
 
 ```
