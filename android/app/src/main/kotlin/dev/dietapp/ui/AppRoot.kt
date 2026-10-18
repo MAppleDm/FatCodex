@@ -1,6 +1,8 @@
 package dev.dietapp.ui
 
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -20,6 +22,10 @@ import dev.dietapp.ui.main.MainScreen
 import dev.dietapp.ui.main.MainViewModel
 import dev.dietapp.ui.main.Screen
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.platform.LocalContext
+import dev.dietapp.ui.update.UpdateInstaller
+import dev.dietapp.ui.update.UpdateProblem
+import dev.dietapp.ui.update.UpdateViewModel
 import dev.dietapp.BuildConfig
 import dev.dietapp.ui.about.AboutScreen
 import dev.dietapp.ui.agent.AgentScreen
@@ -38,6 +44,7 @@ fun AppRoot(
     main: MainViewModel, login: LoginViewModel, settings: SettingsViewModel, foods: FoodsViewModel, journal: JournalViewModel,
     export: ExportViewModel,
     body: BodyViewModel,
+    updates: UpdateViewModel,
 ) {
     val loginState by login.state.collectAsStateWithLifecycle()
     Box(Modifier.fillMaxSize().background(AppTheme.colors.background)) {
@@ -56,7 +63,7 @@ fun AppRoot(
                 onWithoutServer = login::onWithoutServer,
                 onKey = login::onKey,
             )
-            else -> Diary(main, settings, foods, journal, export, body)
+            else -> Diary(main, settings, foods, journal, export, body, updates)
         }
     }
 }
@@ -65,6 +72,7 @@ fun AppRoot(
 private fun Diary(
     main: MainViewModel, settings: SettingsViewModel, foods: FoodsViewModel, journal: JournalViewModel, export: ExportViewModel,
     body: BodyViewModel,
+    updates: UpdateViewModel,
 ) {
     val state by main.uiState.collectAsStateWithLifecycle()
     val settingsState by settings.state.collectAsStateWithLifecycle()
@@ -118,6 +126,18 @@ private fun Diary(
         )
         Screen.About -> {
             val links = LocalUriHandler.current
+            val context = LocalContext.current
+            val update by updates.state.collectAsStateWithLifecycle()
+            val installUpdate = {
+                updates.onInstall { file ->
+                    runCatching { context.startActivity(UpdateInstaller.intent(context, file)) }
+                        .onFailure { updates.onInstallProblem(UpdateProblem.Installer) }
+                }
+            }
+            val allowInstall = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+                if (context.packageManager.canRequestPackageInstalls()) installUpdate()
+                else updates.onInstallProblem(UpdateProblem.Permission)
+            }
             AboutScreen(
                 local = settingsState.local,
                 version = BuildConfig.VERSION_NAME,
@@ -125,6 +145,15 @@ private fun Diary(
                 onOpenUrl = { runCatching { links.openUri(it) } },
                 onOpenAgent = main::onOpenAgent,
                 onOpenJournal = main::onOpenJournal,
+                update = update,
+                onCheckUpdates = updates::onCheck,
+                onDownloadUpdate = updates::onDownload,
+                onCancelUpdate = updates::onCancel,
+                onInstallUpdate = {
+                    if (context.packageManager.canRequestPackageInstalls()) installUpdate()
+                    else runCatching { allowInstall.launch(UpdateInstaller.permissionIntent(context)) }
+                        .onFailure { updates.onInstallProblem(UpdateProblem.Installer) }
+                },
                 eraseArmed = settingsState.eraseArmed,
                 onErase = {
                     settings.onLogout()

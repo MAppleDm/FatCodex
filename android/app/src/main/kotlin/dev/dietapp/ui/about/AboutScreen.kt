@@ -26,6 +26,9 @@ import dev.dietapp.coreui.Hairline
 import dev.dietapp.coreui.IconAction
 import dev.dietapp.coreui.StatRow
 import dev.dietapp.coreui.tap
+import dev.dietapp.ui.update.RELEASES_URL
+import dev.dietapp.ui.update.UpdateBlock
+import dev.dietapp.ui.update.UpdateState
 
 const val GITHUB_URL = "https://github.com/MAppleDm/FatCodex"
 const val LICENSE_URL = "https://github.com/MAppleDm/FatCodex/blob/main/LICENSE"
@@ -47,6 +50,11 @@ fun AboutScreen(
     /** The agent and its journal are about the model, so only the phone-only mode has them. */
     onOpenAgent: () -> Unit = {},
     onOpenJournal: () -> Unit = {},
+    update: UpdateState = UpdateState(),
+    onCheckUpdates: () -> Unit = {},
+    onDownloadUpdate: () -> Unit = {},
+    onCancelUpdate: () -> Unit = {},
+    onInstallUpdate: () -> Unit = {},
 ) {
     Column(modifier.fillMaxSize().background(AppTheme.colors.background).statusBarsPadding().navigationBarsPadding()) {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 4.dp, end = 16.dp, top = 4.dp)) {
@@ -61,6 +69,7 @@ fun AboutScreen(
             }
             StatRow(Texts.ABOUT_VERSION, version, Modifier.testTag("about-version"))
             Hairline()
+            UpdateBlock(update, onCheckUpdates, onDownloadUpdate, onCancelUpdate, onInstallUpdate, { onOpenUrl(RELEASES_URL) })
 
             Text(Texts.ABOUT_DATA, style = AppTheme.type.caption, modifier = Modifier.padding(start = 16.dp, top = 12.dp, bottom = 4.dp))
             Column(Modifier.padding(horizontal = 16.dp, vertical = 4.dp).testTag("about-data")) {

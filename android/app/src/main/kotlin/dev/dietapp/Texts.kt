@@ -7,6 +7,36 @@ import dev.dietapp.data.domain.Lang.t
  * dev.dietapp.data.domain.Lang); the screens are rebuilt when it changes.
  */
 object Texts {
+    val UPDATES get() = t("Обновления", "Updates")
+    val UPDATE_HINT get() = t("Новые версии из GitHub. Проверка и скачивание — по нажатию.", "New versions from GitHub. Check and download when you choose.")
+    val UPDATE_CHECK get() = t("Проверить обновления", "Check for updates")
+    val UPDATE_CHECKING get() = t("Проверяю GitHub…", "Checking GitHub…")
+    val UPDATE_CURRENT get() = t("Установлена актуальная версия.", "You're up to date.")
+    val UPDATE_NO_RELEASES get() = t("На GitHub пока нет опубликованных стабильных релизов.", "No stable releases have been published on GitHub yet.")
+    fun updateAvailable(tag: String) = t("Доступна версия $tag", "Version $tag is available")
+    val UPDATE_DOWNLOAD get() = t("Скачать обновление", "Download update")
+    val UPDATE_DOWNLOADING get() = t("Скачиваю обновление…", "Downloading update…")
+    val UPDATE_WAITING get() = t("Загрузка приостановлена Android; продолжится автоматически.", "Download paused by Android; it will resume automatically.")
+    val UPDATE_VERIFYING get() = t("Проверяю файл и подпись…", "Checking file and signature…")
+    val UPDATE_READY get() = t("Обновление скачано и проверено.", "Update downloaded and verified.")
+    val UPDATE_INSTALL get() = t("Установить обновление", "Install update")
+    val UPDATE_INSTALL_HINT get() = t("Android попросит подтвердить установку. При необходимости разрешите установку из FatCodex.", "Android will ask you to confirm. If needed, allow installation from FatCodex.")
+    val UPDATE_REMOVE get() = t("Удалить скачанный файл", "Remove downloaded file")
+    val UPDATE_RELEASE_PAGE get() = t("Релизы на GitHub", "Releases on GitHub")
+    val UPDATE_NO_APK get() = t("В релизе нет однозначно подходящего APK. Выберите файл на странице релизов.", "This release has no unambiguous APK. Choose a file on the releases page.")
+    fun updateProblem(problem: dev.dietapp.ui.update.UpdateProblem): String = when (problem) {
+        dev.dietapp.ui.update.UpdateProblem.Network -> t("Не удалось связаться с GitHub. Проверьте интернет и повторите.", "Could not reach GitHub. Check your connection and try again.")
+        dev.dietapp.ui.update.UpdateProblem.RateLimit -> t("GitHub временно ограничил запросы. Попробуйте позже.", "GitHub is limiting requests. Try again later.")
+        dev.dietapp.ui.update.UpdateProblem.Release -> t("Не удалось прочитать релиз. Откройте GitHub или повторите позже.", "Could not read the release. Open GitHub or try again later.")
+        dev.dietapp.ui.update.UpdateProblem.Download -> t("Не удалось скачать файл. Можно повторить загрузку.", "Download failed. You can try again.")
+        dev.dietapp.ui.update.UpdateProblem.Storage -> t("Не хватает места или хранилище недоступно. Освободите место и повторите.", "Storage is full or unavailable. Free some space and try again.")
+        dev.dietapp.ui.update.UpdateProblem.Integrity -> t("Файл повреждён или не совпадает с релизом. Скачайте заново.", "The file is damaged or does not match the release. Download it again.")
+        dev.dietapp.ui.update.UpdateProblem.Incompatible -> t("Этот APK не подходит приложению или версии Android. Проверьте страницу релиза.", "This APK does not match the app or Android version. Check the release page.")
+        dev.dietapp.ui.update.UpdateProblem.Signature -> t("APK подписан другим ключом. Обновление поверх невозможно. Сохраните дневник; не удаляйте приложение ради установки.", "This APK has a different signing key and cannot update this installation. Save your diary; do not uninstall the app to install it.")
+        dev.dietapp.ui.update.UpdateProblem.Permission -> t("Установка из FatCodex пока не разрешена. Нажмите «Установить» и разрешите её в настройках Android.", "Installation from FatCodex is not allowed yet. Tap Install and allow it in Android settings.")
+        dev.dietapp.ui.update.UpdateProblem.Installer -> t("Не удалось открыть установщик Android. Скачанный файл сохранён, попробуйте ещё раз.", "Could not open the Android installer. The download is saved; try again.")
+    }
+
     val INPUT_PLACEHOLDER get() = t("Что съел?", "What did you eat?")
     val EMPTY_HINT get() = t("Например: «овсянка 60 г, банан», «вес 82.4» или «как обычно».",
         "For example: “oatmeal 60 g, a banana”, “weight 82.4” or “the usual”.")
