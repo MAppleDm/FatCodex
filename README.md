@@ -2,6 +2,8 @@
 
 # FatCodex
 
+[![Release](https://img.shields.io/github/v/release/MAppleDm/FatCodex)](https://github.com/MAppleDm/FatCodex/releases/latest) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
 **English** · [Русский](README.ru.md)
 
 A food diary in a single text box.
@@ -32,9 +34,19 @@ The app records; it does not write reports. To analyse your history, export it (
 
 An early personal project, free and non-commercial. It is not on Google Play yet and has not been tested on a real phone, so expect rough edges.
 
-To try it, build the app from source: see [docs/development.md](docs/development.md).
+## Install
+
+Download the APK from the [latest release](https://github.com/MAppleDm/FatCodex/releases/latest) and open it on Android 8.0 or newer. Bring your own DeepSeek API key.
+
+To build from source, see [docs/development.md](docs/development.md).
 
 For subsequent versions, open **Settings → About → Updates** to check GitHub, read the release notes and download the APK. Android confirms the installation. The download survives closing the app; a damaged or incompatibly signed APK is rejected.
+
+## Contributing and releases
+
+Report bugs or suggest improvements in [Issues](https://github.com/MAppleDm/FatCodex/issues). See [CONTRIBUTING.md](CONTRIBUTING.md) for development checks.
+
+Releases use `vX.X.X`: [changelog](CHANGELOG.md) · [release process](RELEASING.md).
 
 ## License
 
