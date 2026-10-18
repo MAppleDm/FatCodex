@@ -2,6 +2,8 @@
 
 # FatCodex
 
+[![Release](https://img.shields.io/github/v/release/MAppleDm/FatCodex)](https://github.com/MAppleDm/FatCodex/releases/latest) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
 [English](README.md) · **Русский**
 
 Дневник питания в одном поле ввода.
@@ -32,9 +34,19 @@
 
 Ранний личный проект, бесплатный и некоммерческий. В Google Play его пока нет, на настоящем телефоне он ещё не проверялся, так что возможны шероховатости.
 
-Чтобы попробовать, собери приложение из исходников. Подробности (по-русски): [docs/details.ru.md](docs/details.ru.md).
+## Установка
+
+Скачай APK из [последнего релиза](https://github.com/MAppleDm/FatCodex/releases/latest) и открой его на телефоне с Android 8.0 или новее. Для работы нужен свой ключ DeepSeek.
+
+Сборка из исходников и подробности: [docs/details.ru.md](docs/details.ru.md).
 
 Следующие версии: **Настройки → О приложении → Обновления**. Приложение проверит GitHub, покажет описание релиза и скачает APK; установку подтвердит Android. Загрузка продолжится после закрытия приложения, а повреждённый файл или APK с несовместимой подписью не установится.
+
+## Участие и версии
+
+Ошибки и предложения: [Issues](https://github.com/MAppleDm/FatCodex/issues). Правила участия: [CONTRIBUTING.md](CONTRIBUTING.md).
+
+Релизы имеют версии `vX.X.X`: [история изменений](CHANGELOG.md), [публикация релизов](RELEASING.md).
 
 ## Лицензия
 

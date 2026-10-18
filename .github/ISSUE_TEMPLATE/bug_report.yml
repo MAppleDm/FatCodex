@@ -1,0 +1,39 @@
+name: Bug report / Ошибка
+description: Report a reproducible problem / Сообщить об ошибке
+body:
+  - type: markdown
+    attributes:
+      value: Please omit API keys, private notes, diary exports, and other personal data. / Не публикуйте ключи API и личные данные.
+  - type: input
+    id: version
+    attributes:
+      label: App version / Версия приложения
+      placeholder: v0.2.0
+    validations:
+      required: true
+  - type: input
+    id: device
+    attributes:
+      label: Device and Android version / Устройство и версия Android
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce / Как повторить
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior / Что ожидалось
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior / Что произошло
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Screenshots or redacted logs / Скриншоты или обезличенный журнал

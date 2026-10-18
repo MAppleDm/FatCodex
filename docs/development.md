@@ -73,7 +73,7 @@ Generate `JWT_SECRET` with `python -c "import secrets; print(secrets.token_urlsa
 
 ## Install the app
 
-Requires JDK 17+ and the Android SDK. The easiest way is to open `android/` in Android Studio.
+Requires JDK 21 and the Android SDK. The Robolectric Android 16+ tests require Java 21; application bytecode still targets Java 17. The easiest way is to open `android/` in Android Studio.
 
 ```bash
 cd android
