@@ -6,7 +6,7 @@ Before starting a substantial feature, open an issue describing the problem and 
 
 ## Development
 
-Use JDK 17 and the Android SDK. Build instructions and project details are in the README and `docs/`.
+Use JDK 21 and the Android SDK. Robolectric's Android 16+ test sandbox requires Java 21; application bytecode still targets Java 17. Build instructions and project details are in the README and `docs/`.
 
 ```bash
 cd android
