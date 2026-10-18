@@ -125,6 +125,88 @@ class MigrationTest {
         db.close()
     }
 
+    @Test fun `version 5 foods and entries are plain ones, and the new tables work`() {
+        createVersion(5).apply {
+            execSQL("INSERT INTO foods (name, `key`, aliases, kcal, protein, fat, carbs, estimated, note, createdAtMs, updatedAtMs) " +
+                "VALUES ('гречка', 'гречка', '', 92, 3.4, 0.6, 19.9, 0, NULL, 1, 1)")
+            execSQL("INSERT INTO entries (id, mealId, day, eatenAtMs, position, name, grams, status, confidence, source, updatedAtMs, deleted, dirty) " +
+                "VALUES ('e1', 'm1', '2026-10-06', 1000, 0, 'гречка', 200.0, 'unmatched', 0.9, 'text', 1000, 0, 0)")
+            close()
+        }
+        val db = Room.databaseBuilder(ApplicationProvider.getApplicationContext(), AppDatabase::class.java, name)
+            .addMigrations(*AppDatabase.MIGRATIONS)
+            .allowMainThreadQueries()
+            .build()
+        runBlocking {
+            assertNull("a food of before is not a dish", db.foods().all().single().parts)
+            assertNull("nor is an entry", db.entries().get("e1")!!.parts)
+            // what a dish and a watch need
+            db.entries().upsert(db.entries().get("e1")!!.copy(parts = "[]"))
+            db.dayFacts().upsert(DayFactsRow("2026-10-07", sleepMinutes = 440, steps = 8412, workouts = null, readAtMs = 1))
+            assertEquals(8412, db.dayFacts().get("2026-10-07")!!.steps)
+            assertEquals(1, db.dayFacts().between("2026-10-01", "2026-10-31").size)
+        }
+        db.close()
+    }
+
+    @Test fun `version 6 days keep sleep, steps and workouts, and lose the pulse that is no longer read`() {
+        createVersion(6).apply {
+            execSQL("INSERT INTO day_facts VALUES ('2026-10-06', 430, 7000, 57, 40.5, '[{\"kind\":\"Running\",\"minutes\":30}]', 5)")
+            execSQL("INSERT INTO day_facts VALUES ('2026-10-05', NULL, 100, NULL, NULL, NULL, 6)")
+            close()
+        }
+        val db = Room.databaseBuilder(ApplicationProvider.getApplicationContext(), AppDatabase::class.java, name)
+            .addMigrations(*AppDatabase.MIGRATIONS)
+            .allowMainThreadQueries()
+            .build()
+        runBlocking {
+            val row = db.dayFacts().get("2026-10-06")!!
+            assertEquals(430, row.sleepMinutes)
+            assertEquals(7000, row.steps)
+            assertEquals(5L, row.readAtMs)
+            assertEquals(1, dev.dietapp.data.local.WorkoutCodec.decode(row.workouts).size)
+            assertEquals(100, db.dayFacts().get("2026-10-05")!!.steps)
+            assertEquals(2, db.dayFacts().between("2026-10-01", "2026-10-31").size)
+        }
+        db.close()
+    }
+
+    @Test fun `version 7 days keep what they had on the way to the current version`() {
+        createVersion(7).apply {
+            execSQL("INSERT INTO day_facts VALUES ('2026-10-06', 430, 7000, '[{\"kind\":\"Running\",\"minutes\":30}]', 5)")
+            close()
+        }
+        val db = Room.databaseBuilder(ApplicationProvider.getApplicationContext(), AppDatabase::class.java, name)
+            .addMigrations(*AppDatabase.MIGRATIONS)
+            .allowMainThreadQueries()
+            .build()
+        runBlocking {
+            val old = db.dayFacts().get("2026-10-06")!!
+            assertEquals(430, old.sleepMinutes)
+            assertEquals(7000, old.steps)
+            assertEquals(1, dev.dietapp.data.local.WorkoutCodec.decode(old.workouts).size)
+        }
+        db.close()
+    }
+
+    @Test fun `version 9 days lose the calories that are no longer read, and keep sleep, steps and workouts`() {
+        createVersion(9).apply {
+            execSQL("INSERT INTO day_facts (day, sleepMinutes, steps, workouts, readAtMs, activeKcal, totalKcal) VALUES ('2026-10-09', 343, 12005, NULL, 7, 3077, 3313)")
+            close()
+        }
+        val db = Room.databaseBuilder(ApplicationProvider.getApplicationContext(), AppDatabase::class.java, name)
+            .addMigrations(*AppDatabase.MIGRATIONS)
+            .allowMainThreadQueries()
+            .build()
+        runBlocking {
+            val row = db.dayFacts().get("2026-10-09")!!
+            assertEquals(343, row.sleepMinutes)
+            assertEquals(12005, row.steps)
+            assertEquals(7L, row.readAtMs)
+        }
+        db.close()
+    }
+
     @Test fun `version 4 messages answer nothing in particular`() {
         createVersion(4).apply {
             execSQL("INSERT INTO messages (id, day, text, hasImage, source, atMs, createdAtMs) VALUES ('m1', '2026-10-03', 'суп', 0, 'text', 1, 1)")

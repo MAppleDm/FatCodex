@@ -50,12 +50,12 @@ class LiveDeepSeekTest {
             trace = env.journal,
         )
         val chooser = ParserChooser(model, { true }, env.journal, budgetMs = 150_000)
-        val processor = LocalMessageProcessor(env.db, chooser, env.resolver, env.files, env.clock)
+        val processor = LocalMessageProcessor(env.db, chooser, env.resolver, env.files, env.clock, activity = env.activity)
         val engine = LocalEngine(env.db, processor, env.files, env.journal)
         val now = { runBlocking { engine.run() } }
         diary = DiaryRepositoryImpl(
             env.db, env.files, env.session, object : SyncTrigger { override fun requestSync(pull: Boolean) = now() },
-            env.mode, env.engine, engine, env.clock, env.foods, env.thumbs, env.bodyModel,
+            env.mode, env.engine, engine, env.clock, env.foods, env.thumbs, env.bodyModel, env.activity,
         )
     }
 

@@ -6,6 +6,10 @@ checked against https://api-docs.deepseek.com.
 
     python android/tools/mock_deepseek.py                  # listens on 127.0.0.1:8090
     ./gradlew assembleDebug -PmodelBaseUrl=http://10.0.2.2:8090   # the emulator sees the host as 10.0.2.2
+    # or, where 10.0.2.2 does not reach a server bound to 127.0.0.1:
+    adb reverse tcp:8090 tcp:8090 && ./gradlew assembleDebug -PmodelBaseUrl=http://127.0.0.1:8090
+
+"борщ" comes back as a dish of six ingredients, a brand it knows ("ремит", "казеин") as a proposal, a photo as an omelette.
 
 In the app use any key; a key that starts with "sk-bad" gets HTTP 401 like a refused key does.
 MOCK_FAIL=400 (or 500, timeout) makes every request fail that way, to see how the app reports it.
@@ -19,6 +23,10 @@ import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
+# a Windows console is cp1251 or cp866: food names with emoji would break the printing and with it the answer
+for stream in (sys.stdout, sys.stderr):
+    stream.reconfigure(encoding="utf-8", errors="replace")
+
 PORT = int(os.environ.get("MOCK_PORT", "8090"))
 FAIL = os.environ.get("MOCK_FAIL", "")
 LOG_DIR = Path(os.environ.get("MOCK_LOG_DIR", Path(__file__).with_name("mock_requests")))
@@ -29,6 +37,12 @@ KNOWN = {
               ("сосиски варёные (типичные)", 266, 11, 24, 1.5, "типичные значения", None)],
     "казеин": [("казеиновый протеин", 360, 80, 1.5, 8, "типичные значения", None)],
     "батончик": [("протеиновый батончик", 350, 30, 12, 30, "типичные значения", None)],
+}
+
+# a dish the mock offers whole, with its ingredients for a typical serving (grams, then values per 100 g)
+DISHES = {
+    "борщ": [("свёкла", 40, 43, 1.6, 0.2, 9.6), ("капуста", 50, 27, 1.8, 0.1, 4.7), ("картофель", 60, 77, 2, 0.4, 16.3),
+             ("говядина", 45, 250, 26, 15, 0), ("сметана", 15, 206, 2.8, 20, 3.2), ("бульон", 90, 0, 0, 0, 0)],
 }
 PARTS = re.compile(r"\s*(?:,|;|\sи\s|\sс\s|\sсо\s)\s*")
 GRAMS = re.compile(r"(\d+(?:[.,]\d+)?)\s*(?:г\b|гр\b|грам\w*|мл\b)")
@@ -100,7 +114,15 @@ def answer(body):
     for n, _ in parts:
         hits = (searched.get(n) or {}).get("results") or []
         key = next((k for k in KNOWN if k in n), None)  # a brand: the catalog's generic food is not it
-        if key:
+        dish = next((k for k in DISHES if k in n), None)
+        if dish and not hits:
+            if n not in proposed:
+                parts_ = DISHES[dish]
+                grams = sum(p[1] for p in parts_)
+                kcal = sum(p[1] * p[2] for p in parts_) / grams
+                to_propose.append((n, [(dish, round(kcal, 1), 0, 0, 0, "типичный рецепт", None, [
+                    {"name": p[0], "grams": p[1], "kcal": p[2], "protein": p[3], "fat": p[4], "carbs": p[5]} for p in parts_])]))
+        elif key:
             if n not in proposed:
                 to_propose.append((n, KNOWN[key]))
         elif hits:
@@ -108,7 +130,8 @@ def answer(body):
     if to_propose and not forced:
         return [call(i, "propose_food", {
             "for_item": n, "question": f"Нашёл «{opts[0][0]}». Какие значения занести в базу?",
-            "options": [{"name": o[0], "kcal": o[1], "protein": o[2], "fat": o[3], "carbs": o[4], "source": o[5], "url": o[6]} for o in opts],
+            "options": [dict({"name": o[0], "kcal": o[1], "protein": o[2], "fat": o[3], "carbs": o[4], "source": o[5], "url": o[6]},
+                             **({"parts": o[7]} if len(o) > 7 else {})) for o in opts],
         }) for i, (n, opts) in enumerate(to_propose)]
     # the standard mode asks about foods whose values vary by brand or recipe; plain foods go in at once
     vague = ("сосиск", "колбас", "домашн", "sausage")

@@ -11,6 +11,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.dietapp.coreui.AppTheme
+import dev.dietapp.ui.font.FontViewModel
 import dev.dietapp.ui.foods.FoodsRoute
 import dev.dietapp.ui.foods.FoodsViewModel
 import dev.dietapp.ui.journal.JournalRoute
@@ -21,11 +22,15 @@ import dev.dietapp.ui.login.LoginViewModel
 import dev.dietapp.ui.main.MainScreen
 import dev.dietapp.ui.main.MainViewModel
 import dev.dietapp.ui.main.Screen
-import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.LocalContext
-import dev.dietapp.ui.update.UpdateInstaller
-import dev.dietapp.ui.update.UpdateProblem
-import dev.dietapp.ui.update.UpdateViewModel
+import androidx.compose.ui.platform.LocalUriHandler
+import dev.dietapp.Texts
+import dev.dietapp.ui.lock.Biometrics
+import dev.dietapp.ui.lock.LockSupport
+import dev.dietapp.ui.lock.PromptResult
+import dev.dietapp.ui.lock.LockViewModel
+import dev.dietapp.ui.sound.SoundViewModel
+import dev.dietapp.ui.lock.fragmentActivity
 import dev.dietapp.BuildConfig
 import dev.dietapp.ui.about.AboutScreen
 import dev.dietapp.ui.agent.AgentScreen
@@ -37,6 +42,11 @@ import dev.dietapp.ui.history.HistoryScreen
 import dev.dietapp.ui.export.ExportViewModel
 import dev.dietapp.ui.settings.SettingsScreen
 import dev.dietapp.ui.settings.SettingsViewModel
+import dev.dietapp.ui.watch.WatchRoute
+import dev.dietapp.ui.watch.WatchViewModel
+import dev.dietapp.ui.update.UpdateInstaller
+import dev.dietapp.ui.update.UpdateProblem
+import dev.dietapp.ui.update.UpdateViewModel
 
 /** One activity, one root: sign-in and the questions about the person until the goal is known, then the diary. */
 @Composable
@@ -44,6 +54,10 @@ fun AppRoot(
     main: MainViewModel, login: LoginViewModel, settings: SettingsViewModel, foods: FoodsViewModel, journal: JournalViewModel,
     export: ExportViewModel,
     body: BodyViewModel,
+    watch: WatchViewModel,
+    fonts: FontViewModel,
+    lock: LockViewModel,
+    sound: SoundViewModel,
     updates: UpdateViewModel,
 ) {
     val loginState by login.state.collectAsStateWithLifecycle()
@@ -63,7 +77,7 @@ fun AppRoot(
                 onWithoutServer = login::onWithoutServer,
                 onKey = login::onKey,
             )
-            else -> Diary(main, settings, foods, journal, export, body, updates)
+            else -> Diary(main, settings, foods, journal, export, body, watch, fonts, lock, sound, updates)
         }
     }
 }
@@ -71,7 +85,8 @@ fun AppRoot(
 @Composable
 private fun Diary(
     main: MainViewModel, settings: SettingsViewModel, foods: FoodsViewModel, journal: JournalViewModel, export: ExportViewModel,
-    body: BodyViewModel,
+    body: BodyViewModel, watch: WatchViewModel, fonts: FontViewModel, lock: LockViewModel,
+    sound: SoundViewModel,
     updates: UpdateViewModel,
 ) {
     val state by main.uiState.collectAsStateWithLifecycle()
@@ -91,6 +106,7 @@ private fun Diary(
             state.screen == Screen.About -> main.onCloseAbout()
             state.screen == Screen.History -> main.onCloseHistory()
             state.screen == Screen.Me -> main.onCloseMe()
+            state.screen == Screen.Watch -> main.onCloseWatch()
             else -> main.onCloseSettings()
         }
     }
@@ -102,17 +118,16 @@ private fun Diary(
             onBack = main::onCloseSettings,
             onOpenFoods = main::onOpenFoods,
             onOpenMe = main::onOpenMe,
+            onOpenWatch = main::onOpenWatch,
             onOpenHistory = main::onOpenHistory,
             onToggleLanguage = settings::onToggleLanguage,
             onOpenAbout = main::onOpenAbout,
-            onLogout = {
-                settings.onLogout()
-                main.onCloseSettings()
-            },
+            onLogout = { if (settings.onEraseTap()) main.onCloseSettings() },
         )
         Screen.Foods -> FoodsRoute(foods, onBack = main::onCloseFoods)
         Screen.Journal -> JournalRoute(journal, onBack = main::onCloseJournal)
         Screen.Export -> ExportRoute(export, onBack = main::onCloseExport)
+        Screen.Watch -> WatchRoute(watch, onBack = main::onCloseWatch)
         Screen.Me -> {
             val bodyState by body.state.collectAsStateWithLifecycle()
             MeScreen(bodyState, body, onBack = main::onCloseMe)
@@ -123,9 +138,13 @@ private fun Diary(
             onBack = main::onCloseHistory,
             onPickDay = main::onSelectDay,
             onOpenExport = main::onOpenExport,
+            today = state.today,
         )
         Screen.About -> {
             val links = LocalUriHandler.current
+            val font by fonts.choice.collectAsStateWithLifecycle()
+            val fontFailed by fonts.failed.collectAsStateWithLifecycle()
+            val pickFont = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri -> uri?.let(fonts::onFile) }
             val context = LocalContext.current
             val update by updates.state.collectAsStateWithLifecycle()
             val installUpdate = {
@@ -138,6 +157,9 @@ private fun Diary(
                 if (context.packageManager.canRequestPackageInstalls()) installUpdate()
                 else updates.onInstallProblem(UpdateProblem.Permission)
             }
+            val soundOn by sound.enabled.collectAsStateWithLifecycle()
+            val lockOn by lock.enabled.collectAsStateWithLifecycle()
+            val lockSupport = Biometrics.support(context)
             AboutScreen(
                 local = settingsState.local,
                 version = BuildConfig.VERSION_NAME,
@@ -145,6 +167,13 @@ private fun Diary(
                 onOpenUrl = { runCatching { links.openUri(it) } },
                 onOpenAgent = main::onOpenAgent,
                 onOpenJournal = main::onOpenJournal,
+                font = font,
+                fontFailed = fontFailed,
+                onFont = fonts::onKind,
+                // font files have no reliable mime type, so every file is offered and the content decides
+                onPickFontFile = { pickFont.launch(arrayOf("*/*")) },
+                soundOn = soundOn,
+                onToggleSound = sound::onToggle,
                 update = update,
                 onCheckUpdates = updates::onCheck,
                 onDownloadUpdate = updates::onDownload,
@@ -154,11 +183,23 @@ private fun Diary(
                     else runCatching { allowInstall.launch(UpdateInstaller.permissionIntent(context)) }
                         .onFailure { updates.onInstallProblem(UpdateProblem.Installer) }
                 },
-                eraseArmed = settingsState.eraseArmed,
-                onErase = {
-                    settings.onLogout()
-                    main.onCloseSettings()
+                lockOn = lockOn,
+                lockSupport = lockSupport,
+                // turning the lock on or off is asked of the person with the same prompt that opens it
+                onToggleLock = {
+                    val activity = context.fragmentActivity()
+                    when {
+                        activity == null -> Unit
+                        // the phone cannot check anyone any more: a lock that is on can only be turned off
+                        lockSupport != LockSupport.Ready -> if (lockOn) lock.setEnabled(false)
+                        else -> Biometrics.prompt(activity, if (lockOn) Texts.LOCK_TITLE_OFF else Texts.LOCK_TITLE_ON) { result ->
+                            if (result == PromptResult.Passed) lock.setEnabled(!lockOn)
+                        }
+                    }
                 },
+                eraseArmed = settingsState.eraseArmed,
+                // the first tap only arms the button: the page stays, so that the second tap can be made
+                onErase = { if (settings.onEraseTap()) main.onCloseSettings() },
             )
         }
         Screen.Agent -> AgentScreen(

@@ -54,6 +54,7 @@ dependencies {
     implementation(libs.okhttp)
 
     implementation(libs.androidx.work.runtime)
+    implementation(libs.androidx.health.connect)
     implementation(libs.androidx.hilt.work)
     ksp(libs.androidx.hilt.compiler)
 

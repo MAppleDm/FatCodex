@@ -5,6 +5,8 @@ import androidx.room.withTransaction
 import dev.dietapp.data.db.AppDatabase
 import dev.dietapp.data.db.FoodRow
 import dev.dietapp.data.db.toDomain
+import dev.dietapp.data.domain.Dish
+import dev.dietapp.data.domain.DishPart
 import dev.dietapp.data.domain.Food
 import dev.dietapp.data.domain.Per100
 import dev.dietapp.data.local.food.Text
@@ -24,7 +26,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
 /** A food found by [FoodBase.search]. The id is `my:12`: every food comes from the user's own database. */
-data class FoodHit(val id: String, val name: String, val per100: Per100, val approximate: Boolean)
+data class FoodHit(val id: String, val name: String, val per100: Per100, val approximate: Boolean, val parts: List<DishPart> = emptyList())
 
 /** What a food is saved with, from the screen, the model or a file. Values per 100 g. */
 data class FoodInput(
@@ -36,6 +38,8 @@ data class FoodInput(
     /** "user", "model", "web" or "import"; null keeps what an existing food has (a new one becomes "user"). */
     val origin: String? = null,
     val url: String? = null,
+    /** A dish: its ingredients for a typical serving. When there are some, [per100] is ignored and worked out from them. */
+    val parts: List<DishPart> = emptyList(),
 )
 
 /** Who is saving: the model's numbers get a stricter check than a person copying a label. */
@@ -125,6 +129,7 @@ class FoodBase @Inject constructor(
                 createdAtMs = existing?.createdAtMs ?: now, updatedAtMs = now,
                 origin = clean.origin ?: existing?.origin ?: "user",
                 url = clean.url ?: existing?.url.takeIf { clean.origin == null },
+                parts = DishCodec.encode(clean.parts),
             )
             if (existing == null) row.copy(id = db.foods().insert(row)) else row.also { db.foods().update(it) }
         }
@@ -147,7 +152,10 @@ class FoodBase @Inject constructor(
         FoodsFile(
             exportedAt = Instant.ofEpochMilli(clock.millis()).toString(),
             foods = db.foods().all().map {
-                FoodJson(it.name, it.aliases.lines().filter(String::isNotBlank), it.kcal, it.protein, it.fat, it.carbs, it.estimated, it.note, it.url)
+                FoodJson(
+                    it.name, it.aliases.lines().filter(String::isNotBlank), it.kcal, it.protein, it.fat, it.carbs, it.estimated, it.note, it.url,
+                    DishCodec.decode(it.parts).map { p -> PartJson(p.name, p.grams, p.per100.kcal, p.per100.protein, p.per100.fat, p.per100.carbs) },
+                )
             },
         ),
     )
@@ -164,7 +172,8 @@ class FoodBase @Inject constructor(
         var updated = 0
         val skipped = ArrayList<String>()
         for (f in file.foods) {
-            val input = FoodInput(f.name, Per100(f.kcal, f.protein, f.fat, f.carbs), f.aliases, f.estimated, f.note, origin = "import", url = f.url)
+            val parts = f.parts.map { DishPart(it.name, it.grams, Per100(it.kcal, it.protein, it.fat, it.carbs)) }
+            val input = FoodInput(f.name, Per100(f.kcal, f.protein, f.fat, f.carbs), f.aliases, f.estimated, f.note, origin = "import", url = f.url, parts = parts)
             try {
                 val existed = db.foods().byKey(keyOf(f.name)) != null
                 save(input)
@@ -184,7 +193,7 @@ class FoodBase @Inject constructor(
     }
 
     private fun mineHit(row: FoodRow) =
-        FoodHit("my:${row.id}", row.name, Per100(row.kcal, row.protein, row.fat, row.carbs), row.estimated)
+        FoodHit("my:${row.id}", row.name, Per100(row.kcal, row.protein, row.fat, row.carbs), row.estimated, DishCodec.decode(row.parts))
 
     companion object {
         const val FORMAT = "dietapp-foods"
@@ -207,25 +216,45 @@ class FoodBase @Inject constructor(
             val name = input.name.trim().replace(Regex("\\s+"), " ")
             if (keyOf(name).isEmpty()) throw AppError(t("Нужно название.", "A name is needed."), "bad_food")
             if (name.length > 80) throw AppError(t("Название длиннее 80 знаков.", "The name is longer than 80 characters."), "bad_food")
-            val p = input.per100
+            // a dish is what its ingredients add up to: its own numbers are worked out from them, whatever was typed
+            val parts = input.parts.map { it.copy(name = it.name.trim().replace(Regex("\\s+"), " ")) }
+            if (parts.isNotEmpty()) {
+                if (parts.size !in Dish.MIN_PARTS..Dish.MAX_PARTS) {
+                    throw AppError(t("В блюде должно быть от ${Dish.MIN_PARTS} до ${Dish.MAX_PARTS} ингредиентов.", "A dish needs ${Dish.MIN_PARTS} to ${Dish.MAX_PARTS} ingredients."), "bad_food")
+                }
+                parts.forEach { part ->
+                    if (keyOf(part.name).isEmpty() || part.name.length > 80) throw AppError(t("Ингредиенту нужно название (до 80 знаков).", "An ingredient needs a name (up to 80 characters)."), "bad_food")
+                    if (part.grams.isNaN() || part.grams <= 0.0 || part.grams > Dish.MAX_PART_GRAMS) {
+                        throw AppError(t("Граммы ингредиента «${part.name}» должны быть от 0 до ${Dish.MAX_PART_GRAMS.toInt()}.", "The grams of “${part.name}” must be above 0 and at most ${Dish.MAX_PART_GRAMS.toInt()}."), "bad_food")
+                    }
+                    checkValues(part.per100, author, part.name)
+                }
+            }
+            val p = if (parts.isNotEmpty()) Dish.per100(parts)!! else input.per100
+            checkValues(p, author, null)
+            val aliases = input.aliases.map { it.trim() }.filter { it.isNotEmpty() && keyOf(it) != keyOf(name) }.distinctBy(::keyOf)
+            val url = input.url?.trim()?.takeIf { it.startsWith("http://") || it.startsWith("https://") }?.take(500)
+            return input.copy(name = name, per100 = p, parts = parts, aliases = aliases, note = input.note?.trim()?.takeIf { it.isNotEmpty() }?.take(1000), url = url)
+        }
+
+        /** Values that cannot describe 100 g of anything are refused; [what] names the ingredient they belong to. */
+        private fun checkValues(p: Per100, author: Author, what: String?) {
+            val of = what?.let { " («$it»)" }.orEmpty()
             val values = listOf(p.kcal, p.protein, p.fat, p.carbs)
-            if (values.any { it.isNaN() || it < 0 }) throw AppError(t("Значения не могут быть отрицательными.", "Values cannot be negative."), "bad_food")
-            if (p.kcal > 900) throw AppError(t("В 100 г не бывает больше 900 ккал.", "100 g cannot hold more than 900 kcal."), "bad_food")
+            if (values.any { it.isNaN() || it < 0 }) throw AppError(t("Значения не могут быть отрицательными.", "Values cannot be negative.") + of, "bad_food")
+            if (p.kcal > 900) throw AppError(t("В 100 г не бывает больше 900 ккал.", "100 g cannot hold more than 900 kcal.") + of, "bad_food")
             if (p.protein > 100 || p.fat > 100 || p.carbs > 100 || p.protein + p.fat + p.carbs > 105) {
-                throw AppError(t("Белков, жиров и углеводов вместе больше 100 г на 100 г.", "Protein, fat and carbs add up to more than 100 g per 100 g."), "bad_food")
+                throw AppError(t("Белков, жиров и углеводов вместе больше 100 г на 100 г.", "Protein, fat and carbs add up to more than 100 g per 100 g.") + of, "bad_food")
             }
             if (author == Author.Model) {
                 val energy = 4 * p.protein + 9 * p.fat + 4 * p.carbs
                 if (abs(energy - p.kcal) > max(40.0, 0.25 * p.kcal)) {
                     throw AppError(
-                        t("Не сходится энергия: 4·Б + 9·Ж + 4·У = ${energy.toInt()} ккал, а указано ${p.kcal.toInt()}.", "The energy does not add up: 4·P + 9·F + 4·C = ${energy.toInt()} kcal, but ${p.kcal.toInt()} is given."),
+                        t("Не сходится энергия: 4·Б + 9·Ж + 4·У = ${energy.toInt()} ккал, а указано ${p.kcal.toInt()}.", "The energy does not add up: 4·P + 9·F + 4·C = ${energy.toInt()} kcal, but ${p.kcal.toInt()} is given.") + of,
                         "bad_food",
                     )
                 }
             }
-            val aliases = input.aliases.map { it.trim() }.filter { it.isNotEmpty() && keyOf(it) != keyOf(name) }.distinctBy(::keyOf)
-            val url = input.url?.trim()?.takeIf { it.startsWith("http://") || it.startsWith("https://") }?.take(500)
-            return input.copy(name = name, aliases = aliases, note = input.note?.trim()?.takeIf { it.isNotEmpty() }?.take(1000), url = url)
         }
     }
 }
@@ -250,4 +279,9 @@ private data class FoodJson(
     val estimated: Boolean = false,
     val note: String? = null,
     val url: String? = null,
+    val parts: List<PartJson> = emptyList(),
 )
+
+/** One ingredient of a dish in the file: its grams in a typical serving and its own values per 100 g. */
+@Serializable
+private data class PartJson(val name: String, val grams: Double, val kcal: Double, val protein: Double, val fat: Double, val carbs: Double)

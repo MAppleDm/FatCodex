@@ -100,12 +100,18 @@ class FakeDiary : DiaryRepository {
     /** Play the server: called after a message is queued. */
     var onSend: (Sent) -> Unit = {}
 
-    override fun observeDay(day: LocalDate): Flow<DayContent> = combine(entries, outbox, notes, weights, messages) { e, o, n, w, m ->
-        DayContent(
-            e.filter { it.day == day }, o.filter { it.day == day }, n.filter { it.day == day }, w.filter { it.day == day },
-            m.filter { it.day == day },
-        )
-    }
+    /** What the watch said about the day shown (whatever the day). */
+    val facts = MutableStateFlow<dev.dietapp.data.domain.DayFacts?>(null)
+
+    override fun observeDay(day: LocalDate): Flow<DayContent> = combine(
+        combine(entries, outbox, notes, weights, messages) { e, o, n, w, m ->
+            DayContent(
+                e.filter { it.day == day }, o.filter { it.day == day }, n.filter { it.day == day }, w.filter { it.day == day },
+                m.filter { it.day == day },
+            )
+        },
+        facts,
+    ) { content, f -> content.copy(facts = f) }
 
     override fun observeWeights(): Flow<List<Weight>> = weights
     override fun observeDaySummaries(): Flow<List<DaySummary>> = summaries
@@ -117,6 +123,8 @@ class FakeDiary : DiaryRepository {
     }
 
     override suspend fun updateEntry(id: String, grams: Double?, name: String?) { updates += Triple(id, grams, name) }
+    val partChanges = mutableListOf<Triple<String, Int, Double>>()
+    override suspend fun updatePart(entryId: String, index: Int, grams: Double) { partChanges += Triple(entryId, index, grams) }
     override suspend fun deleteEntry(id: String) { deletedEntries += id }
     override suspend fun addWeight(day: LocalDate, kg: Double, now: Instant) {
         addedWeights += day to kg
@@ -263,6 +271,27 @@ class FakeBody(asked: Boolean = true) : dev.dietapp.data.repo.BodyRepository {
         change { it.copy(weightKg = kg) }
     }
     override fun finishOnboarding() { askedFlow.value = true }
+}
+
+/** The watch, as far as the screens can tell: what it says about itself, and what they ask of it. */
+class FakeWatch : dev.dietapp.data.repo.WatchRepository {
+    val current = MutableStateFlow(dev.dietapp.data.repo.WatchState())
+    override val state: Flow<dev.dietapp.data.repo.WatchState> = current
+    override val permissions = setOf("p.sleep", "p.steps")
+    val answers = mutableListOf<Set<String>>()
+    var phoneLooks = 0
+    var refreshes = 0
+    var disconnects = 0
+
+    override suspend fun refreshPhone() { phoneLooks++ }
+    override suspend fun connect(granted: Set<String>): Boolean {
+        answers += granted
+        if (granted.isEmpty()) return false
+        current.value = current.value.copy(connected = true, permitted = true)
+        return true
+    }
+    override fun disconnect() { disconnects++; current.value = current.value.copy(connected = false) }
+    override suspend fun refresh() { refreshes++ }
 }
 
 /** The user's food base in memory. */

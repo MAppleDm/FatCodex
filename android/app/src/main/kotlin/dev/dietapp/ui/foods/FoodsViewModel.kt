@@ -37,6 +37,8 @@ data class FoodEdit(
     val updatedAt: java.time.Instant? = null,
     val origin: String? = null,
     val url: String? = null,
+    /** A dish: its ingredients for a serving. Only kept while the numbers above are the ones they add up to. */
+    val parts: List<dev.dietapp.data.domain.DishPart> = emptyList(),
 ) {
     val per100: Per100?
         get() {
@@ -92,7 +94,7 @@ class FoodsViewModel @Inject constructor(private val repo: FoodRepository) : Vie
                 id = food.id, name = food.name, aliases = food.aliases.joinToString(", "),
                 kcal = num(food.per100.kcal), protein = num(food.per100.protein), fat = num(food.per100.fat), carbs = num(food.per100.carbs),
                 note = food.note.orEmpty(), estimated = food.estimated, original = food.per100,
-                createdAt = food.createdAt, updatedAt = food.updatedAt, origin = food.origin, url = food.url,
+                createdAt = food.createdAt, updatedAt = food.updatedAt, origin = food.origin, url = food.url, parts = food.parts,
             ),
             message = null,
         )
@@ -111,6 +113,8 @@ class FoodsViewModel @Inject constructor(private val repo: FoodRepository) : Vie
             // the person looked at the numbers and changed them: they are no longer the model's guess
             estimated = edit.estimated && per100 == edit.original,
             note = edit.note,
+            // the numbers of a dish are what its ingredients add up to: changed by hand, it is a plain food from now on
+            parts = if (edit.original != null && sameNumbers(per100, edit.original)) edit.parts else emptyList(),
         )
         viewModelScope.launch {
             repo.save(input, edit.id).fold(
@@ -149,6 +153,10 @@ class FoodsViewModel @Inject constructor(private val repo: FoodRepository) : Vie
     fun onFileFailed() = local.update { it.copy(message = Texts.FOODS_FILE_FAILED, isError = true) }
 
     private companion object {
+        /** The fields show one decimal: a dish's numbers, worked out from its ingredients, match to that. */
+        fun sameNumbers(a: Per100, b: Per100): Boolean =
+            Math.abs(a.kcal - b.kcal) < 0.06 && Math.abs(a.protein - b.protein) < 0.06 && Math.abs(a.fat - b.fat) < 0.06 && Math.abs(a.carbs - b.carbs) < 0.06
+
         fun num(v: Double): String =
             if (v == Math.rint(v)) v.toLong().toString() else String.format(Locale.ROOT, "%.1f", v)
     }

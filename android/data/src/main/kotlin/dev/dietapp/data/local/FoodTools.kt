@@ -2,6 +2,7 @@ package dev.dietapp.data.local
 
 import dev.dietapp.data.domain.Lang
 import dev.dietapp.data.domain.Lang.t
+import dev.dietapp.data.domain.DishPart
 import dev.dietapp.data.domain.Food
 import dev.dietapp.data.domain.Per100
 import dev.dietapp.data.local.parse.AgentTools
@@ -71,7 +72,11 @@ class FoodTools(
         "propose_food",
         "Offer the user values per 100 g for a food that is not in their base, to confirm before it is added. 1-4 options, " +
             "the most likely first (for example the exact product from a page, then a similar one, then typical values). " +
-            "The user picks one or enters their own. Record that item WITHOUT food_id: its numbers arrive after the choice.",
+            "The user picks one or enters their own. Record that item WITHOUT food_id: its numbers arrive after the choice. " +
+            "For a dish that people think of as one thing (борщ, оливье, плов, a sandwich with cheese and sausage) that is not a packaged " +
+            "product, add \"parts\": its 3-12 ingredients for a typical serving, each with grams and its own values per 100 g (broth or water " +
+            "too, with zeros). The dish's own kcal, protein, fat and carbs are then worked out from the ingredients, so send them as a rough " +
+            "sum. The user confirms the whole dish with one yes and can change an ingredient later.",
         required = listOf("for_item", "options"),
     ) {
         putJsonObject("for_item") { put("type", "string"); put("description", "The item's name exactly as in record_food") }
@@ -86,6 +91,19 @@ class FoodTools(
                     putJsonObject("source") { nullableString("Where the values come from: a site name, or 'типичные значения'") }
                     putJsonObject("url") { nullableString("The page the values were read from") }
                     putJsonObject("note") { nullableString("Anything worth knowing, a few words") }
+                    putJsonObject("parts") {
+                        put("type", "array")
+                        put("description", "For a complex dish: its ingredients for a typical serving")
+                        putJsonObject("items") {
+                            put("type", "object")
+                            putJsonObject("properties") {
+                                putJsonObject("name") { put("type", "string") }
+                                putJsonObject("grams") { put("type", "number"); put("minimum", 0) }
+                                for (field in listOf("kcal", "protein", "fat", "carbs")) putJsonObject(field) { put("type", "number"); put("minimum", 0) }
+                            }
+                            putJsonArray("required") { listOf("name", "grams", "kcal", "protein", "fat", "carbs").forEach { add(it) } }
+                        }
+                    }
                 }
                 putJsonArray("required") { listOf("name", "kcal", "protein", "fat", "carbs").forEach { add(it) } }
             }
@@ -161,6 +179,7 @@ class FoodTools(
                         put("name", h.name)
                         numbers(h.per100)
                         put("approximate", h.approximate)
+                        if (h.parts.isNotEmpty()) put("dish_of", h.parts.size)
                     }
                 }
             }
@@ -262,14 +281,29 @@ class FoodTools(
             val v = listOf("kcal", "protein", "fat", "carbs").map { number(o, it) }
             if (v.any { it == null }) { problems += "$name: kcal, protein, fat and carbs are required"; return@mapNotNull null }
             val url = string(o, "url")
-            val input = FoodInput(name, Per100(v[0]!!, v[1]!!, v[2]!!, v[3]!!), estimated = url == null, note = string(o, "note"), url = url)
-            try {
-                val clean = FoodBase.validate(input, Author.Model)
-                dev.dietapp.data.domain.FoodChoice(clean.name, clean.per100, string(o, "source"), clean.url, clean.note, clean.estimated)
-            } catch (e: AppError) {
-                problems += "$name: ${e.message}"
-                null
+            val given = (o["parts"] as? JsonArray).orEmpty().mapNotNull { it as? JsonObject }.mapNotNull { part ->
+                val p = listOf("kcal", "protein", "fat", "carbs").map { number(part, it) }
+                val grams = number(part, "grams")
+                if (p.any { it == null } || grams == null) null else DishPart(string(part, "name").orEmpty(), grams, Per100(p[0]!!, p[1]!!, p[2]!!, p[3]!!))
             }
+            val input = FoodInput(name, Per100(v[0]!!, v[1]!!, v[2]!!, v[3]!!), estimated = url == null, note = string(o, "note"), url = url, parts = given)
+            val clean = try {
+                FoodBase.validate(input, Author.Model)
+            } catch (e: AppError) {
+                if (given.isEmpty()) {
+                    problems += "$name: ${e.message}"
+                    return@mapNotNull null
+                }
+                // the ingredients did not hold together: offer the dish by its own numbers, and tell the model why
+                problems += "$name: parts dropped (${e.message})"
+                try {
+                    FoodBase.validate(input.copy(parts = emptyList()), Author.Model)
+                } catch (again: AppError) {
+                    problems += "$name: ${again.message}"
+                    return@mapNotNull null
+                }
+            }
+            dev.dietapp.data.domain.FoodChoice(clean.name, clean.per100, string(o, "source"), clean.url, clean.note, clean.estimated, clean.parts)
         }
         if (choices.isEmpty()) return error("no usable option" + problems.joinToString("; ", prefix = ": "))
         val proposal = Proposal(forItem, string(args, "question"), choices)

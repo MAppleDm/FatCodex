@@ -282,6 +282,113 @@ class FoodAgentTest {
         assertFalse("no reasoning level is sent", "reasoning_effort" in first)
         assertEquals(0.0, first["temperature"]!!.jsonPrimitive.content.toDouble(), 0.0)
         assertTrue(first["tools"]!!.jsonArray.size > 1)
+        assertEquals("room for a dozen tool calls in one answer: a receipt", 4096, first["max_tokens"]!!.jsonPrimitive.content.toInt())
+    }
+
+    @Test fun `a receipt is read line by line, each line gets its own proposal, the picture and the word go along`() = runTest {
+        withKey()
+        fun option(name: String, kcal: Int, p: Double, f: Double, c: Double) =
+            """"options": [{"name": "$name (Вкусно и точка)", "kcal": $kcal, "protein": $p, "fat": $f, "carbs": $c, "source": "myfoodbro.ru", "url": "https://myfoodbro.ru/$kcal"}]"""
+        env.enqueue(200, turn("search_foods" to """{"query": "фиш бургер"}""", "search_foods" to """{"query": "мороженое"}""", "search_foods" to """{"query": "биг хит"}"""))
+        env.enqueue(200, turn(
+            "propose_food" to """{"for_item": "Фиш бургер", ${option("Фиш бургер", 260, 12.0, 11.0, 28.0)}}""",
+            "propose_food" to """{"for_item": "Мороженое", ${option("Мороженое", 207, 3.5, 11.0, 23.6)}}""",
+            "propose_food" to """{"for_item": "Биг хит", ${option("Биг хит", 250, 13.0, 13.0, 22.0)}}""",
+        ))
+        env.enqueue(200, turn("record_food" to """{"items": [
+            {"action": "add", "name": "Фиш бургер", "grams": 150, "confidence": 0.9, "needs_confirmation": true},
+            {"action": "add", "name": "Мороженое", "grams": 114, "confidence": 0.9, "needs_confirmation": true},
+            {"action": "add", "name": "Биг хит", "grams": 200, "confidence": 0.9, "needs_confirmation": true}]}"""))
+
+        env.localDiary.sendMessage("чек", byteArrayOf(1, 2, 3), DAY, NOW, MessageSource.Photo)
+
+        val proposals = notes().filter { it.kind == "proposal" }
+        assertEquals(3, proposals.size)
+        assertEquals("each line has its own entry and its own question", entries().map { it.id }.toSet(), proposals.map { it.targetEntryId }.toSet())
+        assertTrue("nothing is counted until the person has chosen", entries().all { it.kcal == null && it.pending })
+        assertTrue(env.db.foods().all().isEmpty())
+
+        val user = request()["messages"]!!.jsonArray[1].jsonObject["content"]!!.jsonArray
+        assertTrue(user[0].jsonObject["text"]!!.jsonPrimitive.content.endsWith("message: чек"))
+        assertEquals("data:image/jpeg;base64,AQID", user[1].jsonObject["image_url"]!!.jsonObject["url"]!!.jsonPrimitive.content)
+
+        // one answer settles one line, the others stay open
+        assertTrue(env.localDiary.acceptProposal(proposals[0].id, ProposalCodec.decode(proposals[0].payload).single()).isSuccess)
+        assertEquals(2, notes().count { it.kind == "proposal" && !it.resolved })
+        assertEquals(1, entries().count { it.kcal != null })
+    }
+
+    // ---------- a dish: one yes for the whole of it ----------
+
+    private fun part(name: String, grams: Double, kcal: Double, p: Double, f: Double, c: Double) =
+        """{"name": "$name", "grams": $grams, "kcal": $kcal, "protein": $p, "fat": $f, "carbs": $c}"""
+
+    private val borschtParts = listOf(
+        part("свёкла", 40.0, 43.0, 1.6, 0.2, 9.6), part("говядина", 50.0, 250.0, 26.0, 15.0, 0.0), part("бульон", 210.0, 0.0, 0.0, 0.0, 0.0),
+    ).joinToString(",")
+
+    @Test fun `a dish is proposed with its ingredients, confirmed once, and the entry carries them`() = runTest {
+        withKey()
+        env.enqueue(200, turn("propose_food" to """{"for_item": "борщ", "options": [{"name": "борщ", "kcal": 50, "protein": 3, "fat": 2, "carbs": 5,
+            "source": "типичный рецепт", "parts": [$borschtParts]}]}"""))
+        env.enqueue(200, turn("record_food" to """{"items": [{"action": "add", "name": "борщ", "grams": 300, "confidence": 0.9}]}"""))
+        say("тарелка борща")
+
+        val proposal = notes().single { it.kind == "proposal" }
+        val choice = ProposalCodec.decode(proposal.payload).single()
+        assertEquals(listOf("свёкла", "говядина", "бульон"), choice.parts.map { it.name })
+        assertEquals("worked out from the ingredients, not the rough 50 the model sent", 47.4, choice.per100.kcal, 1e-9)
+        assertTrue("nothing is in the base before the yes", env.db.foods().all().isEmpty())
+        assertTrue(entries().single().pending)
+
+        assertTrue(env.localDiary.acceptProposal(proposal.id, choice).isSuccess) // one yes
+        val dish = entries().single()
+        val parts = dev.dietapp.data.local.DishCodec.decode(dish.parts)
+        assertEquals(listOf(40.0, 50.0, 210.0), parts.map { it.grams })
+        assertEquals(142.2, dish.kcal!!, 1e-9)
+        assertEquals("the entry's numbers are its ingredients' sum", dev.dietapp.data.domain.Dish.totals(parts).kcal, dish.kcal!!, 1e-9)
+        assertEquals(1, env.db.foods().all().size)
+        assertEquals(3, dev.dietapp.data.local.DishCodec.decode(env.db.foods().all().single().parts).size)
+    }
+
+    @Test fun `the dish is known next time, and brings its ingredients scaled to the portion`() = runTest {
+        withKey()
+        val dish = env.foods.save(FoodInput("борщ", Per100(0.0, 0.0, 0.0, 0.0), parts = listOf(
+            dev.dietapp.data.domain.DishPart("свёкла", 40.0, Per100(43.0, 1.6, 0.2, 9.6)),
+            dev.dietapp.data.domain.DishPart("говядина", 50.0, Per100(250.0, 26.0, 15.0, 0.0)),
+            dev.dietapp.data.domain.DishPart("бульон", 210.0, Per100(0.0, 0.0, 0.0, 0.0)),
+        )))
+        env.enqueue(200, turn("search_foods" to """{"query": "борщ"}"""))
+        env.enqueue(200, turn("record_food" to """{"items": [{"action": "add", "name": "борщ", "grams": 150, "confidence": 0.9, "food_id": "my:${dish.id}"}]}"""))
+        say("половина тарелки борща")
+
+        val e = entries().single()
+        assertEquals(listOf(20.0, 25.0, 105.0), dev.dietapp.data.local.DishCodec.decode(e.parts).map { it.grams })
+        assertEquals(71.1, e.kcal!!, 1e-9)
+        request()
+        assertTrue("the model is told it is a dish", toolAnswer(request()).contains("\"dish_of\":3"))
+    }
+
+    @Test fun `ingredients that do not hold together are dropped, the dish is offered by its own numbers, and the model is told`() = runTest {
+        withKey()
+        env.enqueue(200, turn("propose_food" to """{"for_item": "борщ", "options": [{"name": "борщ", "kcal": 50, "protein": 3, "fat": 2, "carbs": 5,
+            "parts": [${part("свёкла", 0.0, 43.0, 1.6, 0.2, 9.6)}, ${part("говядина", 50.0, 250.0, 26.0, 15.0, 0.0)}]}]}"""))
+        env.enqueue(200, turn("record_food" to """{"items": [{"action": "add", "name": "борщ", "grams": 300, "confidence": 0.9}]}"""))
+        say("борщ")
+        request()
+        val told = toolAnswer(request())
+        assertTrue(told, told.contains("parts dropped") && told.contains("shown_to_user\":1"))
+        val choice = ProposalCodec.decode(notes().single { it.kind == "proposal" }.payload).single()
+        assertTrue(choice.parts.isEmpty())
+        assertEquals(50.0, choice.per100.kcal, 0.0)
+    }
+
+    @Test fun `a plain product is proposed without ingredients, as before`() = runTest {
+        withKey()
+        env.enqueue(200, turn("propose_food" to """{"for_item": "казеиновый протеин", "options": [$caseinOption]}"""))
+        env.enqueue(200, turn("record_food" to """{"items": [{"action": "add", "name": "казеиновый протеин", "grams": 30, "confidence": 0.9}]}"""))
+        say("казеиновый протеин 30 г")
+        assertTrue(ProposalCodec.decode(notes().single().payload).single().parts.isEmpty())
     }
 
     // ---------- changing or deleting what exists: the same rule as recording food ----------

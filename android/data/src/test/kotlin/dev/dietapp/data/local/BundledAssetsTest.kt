@@ -34,6 +34,16 @@ class BundledAssetsTest {
         assertTrue("nothing named like a catalog: ${names.joinToString()}", names.none { it.contains("usda", true) || it.contains("foods_sr") || it.contains("ru_foods") })
     }
 
+    @Test fun `the agent is told how to read a receipt, an order or a menu`() {
+        val rules = LocalModule.promptAssets(context).localAgent
+        assertTrue(rules.contains("receipt") && rules.contains("<place> <item> кбжу") && rules.contains("same turn"))
+    }
+
+    @Test fun `the agent is told how to offer a dish with its ingredients, and that a dish it finds is recorded by its id`() {
+        val rules = LocalModule.promptAssets(context).localAgent
+        assertTrue(rules.contains("\"parts\"") && rules.contains("one yes") && rules.contains("dish_of"))
+    }
+
     @Test fun `the agent is told there is no built-in catalog`() {
         val rules = LocalModule.promptAssets(context).localAgent
         assertTrue(!rules.contains("usda:") && !rules.contains("USDA SR Legacy") && !rules.contains("\"ru:"))

@@ -52,6 +52,8 @@ data class Entry(
     val dirty: Boolean,
     /** Recognised but not confirmed yet: shown, not counted. */
     val pending: Boolean = false,
+    /** A dish: what it is made of, in the amounts of this entry. They add up to the entry's numbers. Empty for a plain food. */
+    val parts: List<DishPart> = emptyList(),
 )
 
 data class Weight(val id: String, val day: LocalDate, val kg: Double, val updatedAt: Instant)
@@ -88,6 +90,8 @@ data class FoodChoice(
     val url: String? = null,
     val note: String? = null,
     val estimated: Boolean = false,
+    /** A dish: its ingredients for a typical serving. When there are some, [per100] is what they add up to. */
+    val parts: List<DishPart> = emptyList(),
 )
 
 /** Something the user sent: shown in the feed with what the app made of it right below. */
@@ -116,6 +120,8 @@ data class Food(
     /** "user", "model", "web" or "import". */
     val origin: String = "user",
     val url: String? = null,
+    /** A dish: its ingredients for a typical serving. [per100] is what they add up to. Empty for a plain food. */
+    val parts: List<DishPart> = emptyList(),
 )
 
 enum class OutboxState { Queued, Failed }
@@ -130,6 +136,8 @@ data class OutboxMessage(
     val state: OutboxState,
     val error: String?,
     val attempts: Int,
+    /** What the agent is doing with it at this moment; null while it waits its turn. */
+    val agent: AgentStatus? = null,
 )
 
 data class Profile(val email: String?, val calorieGoal: Int?)
@@ -140,6 +148,8 @@ data class DayContent(
     val notes: List<Note>,
     val weights: List<Weight>,
     val messages: List<Message> = emptyList(),
+    /** What the watch said about this day, if it is connected and had something to say. */
+    val facts: DayFacts? = null,
 ) {
     companion object {
         val Empty = DayContent(emptyList(), emptyList(), emptyList(), emptyList())

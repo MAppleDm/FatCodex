@@ -53,6 +53,25 @@ object ReversibleCipher : dev.dietapp.data.local.KeyCipher {
     override fun decrypt(token: String) = token.takeIf { it.startsWith("enc:") }?.removePrefix("enc:")?.reversed()
 }
 
+/** A phone with a watch that says what the test tells it to. */
+class FakeWatchSource : dev.dietapp.data.watch.WatchSource {
+    override val permissions = setOf("p.sleep", "p.steps", "p.exercise", "p.weight")
+    var availability = dev.dietapp.data.watch.WatchAvailability.Ready
+    var granted: Set<String> = emptySet()
+    val facts = mutableMapOf<java.time.LocalDate, dev.dietapp.data.domain.DayFacts>()
+    val reads = mutableListOf<java.time.LocalDate>()
+    var failing = false
+
+    override suspend fun availability() = availability
+    override suspend fun granted() = granted
+    override suspend fun read(day: java.time.LocalDate, zone: ZoneId): dev.dietapp.data.domain.DayFacts? {
+        reads += day
+        if (failing) throw java.io.IOException("the provider is gone")
+        if (granted.isEmpty()) return null
+        return facts[day] ?: dev.dietapp.data.domain.DayFacts(day)
+    }
+}
+
 class RecordingTrigger : SyncTrigger {
     val requests = mutableListOf<Boolean>()
     override fun requestSync(pull: Boolean) { requests += pull }
@@ -88,13 +107,18 @@ class TestEnv {
         pause = { }, tools = FoodTools(foods, web), trace = journal)
     val resolver = FoodResolver(foods)
     val chooser = ParserChooser(model, { secrets.hasKey.value }, journal)
-    val processor = LocalMessageProcessor(db, chooser, resolver, files, clock)
+    val activity = dev.dietapp.data.local.AgentActivity()
+    val processor = LocalMessageProcessor(db, chooser, resolver, files, clock, activity = activity)
     val localEngine = LocalEngine(db, processor, files, journal)
     val localSettings = LocalSettingsImpl(mode, secrets, prompts)
 
+    val watchStore = dev.dietapp.data.watch.WatchStore(context).also { it.clear() }
+    val watchSource = FakeWatchSource()
+
     val bodyModel = dev.dietapp.data.repo.BodyModel(bodyStore, db, clock)
+    val watch = dev.dietapp.data.repo.WatchRepositoryImpl(watchSource, db, watchStore, clock, journal)
     val engine = SyncEngine(db, api, session, files, json, clock)
-    val diary = DiaryRepositoryImpl(db, files, session, trigger, mode, engine, localEngine, clock, foods, thumbs, bodyModel)
+    val diary = DiaryRepositoryImpl(db, files, session, trigger, mode, engine, localEngine, clock, foods, thumbs, bodyModel, activity)
 
     /** The same diary, but every queued message is processed on the spot, as the app does in local mode. */
     val localDiary = DiaryRepositoryImpl(
@@ -102,10 +126,10 @@ class TestEnv {
         object : dev.dietapp.data.repo.SyncTrigger {
             override fun requestSync(pull: Boolean) { runBlocking { localEngine.run() } }
         },
-        mode, engine, localEngine, clock, foods, thumbs, bodyModel,
+        mode, engine, localEngine, clock, foods, thumbs, bodyModel, activity,
     )
     val exports = dev.dietapp.data.repo.ExportRepositoryImpl(db, clock, bodyModel)
-    val auth = AuthRepositoryImpl(db, api, session, files, trigger, json, mode, secrets, thumbs, bodyStore, scope)
+    val auth = AuthRepositoryImpl(db, api, session, files, trigger, json, mode, secrets, thumbs, bodyStore, watchStore, scope)
     val body = dev.dietapp.data.repo.BodyRepositoryImpl(bodyStore, bodyModel, diary, clock)
 
     fun loginAs(email: String = "me@example.com", token: String = "tok-123") = session.save(token, email)

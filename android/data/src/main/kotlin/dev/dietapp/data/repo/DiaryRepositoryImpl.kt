@@ -8,6 +8,7 @@ import dev.dietapp.data.db.OutboxRow
 import dev.dietapp.data.db.WeightRow
 import dev.dietapp.data.db.toDomain
 import dev.dietapp.data.domain.DayContent
+import dev.dietapp.data.domain.Dish
 import dev.dietapp.data.domain.DaySummary
 import dev.dietapp.data.domain.EntryStatus
 import dev.dietapp.data.domain.MessageSource
@@ -15,8 +16,10 @@ import dev.dietapp.data.domain.NutrientMath
 import dev.dietapp.data.domain.Profile
 import dev.dietapp.data.domain.Weight
 import dev.dietapp.data.domain.FoodChoice
+import dev.dietapp.data.local.AgentActivity
 import dev.dietapp.data.local.Author
 import dev.dietapp.data.local.BaseChangeCodec
+import dev.dietapp.data.local.DishCodec
 import dev.dietapp.data.domain.Lang.t
 import dev.dietapp.data.local.FoodBase
 import dev.dietapp.data.local.FoodInput
@@ -54,6 +57,7 @@ class DiaryRepositoryImpl @Inject constructor(
     private val foods: FoodBase,
     private val thumbs: PhotoThumbs,
     private val body: BodyModel,
+    private val activity: AgentActivity,
 ) : DiaryRepository {
 
     /** In local mode nothing is ever sent to a server: edits are final at once and never marked unsent. */
@@ -63,7 +67,7 @@ class DiaryRepositoryImpl @Inject constructor(
 
     override fun observeDay(day: LocalDate): Flow<DayContent> {
         val key = day.toString()
-        return combine(
+        val content = combine(
             db.entries().observeDay(key),
             db.outbox().observeAll(),
             db.notes().observeDay(key),
@@ -76,6 +80,13 @@ class DiaryRepositoryImpl @Inject constructor(
                 notes = notes.map { it.toDomain() },
                 weights = weights.filter { it.day == key }.map { it.toDomain() },
                 messages = messages.map { it.toDomain() },
+            )
+        }
+        return combine(content, db.dayFacts().observe(key), activity.statuses) { c, facts, steps ->
+            c.copy(
+                facts = facts?.toDomain(),
+                // the step the agent is at, on the message it is reading
+                outbox = if (steps.isEmpty()) c.outbox else c.outbox.map { m -> steps[m.id]?.let { m.copy(agent = it) } ?: m },
             )
         }
     }
@@ -145,10 +156,38 @@ class DiaryRepositoryImpl @Inject constructor(
                 confidence = if (row.status == EntryStatus.Uncertain.toWire()) 1.0 else row.confidence,
             )
         }
+        if (next.grams != row.grams) {
+            // a dish keeps its ingredients in the same proportions
+            DishCodec.decode(row.parts).takeIf { it.isNotEmpty() }?.let { next = next.copy(parts = DishCodec.encode(Dish.scaleTo(it, next.grams))) }
+        }
         val newName = name?.trim()
         if (!newName.isNullOrEmpty() && newName != row.name) next = next.copy(name = newName)
         if (next == row) return
         db.entries().upsert(next.copy(updatedAtMs = clock.millis(), dirty = unsent))
+        if (unsent) sync.requestSync()
+    }
+
+    /**
+     * The person changed one ingredient of a dish they ate: more or less of it, down to none. The dish weighs what its
+     * ingredients now weigh and the entry's numbers are their sum.
+     */
+    override suspend fun updatePart(entryId: String, index: Int, grams: Double) {
+        val row = db.entries().get(entryId) ?: return
+        val parts = DishCodec.decode(row.parts)
+        if (index !in parts.indices || grams.isNaN() || grams < 0.0 || grams > Dish.MAX_PART_GRAMS) return
+        val changed = parts.toMutableList().also { it[index] = it[index].copy(grams = grams) }
+        val total = Dish.grams(changed)
+        if (total <= 0.0) return // a dish of nothing is not a dish: the entry is deleted instead
+        val sum = Dish.totals(changed)
+        val per100 = Dish.per100(changed)!!
+        db.entries().upsert(
+            row.copy(
+                parts = DishCodec.encode(changed), grams = total,
+                kcal = sum.kcal, protein = sum.protein, fat = sum.fat, carbs = sum.carbs,
+                kcal100 = per100.kcal, protein100 = per100.protein, fat100 = per100.fat, carbs100 = per100.carbs,
+                updatedAtMs = clock.millis(), dirty = unsent,
+            ),
+        )
         if (unsent) sync.requestSync()
     }
 
@@ -191,6 +230,7 @@ class DiaryRepositoryImpl @Inject constructor(
             FoodInput(
                 name = choice.name,
                 per100 = choice.per100,
+                parts = choice.parts,
                 estimated = choice.estimated,
                 note = listOfNotNull(choice.source, choice.note).joinToString(". ").ifEmpty { null },
                 origin = when {
@@ -214,6 +254,7 @@ class DiaryRepositoryImpl @Inject constructor(
                         kcal = NutrientMath.scale(p.kcal, e.grams), protein = NutrientMath.scale(p.protein, e.grams),
                         fat = NutrientMath.scale(p.fat, e.grams), carbs = NutrientMath.scale(p.carbs, e.grams),
                         foodName = food.name, status = if (food.estimated) "uncertain" else "ok",
+                        parts = DishCodec.encode(Dish.scaleTo(food.parts, e.grams)),
                         // picking the values is the user's decision about this food: it is recorded
                         pending = false,
                         updatedAtMs = now, dirty = unsent,

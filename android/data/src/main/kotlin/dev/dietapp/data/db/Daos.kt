@@ -151,6 +151,24 @@ interface NoteDao {
 }
 
 @Dao
+interface DayFactsDao {
+    @Query("SELECT * FROM day_facts WHERE day = :day")
+    fun observe(day: String): Flow<DayFactsRow?>
+
+    @Query("SELECT * FROM day_facts WHERE day >= :from AND day <= :to ORDER BY day")
+    suspend fun between(from: String, to: String): List<DayFactsRow>
+
+    @Query("SELECT * FROM day_facts WHERE day = :day")
+    suspend fun get(day: String): DayFactsRow?
+
+    @Upsert
+    suspend fun upsert(row: DayFactsRow)
+
+    @Query("DELETE FROM day_facts")
+    suspend fun clear()
+}
+
+@Dao
 interface ProfileDao {
     @Query("SELECT * FROM profile WHERE id = 1")
     fun observe(): Flow<ProfileRow?>
@@ -213,9 +231,9 @@ interface FoodDao {
 @Database(
     entities = [
         EntryRow::class, WeightRow::class, OutboxRow::class, NoteRow::class, ProfileRow::class,
-        MessageRow::class, FoodRow::class,
+        MessageRow::class, FoodRow::class, DayFactsRow::class,
     ],
-    version = 5,
+    version = 10,
     exportSchema = true,
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -226,10 +244,75 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun profile(): ProfileDao
     abstract fun messages(): MessageDao
     abstract fun foods(): FoodDao
+    abstract fun dayFacts(): DayFactsDao
 
     companion object {
         /** Every migration, oldest first. In local mode the database is the only copy of the diary: never drop it. */
-        val MIGRATIONS = arrayOf(Migration1To2, Migration2To3, Migration3To4, Migration4To5)
+        val MIGRATIONS = arrayOf(Migration1To2, Migration2To3, Migration3To4, Migration4To5, Migration5To6, Migration6To7, Migration7To8, Migration8To9, Migration9To10)
+    }
+}
+
+/**
+ * v10: the calories burned are not read from the watch any more (what the watches put into Health Connect was not right), so the
+ * two columns of v8 and v9 go. The table is rebuilt (SQLite before 3.35 cannot drop a column); sleep, steps and workouts stay.
+ */
+object Migration9To10 : Migration(9, 10) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `day_facts_new` (`day` TEXT NOT NULL, `sleepMinutes` INTEGER, `steps` INTEGER, " +
+                "`workouts` TEXT, `readAtMs` INTEGER NOT NULL, PRIMARY KEY(`day`))",
+        )
+        db.execSQL(
+            "INSERT INTO `day_facts_new` (`day`, `sleepMinutes`, `steps`, `workouts`, `readAtMs`) " +
+                "SELECT `day`, `sleepMinutes`, `steps`, `workouts`, `readAtMs` FROM `day_facts`",
+        )
+        db.execSQL("DROP TABLE `day_facts`")
+        db.execSQL("ALTER TABLE `day_facts_new` RENAME TO `day_facts`")
+    }
+}
+
+/** v9: everything the watch says was burned that day, the body at rest included (some watches give only that). */
+object Migration8To9 : Migration(8, 9) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE `day_facts` ADD COLUMN `totalKcal` INTEGER")
+    }
+}
+
+/** v8: the calories the watch says were burned that day, added to the day's allowance. A new nullable column, nothing else moves. */
+object Migration7To8 : Migration(7, 8) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE `day_facts` ADD COLUMN `activeKcal` INTEGER")
+    }
+}
+
+/**
+ * v7: the watch's pulse and heart rate variability are not read any more, so the two columns go. A table is rebuilt instead of
+ * altered (SQLite before 3.35, which is most phones, cannot drop a column); what was read about sleep, steps and workouts stays.
+ */
+object Migration6To7 : Migration(6, 7) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `day_facts_new` (`day` TEXT NOT NULL, `sleepMinutes` INTEGER, `steps` INTEGER, " +
+                "`workouts` TEXT, `readAtMs` INTEGER NOT NULL, PRIMARY KEY(`day`))",
+        )
+        db.execSQL(
+            "INSERT INTO `day_facts_new` (`day`, `sleepMinutes`, `steps`, `workouts`, `readAtMs`) " +
+                "SELECT `day`, `sleepMinutes`, `steps`, `workouts`, `readAtMs` FROM `day_facts`",
+        )
+        db.execSQL("DROP TABLE `day_facts`")
+        db.execSQL("ALTER TABLE `day_facts_new` RENAME TO `day_facts`")
+    }
+}
+
+/** v6: the ingredients of a dish (in the user's foods and in diary entries), and what the watch says about a day. */
+object Migration5To6 : Migration(5, 6) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE `foods` ADD COLUMN `parts` TEXT")
+        db.execSQL("ALTER TABLE `entries` ADD COLUMN `parts` TEXT")
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `day_facts` (`day` TEXT NOT NULL, `sleepMinutes` INTEGER, `steps` INTEGER, `restingHr` INTEGER, " +
+                "`hrvMs` REAL, `workouts` TEXT, `readAtMs` INTEGER NOT NULL, PRIMARY KEY(`day`))",
+        )
     }
 }
 

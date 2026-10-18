@@ -1,5 +1,6 @@
 package dev.dietapp.coreui
 
+import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
@@ -38,6 +39,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
@@ -48,7 +50,6 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -138,7 +139,14 @@ fun UnderlineField(
 
 // ---------- day summary ----------
 
-/** "1 420 / 1 900 ккал" over "Б 90 · Ж 50 · У 140", two lines so that a long figure never breaks the macros apart. Tap to expand. */
+/**
+ * "1 420 / 1 900 ккал" with the day's date pressed to the right edge, over "Б 90 · Ж 50 · У 140": two lines so that a
+ * long figure never breaks the macros apart. The date is there folded and open. Tap to expand.
+ *
+ * The numbers count to their new value when a food is recorded, changed or removed, with a touch of orange that fades as
+ * they settle ([rememberCounted]); [details] gets the count of the calories so what it shows follows it. [resetKey] says when a
+ * number is not the same day's number any more (another day, the first load): then it appears at once, uncounted.
+ */
 @Composable
 fun DaySummary(
     kcal: Int,
@@ -149,11 +157,19 @@ fun DaySummary(
     expanded: Boolean,
     onToggle: () -> Unit,
     modifier: Modifier = Modifier,
-    details: @Composable ColumnScope.() -> Unit = {},
+    date: String? = null,
+    resetKey: Any? = null,
+    details: @Composable ColumnScope.(shownKcal: Int) -> Unit = {},
 ) {
-    val mono = SpanStyle(fontFamily = FontFamily.Monospace)
+    val c = AppTheme.colors
+    val mono = SpanStyle(fontFeatureSettings = "tnum")
+    val shownKcal = rememberCounted(kcal, resetKey)
+    val shownProtein = rememberCounted(protein, resetKey)
+    val shownFat = rememberCounted(fat, resetKey)
+    val shownCarbs = rememberCounted(carbs, resetKey)
+    fun counted(base: Color, n: Counted) = mono.copy(color = lerp(base, c.time, n.glow))
     val energy = buildAnnotatedString {
-        withStyle(mono) { append(formatInt(kcal)) }
+        withStyle(counted(c.foreground, shownKcal)) { append(formatInt(shownKcal.value)) }
         if (goal != null) {
             append(" / ")
             withStyle(mono) { append(formatInt(goal)) }
@@ -162,11 +178,11 @@ fun DaySummary(
     }
     val macros = buildAnnotatedString {
         append("${CoreTexts.p} ")
-        withStyle(mono) { append(formatInt(protein)) }
+        withStyle(counted(c.secondary, shownProtein)) { append(formatInt(shownProtein.value)) }
         append(" · ${CoreTexts.f} ")
-        withStyle(mono) { append(formatInt(fat)) }
+        withStyle(counted(c.secondary, shownFat)) { append(formatInt(shownFat.value)) }
         append(" · ${CoreTexts.c} ")
-        withStyle(mono) { append(formatInt(carbs)) }
+        withStyle(counted(c.secondary, shownCarbs)) { append(formatInt(shownCarbs.value)) }
     }
     Column(
         modifier
@@ -176,24 +192,27 @@ fun DaySummary(
             .padding(horizontal = 16.dp, vertical = 12.dp)
             .semantics(mergeDescendants = true) {},
     ) {
-        Text(energy, style = AppTheme.type.body.copy(fontSize = 15.sp))
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Top) {
+            Text(energy, style = AppTheme.type.body.copy(fontSize = 15.sp), modifier = Modifier.weight(1f, fill = false))
+            if (date != null) {
+                // another day fades in over the old one instead of switching
+                Crossfade(date, animationSpec = tween(180), modifier = Modifier.padding(start = 12.dp, top = 1.dp), label = "date") {
+                    Text(it, style = AppTheme.type.secondary.copy(fontSize = 14.sp))
+                }
+            }
+        }
         Text(macros, style = AppTheme.type.secondary.copy(fontSize = 14.sp), modifier = Modifier.padding(top = 2.dp))
         if (expanded) {
-            Spacer(Modifier.height(10.dp))
-            details()
+            Spacer(Modifier.height(12.dp))
+            details(shownKcal.value)
         }
     }
 }
 
-/** "29 сентября        к сегодняшнему дню": shown only while looking at a day that is not today. */
+/** "к сегодняшнему дню" under the date of the summary: shown only while looking at a day that is not today. */
 @Composable
-fun DayLine(day: String, action: String, onAction: () -> Unit, modifier: Modifier = Modifier) {
-    Row(
-        modifier.fillMaxWidth().padding(start = 16.dp, end = 8.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(day, style = AppTheme.type.secondary)
+fun DayLine(action: String, onAction: () -> Unit, modifier: Modifier = Modifier) {
+    Row(modifier.fillMaxWidth().padding(end = 8.dp), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
         TextAction(action, onAction)
     }
 }
@@ -208,18 +227,18 @@ fun ProgressLine(fraction: Float, modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun DetailLine(label: String, value: String, modifier: Modifier = Modifier) {
-    Row(modifier.fillMaxWidth().padding(vertical = 2.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+fun DetailLine(label: String, value: String, modifier: Modifier = Modifier, valueColor: Color = Color.Unspecified) {
+    Row(modifier.fillMaxWidth().padding(vertical = 3.dp), horizontalArrangement = Arrangement.SpaceBetween) {
         Text(label, style = AppTheme.type.secondary)
-        Text(value, style = AppTheme.type.mono)
+        Text(value, style = AppTheme.type.mono.copy(color = if (valueColor == Color.Unspecified) AppTheme.colors.foreground else valueColor))
     }
 }
 
 // ---------- feed rows ----------
 
 /**
- * One food in the feed. Recorded food (counted in the day) is tinted green; food still waiting for the user's
- * "записать" is grey and not counted. [note] is a short line under it: what the user picked when asked about it.
+ * One food in the feed. Recorded food (counted in the day) is tinted green, with the time it was recorded in orange under its name;
+ * food still waiting for the user's "записать" is grey, not counted, and has no time yet.
  */
 @Composable
 fun EntryRow(
@@ -229,7 +248,11 @@ fun EntryRow(
     modifier: Modifier = Modifier,
     approximate: Boolean = false,
     pending: Boolean = false,
-    note: String? = null,
+    /** When it was recorded, "08:15": small and orange, at the left under the name. Only a recorded food has it. */
+    time: String? = null,
+    /** A dish: null for a plain food, otherwise whether its ingredients are shown; a chevron after the name opens them. */
+    expanded: Boolean? = null,
+    onToggle: () -> Unit = {},
     onClick: () -> Unit,
 ) {
     val t = AppTheme.type
@@ -241,13 +264,26 @@ fun EntryRow(
     }
     Column(modifier.fillMaxWidth().tap(onClick = onClick).padding(horizontal = 16.dp, vertical = 10.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(name, style = t.body.copy(color = color), maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+            // the chevron sits right after the name, so that the numbers stay in their column with and without it
+            Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
+                Text(name, style = t.body.copy(color = color), maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
+                if (expanded != null) {
+                    Box(
+                        Modifier.size(36.dp).tap(onClick = onToggle)
+                            .semantics { contentDescription = CoreTexts.parts; role = Role.Button }.testTag("parts-toggle"),
+                        contentAlignment = Alignment.Center,
+                    ) { ChevronIcon(AppTheme.colors.secondary, up = expanded) }
+                }
+            }
             Spacer(Modifier.width(12.dp))
             Text("${formatGrams(grams)} ${CoreTexts.grams}", style = t.monoSecondary)
             Text(kcalText, style = t.mono.copy(color = color), textAlign = TextAlign.End, modifier = Modifier.width(60.dp))
         }
-        if (note != null) {
-            Text("› $note", style = t.caption.copy(color = AppTheme.colors.tertiary), maxLines = 1, overflow = TextOverflow.Ellipsis)
+        if (time != null && !pending) {
+            Text(
+                time, style = t.monoSecondary.copy(fontSize = 12.sp, lineHeight = 16.sp, color = AppTheme.colors.time),
+                modifier = Modifier.testTag("entry-time"),
+            )
         }
     }
 }
@@ -313,7 +349,9 @@ fun FeedNote(text: String, tone: NoteTone, modifier: Modifier = Modifier, onClic
 
 /**
  * What the user sent, on the right, so it never reads as part of the answer below it. A gap above it starts a new
- * turn of the conversation. [status] shows while it waits ("…") or when it failed.
+ * turn of the conversation. [status] shows while it waits ("…") or when it failed; [progress] is what the agent is
+ * doing with it right now, one quiet mono line under it (it is longer than a status and changes, so it does not share the
+ * message's line).
  */
 @Composable
 fun MessageRow(
@@ -326,6 +364,7 @@ fun MessageRow(
     /** A photo message: its small picture, in a rounded rectangle above the words (if there are any). */
     thumbnail: ImageBitmap? = null,
     thumbnailDescription: String? = null,
+    progress: String? = null,
     onClick: () -> Unit,
 ) {
     val t = AppTheme.type
@@ -360,6 +399,9 @@ fun MessageRow(
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.padding(top = if (thumbnail != null) 6.dp else 0.dp),
                 )
+            }
+            if (progress != null) {
+                Text(progress, style = t.monoSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 4.dp).testTag("progress"))
             }
         }
     }

@@ -1,5 +1,7 @@
 package dev.dietapp.data.local.parse
 
+import dev.dietapp.data.domain.AgentStatus
+import dev.dietapp.data.domain.AgentStep
 import java.io.IOException
 import java.io.InputStream
 import kotlinx.coroutines.CancellableContinuation
@@ -108,6 +110,27 @@ interface AgentTools {
     suspend fun call(name: String, args: JsonObject): ToolOutcome
 }
 
+/** The step a tool call is, for the line under the message. Only the kind, plus the site of a page being read: never a query. */
+internal fun stepOf(tool: String, args: JsonObject): AgentStatus? = when (tool) {
+    "search_foods" -> AgentStatus(AgentStep.SearchBase)
+    "web_search" -> AgentStatus(AgentStep.SearchWeb)
+    "open_page" -> AgentStatus(AgentStep.ReadPage, hostOf((args["url"] as? JsonPrimitive)?.content))
+    "propose_food" -> AgentStatus(AgentStep.Proposing)
+    "save_food" -> AgentStatus(AgentStep.Adding)
+    "delete_food" -> AgentStatus(AgentStep.Removing)
+    "reply" -> AgentStatus(AgentStep.Replying)
+    else -> null
+}
+
+private fun hostOf(url: String?): String? {
+    val host = try {
+        java.net.URI(url?.trim().orEmpty()).host
+    } catch (e: java.net.URISyntaxException) {
+        null
+    }
+    return host?.removePrefix("www.")?.take(40)?.takeIf { it.isNotBlank() }
+}
+
 /** Where the model client reports what it does: the diagnostics journal in the app, nowhere in most tests. */
 interface ModelTrace {
     fun log(tag: String, message: String)
@@ -205,6 +228,7 @@ class ModelParser(
         val changes = ArrayList<BaseChange>()
         var newFrom = 1 // the messages this round adds to the conversation: only those are written to the journal
         for (step in 0 until maxSteps) {
+            request.onStep(AgentStatus(if (step > 0) AgentStep.Thinking else if (request.imageBase64 != null) AgentStep.Looking else AgentStep.Reading))
             val answer = callWithRetries(key, agentBody(messages, tools, forceRecord = step == maxSteps - 1), step, newFrom)
             newFrom = messages.size
             val message = (answer["choices"] as? JsonArray)?.firstOrNull()?.jsonObject?.get("message") as? JsonObject
@@ -224,9 +248,11 @@ class ModelParser(
                 val name = (fn?.get("name") as? JsonPrimitive)?.content ?: ""
                 val args = (fn?.get("arguments") as? JsonPrimitive)?.content?.let { loose(it) as? JsonObject } ?: JsonObject(emptyMap())
                 val result: JsonElement = if (name == prompts.toolName) {
+                    request.onStep(AgentStatus(AgentStep.Recording))
                     recorded = (args["items"] as? JsonArray) ?: JsonArray(emptyList())
                     buildJsonObject { put("ok", true) }
                 } else {
+                    stepOf(name, args)?.let(request.onStep)
                     val outcome = tools.call(name, args)
                     outcome.note?.let { note ->
                         notes += note
@@ -290,7 +316,8 @@ class ModelParser(
             put("tool_choice", "auto")
         }
         put("temperature", 0)
-        put("max_tokens", 1024)
+        // a receipt of ten lines is ten tool calls in one turn: 1024 tokens cut it off in the middle of the JSON
+        put("max_tokens", 4096)
         putJsonObject("thinking") { put("type", "disabled") }
     }
 

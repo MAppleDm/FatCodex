@@ -8,6 +8,7 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import dev.dietapp.data.db.AppDatabase
+import dev.dietapp.data.local.AgentActivity
 import dev.dietapp.data.local.DiagLog
 import dev.dietapp.data.local.FoodBase
 import dev.dietapp.data.local.FoodTools
@@ -78,7 +79,8 @@ object LocalModule {
         resolver: FoodResolver,
         files: OutboxFiles,
         clock: Clock,
-    ): LocalMessageProcessor = LocalMessageProcessor(db, chooser, resolver, files, clock)
+        activity: AgentActivity,
+    ): LocalMessageProcessor = LocalMessageProcessor(db, chooser, resolver, files, clock, activity = activity)
 }
 
 @Module

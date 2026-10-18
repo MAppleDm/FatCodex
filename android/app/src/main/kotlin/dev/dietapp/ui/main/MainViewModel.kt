@@ -1,5 +1,6 @@
 package dev.dietapp.ui.main
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -65,6 +66,7 @@ interface MainActions {
     fun onCloseCamera()
     fun onPhoto(jpeg: ByteArray)
     fun onCameraFailed()
+    fun onGalleryFailed()
     fun onVoiceListening()
     fun onVoiceText(text: String, final: Boolean)
     fun onVoiceRecording()
@@ -80,7 +82,18 @@ interface MainActions {
     fun onConfirm(record: Boolean)
     fun onBaseChange(apply: Boolean)
     fun onQuestionSkip()
+
+    /** The chevron of a dish: its ingredients open or fold. */
+    fun onPartsToggle(entryId: String)
+
+    /** A tap on one ingredient of an open dish: its grams can be changed. */
+    fun onPartEditStart(entryId: String, index: Int)
+    fun onPartGrams(text: String)
+    fun onPartCommit()
 }
+
+/** Where the unsent text of the input is kept across the app being closed by the system. */
+private const val DRAFT = "draft"
 
 @OptIn(ExperimentalCoroutinesApi::class) // flatMapLatest
 @HiltViewModel
@@ -89,30 +102,43 @@ class MainViewModel @Inject constructor(
     private val speech: SpeechRepository,
     localSettings: LocalSettings,
     private val clock: Clock,
+    /** Keeps what is being typed when the system closes the app in the background (Hilt hands in the screen's own). */
+    private val saved: SavedStateHandle = SavedStateHandle(),
 ) : ViewModel(), MainActions {
 
-    private val local = MutableStateFlow(today().let { Local(day = it, today = it) })
+    private val local = MutableStateFlow(today().let { Local(day = it, today = it, draft = saved.get<String>(DRAFT).orEmpty()) })
     private val _effects = MutableSharedFlow<UiEffect>(extraBufferCapacity = 8)
     val effects: SharedFlow<UiEffect> = _effects.asSharedFlow()
 
     val uiState: StateFlow<MainUiState> = combine(
         local,
-        local.map { it.day }.distinctUntilChanged().flatMapLatest { diary.observeDay(it) },
+        // the day the content belongs to goes along with it: in the moment another day is opened the old content is still here
+        local.map { it.day }.distinctUntilChanged().flatMapLatest { day -> diary.observeDay(day).map { day to it } },
         diary.observeWeights(),
         diary.observeProfile(),
         localSettings.capabilities,
-    ) { l, content, weights, profile, caps -> buildState(l, content, weights, profile, caps) }
+    ) { l, (contentDay, content), weights, profile, caps -> buildState(l, content, weights, profile, caps, loaded = contentDay == l.day) }
         .stateIn(
             viewModelScope,
             SharingStarted.WhileSubscribed(5_000),
-            buildState(local.value, DayContent.Empty, emptyList(), Profile(null, null)),
+            buildState(local.value, DayContent.Empty, emptyList(), Profile(null, null), loaded = false),
         )
 
     init {
         viewModelScope.launch { diary.confirmations.collect { _effects.tryEmit(UiEffect.Confirm) } }
         // a photo message gets its small picture in the chat: read from the phone once, kept while the screen lives
         viewModelScope.launch {
-            local.map { it.day }.distinctUntilChanged().flatMapLatest { diary.observeDay(it) }.collect { content ->
+            // what counted in the day last time, to tell a record that has just gone in for good from one that was there
+            var knownDay: LocalDate? = null
+            var known: Set<String> = emptySet()
+            local.map { it.day }.distinctUntilChanged().flatMapLatest { day -> diary.observeDay(day).map { day to it } }.collect { (day, content) ->
+                // "for good" is food that counts: not waiting for "записать", not still without numbers (a question, a proposal)
+                val counted = content.entries.filter { !it.pending && it.kcal != null }.mapTo(HashSet()) { "e:${it.id}" } +
+                    content.weights.map { "w:${it.id}" }
+                // the first look at a day (the app opens, another day is picked) only learns what is there
+                if (day == knownDay && (counted - known).isNotEmpty()) _effects.tryEmit(UiEffect.Added)
+                knownDay = day
+                known = counted
                 content.messages.filter { it.hasImage && it.id !in local.value.thumbs }.forEach { m ->
                     diary.thumbnail(m.id)?.let { bytes -> update { s -> s.copy(thumbs = s.thumbs + (m.id to bytes)) } }
                 }
@@ -122,7 +148,11 @@ class MainViewModel @Inject constructor(
 
     private fun today(): LocalDate = LocalDate.now(clock)
     private fun now(): ZonedDateTime = ZonedDateTime.now(clock)
-    private fun update(block: (Local) -> Local) = local.update(block)
+    private fun update(block: (Local) -> Local) {
+        local.update(block)
+        val draft = local.value.draft
+        if (saved.get<String>(DRAFT) != draft) saved[DRAFT] = draft
+    }
 
     /** Call when the app comes to the foreground: new day? pick up what other devices did. */
     fun onForeground() {
@@ -152,6 +182,7 @@ class MainViewModel @Inject constructor(
             showNotice(NEEDS_KEY)
             return
         }
+        closeEdits()
         update { it.copy(draft = "", draftFromVoice = false, notice = null, voiceBase = "") }
         viewModelScope.launch {
             if (kg != null) {
@@ -166,8 +197,18 @@ class MainViewModel @Inject constructor(
     override fun onPhoto(jpeg: ByteArray) {
         val l = local.value
         val caption = l.draft.trim().takeIf { it.isNotEmpty() }
+        closeEdits()
         update { it.copy(cameraOpen = false, draft = "", draftFromVoice = false, voiceBase = "") }
         viewModelScope.launch { diary.sendMessage(caption, jpeg, l.day, now(), MessageSource.Photo) }
+    }
+
+    /**
+     * A new message means the person is done with the food or the ingredient they had open: what they changed is saved and the
+     * row folds, so that the feed can follow the new message to the bottom (it stays put while something is open).
+     */
+    private fun closeEdits() {
+        if (local.value.editing != null) onEditCommit()
+        if (local.value.partEdit != null) onPartCommit()
     }
 
     override fun onOpenCamera() {
@@ -177,6 +218,11 @@ class MainViewModel @Inject constructor(
     override fun onCameraFailed() {
         update { it.copy(cameraOpen = false) }
         showNotice(Texts.CAMERA_FAILED)
+    }
+
+    override fun onGalleryFailed() {
+        update { it.copy(cameraOpen = false) }
+        showNotice(Texts.GALLERY_FAILED)
     }
 
     // ---------- voice ----------
@@ -217,15 +263,17 @@ class MainViewModel @Inject constructor(
 
     override fun onToggleSummary() = update { it.copy(summaryExpanded = !it.summaryExpanded) }
 
-    fun onSelectDay(day: LocalDate) = update { it.copy(day = day, screen = Screen.Main, editing = null, weightActionsId = null) }
+    fun onSelectDay(day: LocalDate) = update { it.copy(day = day, screen = Screen.Main, editing = null, partEdit = null, weightActionsId = null) }
 
-    override fun onBackToToday() = update { it.copy(day = it.today, editing = null, weightActionsId = null) }
+    override fun onBackToToday() = update { it.copy(day = it.today, editing = null, partEdit = null, weightActionsId = null) }
     override fun onOpenSettings() = update { it.copy(screen = Screen.Settings, editing = null) }
     override fun onCloseSettings() = update { it.copy(screen = Screen.Main) }
     fun onOpenFoods() = update { it.copy(screen = Screen.Foods) }
     fun onCloseFoods() = update { it.copy(screen = Screen.Settings) }
     fun onOpenJournal() = update { it.copy(screen = Screen.Journal) }
     fun onCloseJournal() = update { it.copy(screen = Screen.About) }
+    fun onOpenWatch() = update { it.copy(screen = Screen.Watch) }
+    fun onCloseWatch() = update { it.copy(screen = Screen.Settings) }
     fun onOpenMe() = update { it.copy(screen = Screen.Me) }
     fun onCloseMe() = update { it.copy(screen = Screen.Settings) }
     fun onOpenHistory() = update { it.copy(screen = Screen.History) }
@@ -246,7 +294,37 @@ class MainViewModel @Inject constructor(
         if (open?.entryId == entryId) return
         val entry = uiState.value.feed.filterIsInstance<FeedItem.EntryItem>().firstOrNull { it.entry.id == entryId }?.entry ?: return
         update {
-            it.copy(editing = EditState(entryId, entry.name, formatGrams(entry.grams)), weightActionsId = null)
+            it.copy(editing = EditState(entryId, entry.name, formatGrams(entry.grams)), partEdit = null, weightActionsId = null)
+        }
+    }
+
+    // ---------- the ingredients of a dish ----------
+
+    override fun onPartsToggle(entryId: String) {
+        onPartCommit()
+        update { it.copy(expandedParts = if (entryId in it.expandedParts) it.expandedParts - entryId else it.expandedParts + entryId) }
+    }
+
+    override fun onPartEditStart(entryId: String, index: Int) {
+        onPartCommit() // another ingredient was being changed: it is saved first
+        val entry = uiState.value.feed.filterIsInstance<FeedItem.EntryItem>().firstOrNull { it.entry.id == entryId }?.entry ?: return
+        val part = entry.parts.getOrNull(index) ?: return
+        update { it.copy(partEdit = PartEdit(entryId, index, formatGrams(part.grams)), editing = null, weightActionsId = null) }
+    }
+
+    override fun onPartGrams(text: String) =
+        update { s -> s.copy(partEdit = s.partEdit?.copy(grams = text.filter { c -> c.isDigit() || c == '.' || c == ',' })) }
+
+    /** Saves the ingredient being changed, if its grams are a number that differs from what was there. */
+    override fun onPartCommit() {
+        val edit = local.value.partEdit ?: return
+        update { it.copy(partEdit = null) }
+        val entry = uiState.value.feed.filterIsInstance<FeedItem.EntryItem>().firstOrNull { it.entry.id == edit.entryId }?.entry ?: return
+        val grams = edit.grams.replace(',', '.').toDoubleOrNull()?.takeIf { it >= 0 && it <= 5000 } ?: return
+        if (grams == entry.parts.getOrNull(edit.index)?.grams) return
+        viewModelScope.launch {
+            diary.updatePart(edit.entryId, edit.index, grams)
+            _effects.tryEmit(UiEffect.Confirm)
         }
     }
 

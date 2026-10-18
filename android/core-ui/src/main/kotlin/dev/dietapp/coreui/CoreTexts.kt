@@ -17,4 +17,5 @@ object CoreTexts {
     val send get() = t("Отправить", "Send")
     val mic get() = t("Микрофон", "Microphone")
     val camera get() = t("Камера", "Camera")
+    val parts get() = t("Состав", "Ingredients")
 }

@@ -7,6 +7,7 @@ import android.content.pm.Signature
 import android.content.pm.SigningInfo
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import dev.dietapp.BuildConfig
 import dev.dietapp.MainDispatcherRule
 import java.io.File
 import java.io.IOException
@@ -22,6 +23,11 @@ import org.robolectric.Shadows.shadowOf
 
 private const val APK_URL = "https://github.com/MAppleDm/FatCodex/releases/download/v0.3.0/FatCodex-0.3.0.apk"
 private val release = UpdateRelease("v0.3.0", "Новая версия", UpdateApk("FatCodex-0.3.0.apk", APK_URL, 123))
+private val installedVersion = requireNotNull(AppVersion.parse(BuildConfig.VERSION_NAME))
+private val newerVersion = "${installedVersion.major}.${installedVersion.minor}.${installedVersion.patch + 1}"
+private val newerRelease = UpdateRelease("v$newerVersion", "Новая версия", UpdateApk(
+    "FatCodex-$newerVersion.apk", "$RELEASES_URL/download/v$newerVersion/FatCodex-$newerVersion.apk", 123,
+))
 
 @RunWith(AndroidJUnit4::class)
 class UpdateTest {
@@ -87,7 +93,7 @@ class UpdateTest {
         assertEquals(UpdatePhase.Idle, model.state.value.phase)
         model.onCheck()
         assertEquals(UpdatePhase.Available, model.state.value.phase)
-        fake.latest = release.copy(tag = "v0.2.0")
+        fake.latest = release.copy(tag = "v${BuildConfig.VERSION_NAME}")
         model.onCheck()
         assertEquals(UpdatePhase.Current, model.state.value.phase)
         fake.latest = release.copy(tag = "v0.1.0")
@@ -161,9 +167,9 @@ class UpdateTest {
     }
 
     @Test fun `a saved download is restored, an already installed update is cleaned up`() {
-        val fake = FakeUpdates().apply { saved = PendingUpdate(4, release) }
+        val fake = FakeUpdates().apply { saved = PendingUpdate(4, newerRelease) }
         assertEquals(UpdatePhase.Ready, UpdateViewModel(fake).state.value.phase)
-        fake.saved = PendingUpdate(5, release.copy(tag = "v0.2.0"))
+        fake.saved = PendingUpdate(5, release.copy(tag = "v${BuildConfig.VERSION_NAME}"))
         assertEquals(UpdatePhase.Idle, UpdateViewModel(fake).state.value.phase)
         assertNull(fake.saved)
     }
@@ -261,7 +267,7 @@ class UpdateTest {
 }
 
 private class FakeUpdates : UpdateRepository {
-    var latest: UpdateRelease? = release
+    var latest: UpdateRelease? = newerRelease
     var failure: Exception? = null
     var verificationFailure: Exception? = null
     var waitForCheck: CompletableDeferred<Unit>? = null

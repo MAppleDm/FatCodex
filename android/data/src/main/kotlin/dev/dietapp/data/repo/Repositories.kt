@@ -31,6 +31,9 @@ interface DiaryRepository {
     suspend fun sendMessage(text: String?, image: ByteArray?, day: LocalDate, now: ZonedDateTime, source: MessageSource)
 
     suspend fun updateEntry(id: String, grams: Double?, name: String?)
+
+    /** One ingredient of a dish eaten is changed: [index] in the entry's parts, [grams] of it (0 takes it out). */
+    suspend fun updatePart(entryId: String, index: Int, grams: Double)
     suspend fun deleteEntry(id: String)
     suspend fun addWeight(day: LocalDate, kg: Double, now: Instant)
 
@@ -110,6 +113,40 @@ interface BodyRepository {
     /** Becomes a weigh-in of today, so the diary and this page agree. */
     suspend fun setWeight(kg: Double)
     fun finishOnboarding()
+}
+
+/** What the person's phone and their choice say about the watch. */
+data class WatchState(
+    val availability: dev.dietapp.data.watch.WatchAvailability = dev.dietapp.data.watch.WatchAvailability.Unknown,
+    /** Health Connect is there and the person has allowed at least one kind of data. */
+    val permitted: Boolean = false,
+    /** The person connected it (and has not disconnected it since). */
+    val connected: Boolean = false,
+    val lastReadAt: Instant? = null,
+    /** Every kind of data that is read has been allowed (one added later, such as the calories, may be missing). */
+    val complete: Boolean = permitted,
+)
+
+/**
+ * The watch, read through the phone. The app only reads, only what the person allowed, and only when it is opened; what is read
+ * goes into the diary as the facts of a day (see DayFacts) and out again in the export.
+ */
+interface WatchRepository {
+    val state: Flow<WatchState>
+
+    /** The permissions to ask the person for. */
+    val permissions: Set<String>
+
+    /** Looks at the phone again: is Health Connect there, what was allowed. Cheap; call it when the page opens. */
+    suspend fun refreshPhone()
+
+    /** The person answered the permission dialog with [granted]. Connects (and reads the last month) if it is any; false if not. */
+    suspend fun connect(granted: Set<String>): Boolean
+
+    fun disconnect()
+
+    /** Reads the last few days if connected. Quiet: never fails, never asks for anything. */
+    suspend fun refresh()
 }
 
 interface AuthRepository {

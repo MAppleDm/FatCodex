@@ -2,6 +2,7 @@ package dev.dietapp.data.local
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import dev.dietapp.data.TestEnv
+import dev.dietapp.data.domain.DishPart
 import dev.dietapp.data.domain.Per100
 import dev.dietapp.data.net.AppError
 import kotlinx.coroutines.test.runTest
@@ -81,6 +82,65 @@ class FoodBaseTest {
         assertEquals("Казеиновый протеин", base.delete(saved.id)!!.name)
         assertNull(base.mine("казеин"))
         assertNull(base.delete(saved.id))
+    }
+
+    // ---------- dishes ----------
+
+    private val beet = DishPart("свёкла", 40.0, Per100(43.0, 1.6, 0.2, 9.6))
+    private val beef = DishPart("говядина", 50.0, Per100(250.0, 26.0, 15.0, 0.0))
+    private val broth = DishPart("бульон", 210.0, Per100(0.0, 0.0, 0.0, 0.0))
+    private val borscht = FoodInput("борщ", Per100(999.0, 1.0, 1.0, 1.0), estimated = true, parts = listOf(beet, beef, broth))
+
+    @Test fun `a dish has the numbers of its ingredients, whatever was sent with it`() = runTest {
+        val saved = base.save(borscht)
+        assertEquals(47.4, saved.per100.kcal, 1e-9)
+        assertEquals(listOf("свёкла", "говядина", "бульон"), saved.parts.map { it.name })
+        assertEquals(47.4, env.db.foods().all().single().kcal, 1e-9)
+        assertEquals(3, base.byId("my:${saved.id}")!!.parts.size)
+        assertEquals(3, base.search("борщ").single().parts.size)
+        assertEquals(3, base.mine("борщ")!!.parts.size)
+    }
+
+    @Test fun `a plain food saved over a dish makes it plain`() = runTest {
+        base.save(borscht)
+        val plain = base.save(FoodInput("борщ", Per100(50.0, 3.0, 2.0, 5.0)))
+        assertTrue(plain.parts.isEmpty())
+        assertTrue(base.byId("my:${plain.id}")!!.parts.isEmpty())
+        assertEquals(1, env.db.foods().all().size)
+    }
+
+    @Test fun `ingredients that cannot be right are refused, with the one that is wrong named`() = runTest {
+        assertTrue(refused(borscht.copy(parts = listOf(beet))).contains("от 2 до 16"))
+        assertTrue(refused(borscht.copy(parts = List(17) { beet.copy(name = "овощ $it") })).contains("от 2 до 16"))
+        assertTrue(refused(borscht.copy(parts = listOf(beet.copy(grams = 0.0), beef))).contains("свёкла"))
+        assertTrue(refused(borscht.copy(parts = listOf(beet.copy(name = " "), beef))).contains("название"))
+        assertTrue(refused(borscht.copy(parts = listOf(beet, beef.copy(per100 = Per100(-1.0, 26.0, 15.0, 0.0))))).contains("«говядина»"))
+        // the model has to make each ingredient's energy add up, too
+        val wrong = refused(borscht.copy(parts = listOf(beet, beef.copy(per100 = Per100(600.0, 1.0, 1.0, 1.0)))), Author.Model)
+        assertTrue(wrong, wrong.startsWith("Не сходится энергия") && wrong.contains("«говядина»"))
+    }
+
+    @Test fun `a dish goes through the food file with its ingredients`() = runTest {
+        base.save(borscht)
+        val file = base.exportJson()
+        assertTrue(file.contains("\"parts\""))
+        assertTrue(file.contains("свёкла"))
+        env.db.foods().delete(env.db.foods().all().single().id)
+        assertEquals(1, base.importJson(file).added)
+        assertEquals(listOf(40.0, 50.0, 210.0), base.mine("борщ")!!.parts.map { it.grams })
+        assertEquals(47.4, base.mine("борщ")!!.per100.kcal, 1e-9)
+    }
+
+    @Test fun `a file from before has foods without ingredients`() = runTest {
+        val result = base.importJson("""{"format": "dietapp-foods", "version": 1, "foods": [{"name": "творог", "kcal": 121, "protein": 17, "fat": 5, "carbs": 1.8}]}""")
+        assertEquals(1, result.added)
+        assertTrue(base.mine("творог")!!.parts.isEmpty())
+    }
+
+    @Test fun `the resolver hands the ingredients along`() = runTest {
+        val saved = base.save(borscht)
+        assertEquals(3, env.resolver.resolve("что-то", "my:${saved.id}")!!.parts.size)
+        assertEquals(3, env.resolver.resolve("борщ", null)!!.parts.size)
     }
 
     // ---------- searching ----------

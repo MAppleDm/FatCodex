@@ -74,6 +74,7 @@ fun EntryRow.toDomain() = Entry(
     updatedAt = Instant.ofEpochMilli(updatedAtMs),
     dirty = dirty,
     pending = pending,
+    parts = dev.dietapp.data.local.DishCodec.decode(parts),
 )
 
 fun Entry.toRow(deleted: Boolean = false) = EntryRow(
@@ -100,6 +101,7 @@ fun Entry.toRow(deleted: Boolean = false) = EntryRow(
     deleted = deleted,
     dirty = dirty,
     pending = pending,
+    parts = dev.dietapp.data.local.DishCodec.encode(parts),
 )
 
 fun WeightRow.toDomain() = Weight(id, LocalDate.parse(day), kg, Instant.ofEpochMilli(updatedAtMs))
@@ -137,6 +139,17 @@ fun FoodRow.toDomain() = dev.dietapp.data.domain.Food(
     createdAt = Instant.ofEpochMilli(createdAtMs),
     origin = origin,
     url = url,
+    parts = dev.dietapp.data.local.DishCodec.decode(parts),
+)
+
+fun DayFactsRow.toDomain() = dev.dietapp.data.domain.DayFacts(
+    day = LocalDate.parse(day), sleepMinutes = sleepMinutes, steps = steps,
+    workouts = dev.dietapp.data.local.WorkoutCodec.decode(workouts),
+)
+
+fun dev.dietapp.data.domain.DayFacts.toRow(readAtMs: Long) = DayFactsRow(
+    day = day.toString(), sleepMinutes = sleepMinutes, steps = steps,
+    workouts = dev.dietapp.data.local.WorkoutCodec.encode(workouts), readAtMs = readAtMs,
 )
 
 fun OutboxRow.toDomain() = OutboxMessage(
