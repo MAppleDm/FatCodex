@@ -2,6 +2,10 @@
 
 User-facing releases follow `vMAJOR.MINOR.PATCH`. See [RELEASING.md](RELEASING.md).
 
+## Unreleased
+
+- In-app checks for GitHub releases and APK downloads.
+
 ## v0.2.0 — 2026-10-06
 
 - Local mode with a user-supplied DeepSeek key and a food database built from confirmed proposals.
