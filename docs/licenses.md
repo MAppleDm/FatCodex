@@ -4,8 +4,8 @@
 
 `android/core-ui/src/main/res/font/inter_regular.ttf`: Inter 3.019, Regular, with Latin and Cyrillic.
 Copyright 2020 The Inter Project Authors (https://github.com/rsms/inter).
-Licensed under the SIL Open Font License, Version 1.1: https://openfontlicense.org (the license text is also in the font file
-itself, in its name table). The file is used unchanged.
+Licensed under the SIL Open Font License, Version 1.1: https://openfontlicense.org. The full notice and license are bundled in
+`android/core-ui/src/main/assets/licenses/Inter-OFL.txt` and included in the APK. The font file is used unchanged.
 
 The sound of a recorded food (`app/src/main/res/raw/added.wav`) is synthesized by `android/tools/make_added_sound.py` from plain sine
 waves and noise: it is part of this project and has no third-party material in it.
