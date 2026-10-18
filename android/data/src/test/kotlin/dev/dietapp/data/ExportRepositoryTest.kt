@@ -5,6 +5,8 @@ import dev.dietapp.data.db.WeightRow
 import dev.dietapp.data.domain.Activity
 import dev.dietapp.data.domain.BodyProfile
 import dev.dietapp.data.domain.Lang
+import dev.dietapp.data.domain.Workout
+import dev.dietapp.data.domain.WorkoutKind
 import dev.dietapp.data.domain.Language
 import dev.dietapp.data.domain.Sex
 import dev.dietapp.data.export.ExportFormat
@@ -87,6 +89,71 @@ class ExportRepositoryTest {
         assertTrue(md, md.contains("Вес: 82.6 кг (тренд 81.8)"))
         assertTrue("oldest day first", md.indexOf("## 2026-09-20") < md.indexOf("## 2026-09-30"))
         for (hidden in listOf("удалённое", "ждёт", "старое", "99")) assertFalse("$hidden is not in the diary", md.contains(hidden))
+    }
+
+    private suspend fun seedDishAndWatch() {
+        val parts = listOf(
+            dev.dietapp.data.domain.DishPart("свёкла", 40.0, dev.dietapp.data.domain.Per100(43.0, 1.6, 0.2, 9.6)),
+            dev.dietapp.data.domain.DishPart("говядина", 50.0, dev.dietapp.data.domain.Per100(250.0, 26.0, 15.0, 0.0)),
+        )
+        val sum = dev.dietapp.data.domain.Dish.totals(parts)
+        env.db.entries().upsert(
+            entryRow("dish", "борщ", 90.0, day = "2026-09-30").copy(
+                kcal = sum.kcal, protein = sum.protein, fat = sum.fat, carbs = sum.carbs, eatenAtMs = at("2026-09-30", 9, 0),
+                parts = dev.dietapp.data.local.DishCodec.encode(parts),
+            ),
+        )
+        env.db.dayFacts().upsert(
+            dev.dietapp.data.db.DayFactsRow("2026-09-30", 440, 8412, dev.dietapp.data.local.WorkoutCodec.encode(listOf(Workout(WorkoutKind.Running, 45))), 1),
+        )
+        // a day with the watch's words and no food at all
+        env.db.dayFacts().upsert(dev.dietapp.data.db.DayFactsRow("2026-09-28", null, 4000, null, 1))
+    }
+
+    @Test fun `a dish carries its ingredients into the json and the markdown`() = runTest {
+        seed(); seedDishAndWatch()
+        val root = Json.parseToJsonElement(file(ExportFormat.Json).text).jsonObject
+        val day = root["days"]!!.jsonArray.map { it.jsonObject }.first { it["date"]!!.jsonPrimitive.content == "2026-09-30" }
+        val dish = day["entries"]!!.jsonArray.map { it.jsonObject }.first { it["name"]!!.jsonPrimitive.content == "борщ" }
+        val parts = dish["parts"]!!.jsonArray.map { it.jsonObject }
+        assertEquals(listOf("свёкла", "говядина"), parts.map { it["name"]!!.jsonPrimitive.content })
+        assertEquals(40.0, parts[0]["grams"]!!.jsonPrimitive.content.toDouble(), 0.0)
+        assertTrue("a plain food has no parts", day["entries"]!!.jsonArray.map { it.jsonObject }.first { it["name"]!!.jsonPrimitive.content == "гречка" }["parts"] == null)
+        assertTrue(root["legend"]!!.jsonObject.containsKey("parts"))
+        val md = file(ExportFormat.Markdown).text
+        assertTrue(md, md.contains("> борщ: свёкла 40 г, говядина 50 г"))
+    }
+
+    @Test fun `what the watch said goes into every format that has days`() = runTest {
+        seed(); seedDishAndWatch()
+        val root = Json.parseToJsonElement(file(ExportFormat.Json).text).jsonObject
+        val days = root["days"]!!.jsonArray.map { it.jsonObject }
+        val watch = days.first { it["date"]!!.jsonPrimitive.content == "2026-09-30" }["watch"]!!.jsonObject
+        assertEquals(440, watch["sleep_min"]!!.jsonPrimitive.content.toInt())
+        assertEquals(8412, watch["steps"]!!.jsonPrimitive.content.toInt())
+        assertTrue("no calories from the watch", watch["active_kcal"] == null && watch["total_kcal"] == null)
+        assertTrue("nothing about the heart is exported", watch["resting_hr"] == null && watch["hrv_ms"] == null)
+        assertEquals("running", watch["workouts"]!!.jsonArray.single().jsonObject["kind"]!!.jsonPrimitive.content)
+        assertTrue("a day with only the watch is in the file", days.any { it["date"]!!.jsonPrimitive.content == "2026-09-28" })
+        assertTrue(days.first { it["date"]!!.jsonPrimitive.content == "2026-09-20" }["watch"] == null)
+
+        val md = file(ExportFormat.Markdown).text
+        assertTrue(md, md.contains("Часы: сон 7 ч 20 м · шаги 8412 · тренировки: running 45 мин"))
+        assertTrue(md, md.contains("## 2026-09-28"))
+    }
+
+    @Test fun `the watch has its own csv, one row a day`() = runTest {
+        seed(); seedDishAndWatch()
+        val lines = file(ExportFormat.CsvWatch).text.trim().lines()
+        assertEquals("date,sleep_min,steps,workout_min,workouts", lines[0])
+        assertEquals("2026-09-28,,4000,,", lines[1])
+        assertEquals("2026-09-30,440,8412,45,running 45", lines[2])
+        assertEquals("fatcodex-watch-30d-2026-09-30.csv", file(ExportFormat.CsvWatch).name)
+    }
+
+    @Test fun `a period with only the watch in it is not empty`() = runTest {
+        env.db.dayFacts().upsert(dev.dietapp.data.db.DayFactsRow("2026-09-29", 400, null, null, 1))
+        assertTrue(env.exports.export(ExportFormat.CsvWatch, ExportPeriod.Week).isSuccess)
     }
 
     @Test fun `markdown speaks the language of the app`() = runTest {

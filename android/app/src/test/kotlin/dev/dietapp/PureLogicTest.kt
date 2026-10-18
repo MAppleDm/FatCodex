@@ -60,24 +60,24 @@ class VoiceWithoutServerTest {
 }
 
 class ImageSizingTest {
-    @Test fun `a large landscape photo is scaled to 1024 on the long side`() {
-        assertEquals(1024 to 768, ImageSizing.fit(4000, 3000))
+    @Test fun `a large landscape photo is scaled to 1600 on the long side`() {
+        assertEquals(1600 to 1200, ImageSizing.fit(4000, 3000))
     }
 
     @Test fun `a large portrait photo is scaled the same way`() {
-        assertEquals(768 to 1024, ImageSizing.fit(3000, 4000))
+        assertEquals(1200 to 1600, ImageSizing.fit(3000, 4000))
     }
 
     @Test fun `small images are never enlarged`() {
         assertEquals(800 to 600, ImageSizing.fit(800, 600))
-        assertEquals(1024 to 1024, ImageSizing.fit(1024, 1024))
+        assertEquals(1600 to 1600, ImageSizing.fit(1600, 1600))
     }
 
     @Test fun `aspect ratio is kept and sides never collapse to zero`() {
         val (w, h) = ImageSizing.fit(10_000, 10)
-        assertEquals(1024, w)
+        assertEquals(1600, w)
         assertTrue(h >= 1)
-        assertEquals(1024 to 683, ImageSizing.fit(1500, 1000))
+        assertEquals(1600 to 1067, ImageSizing.fit(2400, 1600))
     }
 
     @Test fun `rotation is normalised`() {
@@ -89,6 +89,6 @@ class ImageSizingTest {
 
     @Test fun `the quality is the agreed 80 percent`() {
         assertEquals(80, ImageSizing.JPEG_QUALITY)
-        assertEquals(1024, ImageSizing.MAX_SIDE)
+        assertEquals("big enough to read the small print of a receipt", 1600, ImageSizing.MAX_SIDE)
     }
 }

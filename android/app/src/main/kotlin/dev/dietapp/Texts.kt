@@ -50,6 +50,21 @@ object Texts {
     val STATUS_WAITING get() = "…"
     val STATUS_OFFLINE get() = t("нет сети", "offline")
     val STATUS_RETRY get() = t("повтор", "retrying")
+
+    /** The line under a message while the agent works on it: what it does now, in two or three words. */
+    fun agentStep(status: dev.dietapp.data.domain.AgentStatus): String = when (status.step) {
+        dev.dietapp.data.domain.AgentStep.Reading -> t("читаю", "reading")
+        dev.dietapp.data.domain.AgentStep.Looking -> t("смотрю фото", "looking at the photo")
+        dev.dietapp.data.domain.AgentStep.Thinking -> t("думаю", "thinking")
+        dev.dietapp.data.domain.AgentStep.SearchBase -> t("ищу в базе", "searching the base")
+        dev.dietapp.data.domain.AgentStep.SearchWeb -> t("ищу в интернете", "searching the web")
+        dev.dietapp.data.domain.AgentStep.ReadPage -> status.detail?.let { t("читаю $it", "reading $it") } ?: t("читаю страницу", "reading a page")
+        dev.dietapp.data.domain.AgentStep.Proposing -> t("готовлю предложение", "preparing a proposal")
+        dev.dietapp.data.domain.AgentStep.Adding -> t("добавляю в базу", "adding to the base")
+        dev.dietapp.data.domain.AgentStep.Removing -> t("убираю из базы", "removing from the base")
+        dev.dietapp.data.domain.AgentStep.Replying -> t("отвечаю", "replying")
+        dev.dietapp.data.domain.AgentStep.Recording -> t("записываю", "recording")
+    }
     val RETRY get() = t("Повторить", "Try again")
     val PHOTO get() = t("фото", "photo")
 
@@ -72,6 +87,8 @@ object Texts {
     val VOICE_RECORDING_HINT get() = t("Идёт запись. Нажми микрофон, чтобы закончить.", "Recording. Tap the microphone to stop.")
     val CAMERA_DENIED get() = t("Нужен доступ к камере.", "Camera access is needed.")
     val CAMERA_FAILED get() = t("Не удалось сделать снимок.", "Could not take the picture.")
+    val GALLERY get() = t("галерея", "gallery")
+    val GALLERY_FAILED get() = t("Не удалось открыть эту картинку.", "Could not open that picture.")
 
     // login
     val EMAIL get() = t("Почта", "Email")
@@ -185,6 +202,51 @@ object Texts {
 
     // about
     val ABOUT get() = t("О приложении", "About")
+    val SOUND_SECTION get() = t("Звук", "Sound")
+    val SOUND get() = t("Звук записи", "Sound on recording")
+    val SOUND_ON get() = t("включён", "on")
+    val SOUND_OFF get() = t("выключен", "off")
+    val SOUND_HINT get() = t(
+        "Короткий глухой стук, когда еда записана в дневник окончательно, а не когда агент только спросил или ждёт «записать». " +
+            "Громкость как у уведомлений: молчит в беззвучном режиме и в «Не беспокоить».",
+        "A short, dull knock when a food is in the diary for good, not when the agent has only asked or waits for \"record\". " +
+            "It follows the notification volume: silent in silent mode and Do Not Disturb.",
+    )
+    val LOCK_SECTION get() = t("Защита", "Protection")
+    val LOCK get() = t("Блокировка", "Lock")
+    val LOCK_ON get() = t("включена", "on")
+    val LOCK_OFF get() = t("выключена", "off")
+    val LOCK_HINT get() = t(
+        "Приложение открывается по отпечатку, лицу или PIN телефона: при каждом запуске и после минуты в фоне. Содержимое прячется " +
+            "в списке недавних. Проверку делает система, приложение не видит ни отпечаток, ни PIN.",
+        "The app opens with the phone's fingerprint, face or PIN: on every start and after a minute in the background. Its contents " +
+            "are hidden in the recent apps. The system does the check; the app never sees a fingerprint or a PIN.",
+    )
+    val LOCK_NOT_SET get() = t(
+        "На телефоне не настроена блокировка экрана. Добавь отпечаток, лицо или PIN в настройках телефона, и она заработает здесь.",
+        "This phone has no screen lock set. Add a fingerprint, face or PIN in the phone's settings and it will work here.",
+    )
+    val LOCK_BROKEN get() = t(
+        "Блокировка экрана телефона снята, поэтому приложение открывается без проверки. Нажми, чтобы выключить блокировку здесь.",
+        "The phone's screen lock was removed, so the app opens without a check. Tap to turn the lock off here.",
+    )
+    val LOCK_UNAVAILABLE get() = t("Этот телефон не умеет проверять отпечаток или PIN.", "This phone cannot check a fingerprint or a PIN.")
+    val LOCKED get() = t("Закрыто", "Locked")
+    val UNLOCK get() = t("Открыть", "Open")
+    val LOCK_TITLE_OPEN get() = t("Открыть FatCodex", "Open FatCodex")
+    val LOCK_TITLE_ON get() = t("Включить блокировку", "Turn the lock on")
+    val LOCK_TITLE_OFF get() = t("Выключить блокировку", "Turn the lock off")
+    val FONT get() = t("Шрифт", "Font")
+    val FONT_INTER get() = "Inter"
+    val FONT_SYSTEM get() = t("Системный", "System")
+    val FONT_PICK get() = t("Выбрать файл…", "Choose a file…")
+    val FONT_HINT get() = t(
+        "Свой шрифт берётся из файла .ttf или .otf на телефоне, например Verdana Pro. Платные шрифты в приложение не вложены: " +
+            "файл копируется в память приложения и никуда не отправляется.",
+        "Your own font comes from a .ttf or .otf file on the phone, Verdana Pro for example. Licensed fonts are not bundled: " +
+            "the file is copied into the app's own storage and never leaves the phone.",
+    )
+    val FONT_FAILED get() = t("Не удалось прочитать шрифт из этого файла.", "That file could not be read as a font.")
     val ABOUT_TAGLINE get() = t(
         "Дневник питания в одном поле ввода. Личный проект, бесплатный и некоммерческий.",
         "A food diary in a single text box. A personal project, free and non-commercial.",
@@ -228,6 +290,7 @@ object Texts {
     val HISTORY get() = t("История", "History")
     val LOG_OUT get() = t("выйти", "sign out")
     val NO_HISTORY get() = t("Пока пусто.", "Nothing yet.")
+    val HISTORY_NOTHING get() = t("нет записей", "nothing recorded")
     val SAVED get() = t("Сохранено.", "Saved.")
     val LOCAL_MODE get() = t("Без сервера: всё считается на этом телефоне.", "No server: everything is worked out on this phone.")
     val MODEL_KEY get() = t("Ключ DeepSeek", "DeepSeek key")
@@ -286,6 +349,7 @@ object Texts {
     }
 
     fun exportFormat(f: dev.dietapp.data.export.ExportFormat): String = when (f) {
+        dev.dietapp.data.export.ExportFormat.CsvWatch -> t("CSV: часы (.csv)", "CSV: watch (.csv)")
         dev.dietapp.data.export.ExportFormat.Markdown -> "Markdown (.md)"
         dev.dietapp.data.export.ExportFormat.Json -> "JSON (.json)"
         dev.dietapp.data.export.ExportFormat.CsvFood -> t("CSV: еда (.csv)", "CSV: food (.csv)")
@@ -293,6 +357,7 @@ object Texts {
     }
 
     fun exportFormatHint(f: dev.dietapp.data.export.ExportFormat): String = when (f) {
+        dev.dietapp.data.export.ExportFormat.CsvWatch -> t("Сон, шаги и тренировки по дням: для таблиц.", "Sleep, steps and workouts by day: for spreadsheets.")
         dev.dietapp.data.export.ExportFormat.Markdown -> t("Читается человеком и моделью: раздел на каждый день, таблицы.",
             "Readable by a person and a model: a section per day, tables.")
         dev.dietapp.data.export.ExportFormat.Json -> t("Всё, с пояснением полей: для программ и моделей.", "Everything, with the fields explained: for programs and models.")
@@ -320,6 +385,81 @@ object Texts {
         "Это инструкция, которую агент получает перед каждым сообщением. Пока её нельзя менять.",
         "This is the instruction the agent gets before every message. It cannot be changed yet.",
     )
+
+    // a dish and its ingredients
+    val PART_DONE get() = t("готово", "done")
+    fun dishOf(parts: List<dev.dietapp.data.domain.DishPart>): String {
+        val names = parts.take(4).joinToString(", ") { it.name } + if (parts.size > 4) "…" else ""
+        return t("из ${parts.size} ингредиентов: $names", "of ${parts.size} ingredients: $names")
+    }
+    val FOODS_PARTS get() = t("Состав (на порцию)", "Ingredients (per serving)")
+    val FOODS_PARTS_HINT get() = t(
+        "Цифры выше — сумма ингредиентов. Если поправить их руками, блюдо станет обычным продуктом.",
+        "The numbers above are the ingredients' sum. If you change them by hand, the dish becomes a plain food.",
+    )
+
+    // the watch
+    val WATCH get() = t("Часы", "Watch")
+    /** The page and its row in the settings: the watch, smart scales and whatever else writes to Health Connect. */
+    val DEVICES get() = t("Часы и устройства", "Watch & accessories")
+    val WATCH_ABOUT get() = t(
+        "Сон, шаги, тренировки и вес с умных весов подтягиваются из Health Connect сами одной кнопкой, когда ты открываешь приложение. Часы пишут туда через своё приложение (Samsung Health, Google Health, Pixel Watch и другие). Приложение только читает и только то, что ты разрешил. Данные остаются на телефоне и уходят только в твой экспорт.",
+        "Sleep, steps, workouts and the weight from smart scales are read from Health Connect by themselves, with one button, when you open the app. The watch writes there through its own app (Samsung Health, Google Health, the Pixel Watch app and others). The app only reads, and only what you allow. The data stays on the phone and leaves it only in your export.",
+    )
+    val WATCH_WHAT get() = t(
+        "Что читается: сон прошлой ночи, шаги, тренировки и утреннее взвешивание с весов (то, что ты записал сам, главнее). " +
+            "Сожжённые калории не читаются: то, что часы пишут в Health Connect, неверно. Готовые «индексы самочувствия» часов Health Connect не отдаёт.",
+        "What is read: last night's sleep, steps, workouts and the morning weigh-in of smart scales (one you wrote yourself wins). " +
+            "Calories burned are not read: what watches put into Health Connect is not right. Health Connect does not hand over a watch's own wellbeing scores.",
+    )
+    val WATCH_CONNECT get() = t("подключить", "connect")
+    val WATCH_ALLOW get() = t("разрешить", "allow")
+    val WATCH_PARTIAL get() = t(
+        "Подключено, но разрешено не всё: часть данных (например, вес) не читается. Разреши, и она подтянется.",
+        "Connected, but not everything is allowed: some data (the weight, say) is not read. Allow it and it comes in.",
+    )
+    val WATCH_DISCONNECT get() = t("отключить", "disconnect")
+    val WATCH_INSTALL get() = t("установить Health Connect", "install Health Connect")
+    val WATCH_UPDATE get() = t("обновить Health Connect", "update Health Connect")
+    val WATCH_ON get() = t("Подключено", "Connected")
+    val WATCH_OFF get() = t("Не подключено", "Not connected")
+    val WATCH_KEPT get() = t("Уже записанное остаётся в дневнике.", "What has been recorded stays in the diary.")
+    val WATCH_NOT_INSTALLED get() = t("На этом телефоне нет Health Connect.", "This phone has no Health Connect.")
+    val WATCH_UPDATE_NEEDED get() = t("Health Connect нужно обновить.", "Health Connect needs an update.")
+    val WATCH_NO_PERMISSION get() = t(
+        "Разрешений нет. Включи их в Health Connect → Доступ приложений → FatCodex.",
+        "No permissions. Turn them on in Health Connect → App permissions → FatCodex.",
+    )
+    /** "08:15": the time of day a food was recorded, on the phone's clock. */
+    fun clock(at: java.time.Instant): String =
+        java.time.format.DateTimeFormatter.ofPattern("HH:mm").withZone(java.time.ZoneId.systemDefault()).format(at)
+
+    fun watchRead(at: java.time.Instant): String = t("Прочитано ", "Read ") +
+        java.time.format.DateTimeFormatter.ofPattern("d MMM, HH:mm", dev.dietapp.data.domain.Lang.current.locale)
+            .withZone(java.time.ZoneId.systemDefault()).format(at)
+
+    // what the watch said about a day, in the summary
+    val FACT_SLEEP get() = t("Сон", "Sleep")
+    val FACT_STEPS get() = t("Шаги", "Steps")
+    val MIN get() = t("мин", "min")
+
+    /** "7 ч 20 м" */
+    fun sleepText(minutes: Int): String = t("${minutes / 60} ч ${minutes % 60} м", "${minutes / 60} h ${minutes % 60} m")
+
+    /** "Бег", or "Тренировка ×4" when the day had several sessions of that kind. */
+    fun workoutName(kind: dev.dietapp.data.domain.WorkoutKind, sessions: Int = 1): String =
+        workoutKindName(kind) + if (sessions > 1) " ×$sessions" else ""
+
+    private fun workoutKindName(kind: dev.dietapp.data.domain.WorkoutKind): String = when (kind) {
+        dev.dietapp.data.domain.WorkoutKind.Running -> t("Бег", "Run")
+        dev.dietapp.data.domain.WorkoutKind.Walking -> t("Ходьба", "Walk")
+        dev.dietapp.data.domain.WorkoutKind.Cycling -> t("Велосипед", "Ride")
+        dev.dietapp.data.domain.WorkoutKind.Strength -> t("Силовая", "Strength")
+        dev.dietapp.data.domain.WorkoutKind.Swimming -> t("Плавание", "Swim")
+        dev.dietapp.data.domain.WorkoutKind.Yoga -> t("Йога", "Yoga")
+        dev.dietapp.data.domain.WorkoutKind.Hiking -> t("Поход", "Hike")
+        dev.dietapp.data.domain.WorkoutKind.Other -> t("Тренировка", "Workout")
+    }
 
     // food base
     val FOODS get() = t("База продуктов", "Food base")

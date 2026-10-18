@@ -28,10 +28,11 @@ class ExportRepositoryImpl @Inject constructor(
         val entries = db.entries().recorded(from?.toString() ?: EARLIEST, LATEST).map { it.toDomain() }
         // the trend of the first days in the period needs the weigh-ins before it, so it is worked out on all of them
         val weights = WeightTrend.compute(db.weights().all().map { it.toDomain() }).filter { from == null || it.day >= from }
-        if (entries.isEmpty() && weights.isEmpty()) {
+        val facts = db.dayFacts().between(from?.toString() ?: EARLIEST, LATEST).map { it.toDomain() }.filter { !it.isEmpty }
+        if (entries.isEmpty() && weights.isEmpty() && facts.isEmpty()) {
             throw AppError(t("В этом периоде записей нет.", "There are no records in this period."), "empty")
         }
-        val data = ExportData(entries, weights, body.goal(), clock.zone, clock.instant())
+        val data = ExportData(entries, weights, body.goal(), clock.zone, clock.instant(), facts)
         ExportFile(format.fileName(period, today), format.mime, HistoryExport.render(format, data))
     }
 

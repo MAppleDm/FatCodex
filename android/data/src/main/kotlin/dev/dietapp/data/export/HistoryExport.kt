@@ -1,5 +1,6 @@
 package dev.dietapp.data.export
 
+import dev.dietapp.data.domain.DayFacts
 import dev.dietapp.data.domain.Entry
 import dev.dietapp.data.domain.EntryStatus
 import dev.dietapp.data.domain.Lang
@@ -37,7 +38,10 @@ enum class ExportFormat(val extension: String, val mime: String, private val kin
     CsvFood("csv", "text/csv", "food"),
 
     /** One row per weigh-in day, with the 7-day trend. */
-    CsvWeight("csv", "text/csv", "weight");
+    CsvWeight("csv", "text/csv", "weight"),
+
+    /** One row per day the watch said something about: sleep, steps, workouts. */
+    CsvWatch("csv", "text/csv", "watch");
 
     /** fatcodex-food-30d-2026-10-04.csv: what it is, how far back, and the day it was made. */
     fun fileName(period: ExportPeriod, today: LocalDate): String = "fatcodex-$kind-${period.tag}-$today.$extension"
@@ -64,8 +68,10 @@ data class ExportData(
     val goalKcal: Int?,
     val zone: ZoneId,
     val exportedAt: Instant,
+    /** What the watch said about each day it said anything about. */
+    val facts: List<DayFacts> = emptyList(),
 ) {
-    val days: List<LocalDate> = (entries.map { it.day } + weights.map { it.day }).distinct().sorted()
+    val days: List<LocalDate> = (entries.map { it.day } + weights.map { it.day } + facts.map { it.day }).distinct().sorted()
 }
 
 object HistoryExport {
@@ -75,6 +81,7 @@ object HistoryExport {
         ExportFormat.Json -> json(data)
         ExportFormat.CsvFood -> csvFood(data)
         ExportFormat.CsvWeight -> csvWeight(data)
+        ExportFormat.CsvWatch -> csvWatch(data)
     }
 
     // ---------- CSV ----------
@@ -103,6 +110,21 @@ object HistoryExport {
         for (w in d.weights) append(row(listOf(w.day.toString(), num(w.raw), num(w.trend))))
     }
 
+    private fun csvWatch(d: ExportData): String = buildString {
+        append(row(listOf("date", "sleep_min", "steps", "workout_min", "workouts")))
+        for (f in d.facts.sortedBy { it.day }) {
+            append(
+                row(
+                    listOf(
+                        f.day.toString(), f.sleepMinutes?.toString(), f.steps?.toString(),
+                        f.workouts.takeIf { it.isNotEmpty() }?.sumOf { it.minutes }?.toString(),
+                        f.workouts.joinToString("; ") { "${it.kind.name.lowercase()} ${it.minutes}" }.ifEmpty { null },
+                    ),
+                ),
+            )
+        }
+    }
+
     /** RFC 4180: a cell with a comma, a quote or a line break is quoted, quotes are doubled. */
     private fun row(cells: List<String?>): String = cells.joinToString(",", postfix = "\n") { cell ->
         val v = cell.orEmpty()
@@ -115,6 +137,7 @@ object HistoryExport {
 
     private fun json(d: ExportData): String {
         val trendByDay = d.weights.associateBy { it.day }
+        val factsByDay = d.facts.associateBy { it.day }
         val root = buildJsonObject {
             put("format", "fatcodex-diary")
             put("version", 1)
@@ -131,6 +154,9 @@ object HistoryExport {
                 }
                 put("weight_trend_kg", "mean of the daily weights over the last 7 calendar days")
                 put("source", "text, voice or photo: how the entry was made")
+                put("parts", "a dish's ingredients in the amounts eaten; they add up to the entry's own numbers")
+                put("watch", "read from the person's watch through Health Connect, never typed: sleep_min is the night that ended on this date, " +
+                    "steps and workouts are of the date itself; any of them may be missing")
             }
             put("days", buildJsonArray {
                 for (day in d.days) {
@@ -148,6 +174,15 @@ object HistoryExport {
                         trendByDay[day]?.let {
                             put("weight_kg", round1(it.raw))
                             put("weight_trend_kg", round1(it.trend))
+                        }
+                        factsByDay[day]?.let { f ->
+                            put("watch", buildJsonObject {
+                                put("sleep_min", f.sleepMinutes)
+                                put("steps", f.steps)
+                                put("workouts", buildJsonArray {
+                                    f.workouts.forEach { w -> add(buildJsonObject { put("kind", w.kind.name.lowercase()); put("minutes", w.minutes) }) }
+                                })
+                            })
                         }
                         put("entries", buildJsonArray {
                             for (e in entries) {
@@ -172,6 +207,20 @@ object HistoryExport {
                                     put("matched_food", e.foodName)
                                     put("status", e.status.toWire())
                                     put("source", e.source.toWire())
+                                    if (e.parts.isNotEmpty()) {
+                                        put("parts", buildJsonArray {
+                                            e.parts.forEach { p ->
+                                                add(buildJsonObject {
+                                                    put("name", p.name)
+                                                    put("grams", round1(p.grams))
+                                                    put("kcal", round1(p.kcal))
+                                                    put("protein_g", round1(p.protein))
+                                                    put("fat_g", round1(p.fat))
+                                                    put("carbs_g", round1(p.carbs))
+                                                })
+                                            }
+                                        })
+                                    }
                                 })
                             }
                         })
@@ -191,6 +240,7 @@ object HistoryExport {
     private fun markdown(d: ExportData): String = buildString {
         val weekday = { day: LocalDate -> day.dayOfWeek.getDisplayName(TextStyle.SHORT, Lang.current.locale) }
         val trendByDay = d.weights.associateBy { it.day }
+        val factsByDay = d.facts.associateBy { it.day }
         appendLine(t("# FatCodex: дневник питания", "# FatCodex: food diary"))
         appendLine()
         val range = if (d.days.isEmpty()) "—" else "${d.days.first()} … ${d.days.last()}"
@@ -220,6 +270,10 @@ object HistoryExport {
                 appendLine()
                 appendLine(t("Вес: ${num(it.raw)} кг (тренд ${num(it.trend)})", "Weight: ${num(it.raw)} kg (trend ${num(it.trend)})"))
             }
+            factsByDay[day]?.takeIf { !it.isEmpty }?.let { f ->
+                appendLine()
+                appendLine(watchLine(f))
+            }
             if (entries.isEmpty()) continue
             appendLine()
             appendLine("| ${t("Время", "Time")} | ${t("Продукт", "Food")} | ${t("г", "g")} | ${t("ккал", "kcal")} | $p | $f | $c |")
@@ -229,12 +283,29 @@ object HistoryExport {
                 val cell = { v: Double? -> if (v == null) "—" else approx + num(v) }
                 appendLine("| ${time(e, d.zone)} | ${cellText(e.name)} | ${num(e.grams)} | ${cell(e.kcal)} | ${cell(e.protein)} | ${cell(e.fat)} | ${cell(e.carbs)} |")
             }
+            val dishes = entries.filter { it.parts.isNotEmpty() }
+            if (dishes.isNotEmpty()) appendLine()
+            for (e in dishes) {
+                appendLine("> ${cellText(e.name)}: " + e.parts.joinToString(", ") { "${cellText(it.name)} ${num(it.grams)} ${t("г", "g")}" })
+            }
             val missing = entries.count { it.kcal == null }
             if (missing > 0) {
                 appendLine()
                 appendLine(t("Без цифр: $missing (не вошли в итог дня)", "Without numbers: $missing (not in the day's total)"))
             }
         }
+    }
+
+    /** "Часы: сон 7 ч 20 м · шаги 8412 · тренировки: running 45 мин". */
+    private fun watchLine(f: DayFacts): String {
+        val parts = listOfNotNull(
+            f.sleepMinutes?.let { t("сон ${it / 60} ч ${it % 60} м", "sleep ${it / 60} h ${it % 60} m") },
+            f.steps?.let { t("шаги $it", "steps $it") },
+            f.workouts.takeIf { it.isNotEmpty() }?.let { w ->
+                t("тренировки: ", "workouts: ") + w.joinToString(", ") { "${it.kind.name.lowercase()} ${it.minutes} ${t("мин", "min")}" }
+            },
+        )
+        return t("Часы: ", "Watch: ") + parts.joinToString(" · ")
     }
 
     /** A table cell: no pipes, no line breaks. */

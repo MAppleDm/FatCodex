@@ -1,5 +1,6 @@
 package dev.dietapp.ui
 
+import androidx.compose.ui.test.assertContentDescriptionContains
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -8,6 +9,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performScrollToIndex
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -18,6 +20,7 @@ import dev.dietapp.MainDispatcherRule
 import dev.dietapp.TEST_CLOCK
 import dev.dietapp.Texts
 import dev.dietapp.coreui.AppTheme
+import dev.dietapp.coreui.formatInt
 import dev.dietapp.data.local.NEEDS_KEY
 import dev.dietapp.data.domain.DaySummary
 import dev.dietapp.data.domain.Totals
@@ -53,12 +56,13 @@ class LocalModeScreensTest {
         onOpenAbout: () -> Unit = {},
         onOpenHistory: () -> Unit = {},
         onOpenMe: () -> Unit = {},
+        onOpenWatch: () -> Unit = {},
         onToggleLanguage: () -> Unit = {},
     ) = compose.setContent {
         AppTheme(darkTheme = false) {
             SettingsScreen(
                 state, onBack = {}, onLogout = onLogout,
-                onOpenAbout = onOpenAbout, onOpenHistory = onOpenHistory, onOpenMe = onOpenMe, onToggleLanguage = onToggleLanguage,
+                onOpenAbout = onOpenAbout, onOpenHistory = onOpenHistory, onOpenMe = onOpenMe, onOpenWatch = onOpenWatch, onToggleLanguage = onToggleLanguage,
             )
         }
     }
@@ -166,37 +170,70 @@ class LocalModeScreensTest {
 
     // ---------- the history page ----------
 
+    private val historyToday = java.time.LocalDate.parse("2026-09-30")
+
     private fun history(days: List<DaySummary>, goal: Int? = 1900, onPickDay: (java.time.LocalDate) -> Unit = {}, onBack: () -> Unit = {}) =
-        compose.setContent { AppTheme(darkTheme = false) { HistoryScreen(days, goal, onBack, onPickDay) } }
+        compose.setContent { AppTheme(darkTheme = false) { HistoryScreen(days, goal, onBack, onPickDay, today = historyToday) } }
 
     private fun day(date: String, kcal: Double) = DaySummary(java.time.LocalDate.parse(date), Totals(kcal, 90.0, 50.0, 140.0))
 
-    @Test fun `the history page lists the days with what was eaten against the goal`() {
+    @Test fun `the history page is a calendar with a square for every day up to today, each saying what was eaten`() {
         history(listOf(day("2026-09-29", 1420.0), day("2026-09-28", 1550.0)))
         compose.onNodeWithText(Texts.HISTORY).assertIsDisplayed()
-        compose.onNodeWithTag("day-2026-09-29").assertIsDisplayed().assertTextContains("1", substring = true)
-        compose.onNodeWithTag("day-2026-09-28").assertIsDisplayed()
+        compose.onNodeWithTag("day-2026-09-29").assertIsDisplayed().assertContentDescriptionContains(formatInt(1420), substring = true)
+        compose.onNodeWithTag("day-2026-09-28").assertIsDisplayed().assertContentDescriptionContains(formatInt(1550), substring = true)
+        // a day with nothing is there too, so that it can be opened
+        compose.onNodeWithTag("day-2026-09-27").assertIsDisplayed().assertContentDescriptionContains(Texts.HISTORY_NOTHING, substring = true)
+        compose.onNodeWithTag("day-2026-09-30").assertIsDisplayed() // today
+        compose.onNodeWithTag("day-2026-10-01").assertDoesNotExist() // tomorrow is not a day yet
         compose.onNodeWithTag("history-empty").assertDoesNotExist()
     }
 
-    @Test fun `without a goal the history shows only what was eaten`() {
-        history(listOf(day("2026-09-29", 1420.0)), goal = null)
-        compose.onNodeWithTag("day-2026-09-29").assertIsDisplayed()
-        compose.onNodeWithText("/", substring = true).assertDoesNotExist() // "1 420 / 1 900" needs a goal
+    @Test fun `a long history opens on the latest weeks, at the bottom, and the oldest are up there`() {
+        history(listOf(day("2026-09-29", 1420.0), day("2025-11-03", 1550.0)))
+        compose.onNodeWithTag("day-2026-09-30").assertIsDisplayed() // today, in the last row
+        compose.onNodeWithTag("day-2025-11-03").assertDoesNotExist() // a year of weeks above, out of sight
+        compose.onNodeWithTag("history").performScrollToIndex(0)
+        compose.onNodeWithTag("day-2025-11-03").assertIsDisplayed()
     }
 
-    @Test fun `a tap on a day picks it`() {
+    @Test fun `in a short calendar the oldest week is at the top and today at the bottom`() {
+        history(listOf(day("2026-09-29", 1420.0)))
+        val top = { date: String -> compose.onNodeWithTag("day-$date").fetchSemanticsNode().boundsInRoot.top }
+        assertTrue(top("2026-09-08") < top("2026-09-22"))
+        assertTrue(top("2026-09-22") < top("2026-09-29"))
+    }
+
+    @Test fun `a month is named on the week of its first day, not before that day has come`() {
+        // today is the 30th of September: the last week holds the 1st of October, which has not come
+        history(listOf(day("2026-09-29", 1420.0), day("2026-08-20", 1500.0)))
+        compose.onNodeWithText("окт", substring = true, ignoreCase = true).assertDoesNotExist()
+        compose.onNodeWithText("сент", substring = true, ignoreCase = true).assertIsDisplayed()
+    }
+
+    @Test fun `the legend says that the fullest fill is the goal`() {
+        history(listOf(day("2026-09-29", 1420.0), day("2026-09-28", 1550.0)))
+        compose.onNodeWithTag("history-legend").assertTextContains(formatInt(1900), substring = true)
+    }
+
+    @Test fun `without a goal the fullest fill is the fullest day`() {
+        history(listOf(day("2026-09-29", 1420.0), day("2026-09-28", 1550.0)), goal = null)
+        compose.onNodeWithTag("history-legend").assertTextContains(formatInt(1550), substring = true)
+    }
+
+    @Test fun `a tap on a day picks it, and an empty day too, that is how yesterday's dinner is written`() {
         val picked = mutableListOf<java.time.LocalDate>()
         history(listOf(day("2026-09-29", 1420.0), day("2026-09-28", 1550.0)), onPickDay = { picked += it })
         compose.onNodeWithTag("day-2026-09-28").performClick()
-        assertEquals(listOf(java.time.LocalDate.parse("2026-09-28")), picked)
+        compose.onNodeWithTag("day-2026-09-27").performClick()
+        assertEquals(listOf(java.time.LocalDate.parse("2026-09-28"), java.time.LocalDate.parse("2026-09-27")), picked)
     }
 
     @Test fun `the history page is where the export is`() {
         var export = 0
         compose.setContent {
             AppTheme(darkTheme = false) {
-                HistoryScreen(listOf(day("2026-09-29", 1420.0)), 1900, onBack = {}, onPickDay = {}, onOpenExport = { export++ })
+                HistoryScreen(listOf(day("2026-09-29", 1420.0)), 1900, onBack = {}, onPickDay = {}, onOpenExport = { export++ }, today = historyToday)
             }
         }
         compose.onNodeWithTag("history-export").assertIsDisplayed().assertTextContains(Texts.HISTORY_EXPORT)
@@ -447,6 +484,16 @@ class LocalModeScreensTest {
         about(local = false)
         compose.onNodeWithTag("about-erase-block").assertDoesNotExist()
         compose.onNodeWithTag("about-erase").assertDoesNotExist()
+    }
+
+    @Test fun `the watch is a row under about me and leads to its page, with a server and without`() {
+        var opened = 0
+        settings(SettingsUiState(savedGoal = 1900, local = true), onOpenWatch = { opened++ })
+        val top = { tag: String -> compose.onNodeWithTag(tag).fetchSemanticsNode().boundsInRoot.top }
+        compose.onNodeWithTag("watch-entry").assertIsDisplayed().assertTextContains(Texts.WATCH, substring = true)
+        assertTrue("under about me, above the food base", top("me-entry") < top("watch-entry") && top("watch-entry") < top("foods-entry"))
+        compose.onNodeWithTag("watch-entry").performClick()
+        assertEquals(1, opened)
     }
 
     @Test fun `with a server the settings stay as they were`() {

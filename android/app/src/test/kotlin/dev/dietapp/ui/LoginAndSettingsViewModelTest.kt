@@ -319,6 +319,22 @@ class SettingsViewModelTest {
         assertFalse(state.value.eraseArmed)
     }
 
+    @Test fun `the first tap only arms, so the page it is on stays open for the second`() = runTest {
+        goLocal()
+        val (vm, state) = viewModel()
+        assertFalse("armed, not erased: the page must not close", vm.onEraseTap())
+        assertTrue(state.value.eraseArmed)
+        assertTrue(auth.calls.none { it == "logout" })
+        assertTrue("this one erases: now the page may close", vm.onEraseTap())
+        assertEquals("logout", auth.calls.last())
+    }
+
+    @Test fun `with a server one tap signs out`() = runTest {
+        val (vm, _) = viewModel()
+        assertTrue(vm.onEraseTap())
+        assertEquals("logout", auth.calls.last())
+    }
+
     @Test fun `the first tap wears off by itself`() = runTest {
         goLocal()
         val (vm, state) = viewModel()

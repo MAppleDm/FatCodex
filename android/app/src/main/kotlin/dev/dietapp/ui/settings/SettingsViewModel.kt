@@ -122,6 +122,16 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
+    /**
+     * A tap on "Стереть всё" (or "выйти"): true when this tap does it, false when it only armed the button. The screen it is on
+     * closes only after the former: closing on the first tap would take the person away before they could tap again.
+     */
+    fun onEraseTap(): Boolean {
+        val doesIt = !state.value.local || edit.value.eraseArmed
+        onLogout()
+        return doesIt
+    }
+
     private companion object {
         const val CONFIRM_MS = 4_000L
     }

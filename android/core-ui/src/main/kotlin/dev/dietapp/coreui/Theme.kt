@@ -11,12 +11,14 @@ import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 
 /**
- * Black, white and three greys. The only colours are state colours: error, confirm, and the green tint of recorded food.
+ * Black, white and three greys. The only colours are state colours: error, confirm, the green tint of recorded food and
+ * the orange of the time it was recorded. One more, cherry, is kept for later.
  * There is deliberately no dynamic colour and no tonal elevation.
  */
 @Immutable
@@ -31,6 +33,20 @@ class AppColors(
     val confirm: Color,
     /** Food that is recorded (counted): the foreground with a touch of green. */
     val recorded: Color,
+    /** The time a food was recorded: the one warm colour of the diary. */
+    val time: Color,
+    /**
+     * A brownish raspberry, "вишнёвый", chosen for the calories the watch burned. That feature is gone (what the watches put into
+     * Health Connect was not right); the colour stays here for something later. Over 7:1 on the background in both themes.
+     */
+    val cherry: Color,
+    /**
+     * The calendar of the history: a day with nothing, and the two ends of the fill of a day with food (the least and the goal
+     * or more). The same green as recorded food, so that more food is more of it; in between the colours are mixed evenly.
+     */
+    val heatEmpty: Color,
+    val heatLow: Color,
+    val heatHigh: Color,
     val isDark: Boolean,
 )
 
@@ -44,6 +60,11 @@ val LightColors = AppColors(
     error = Color(0xFFC62828),
     confirm = Color(0xFF2E7D32),
     recorded = Color(0xFF1E4D2E),
+    time = Color(0xFFC2570C),
+    cherry = Color(0xFF913949),
+    heatEmpty = Color(0xFFE9E9E9),
+    heatLow = Color(0xFFBDDFC9),
+    heatHigh = Color(0xFF1E4D2E),
     isDark = false,
 )
 
@@ -58,10 +79,22 @@ val DarkColors = AppColors(
     error = Color(0xFFFF6B6B),
     confirm = Color(0xFF5BC27C),
     recorded = Color(0xFFDDF4E4),
+    time = Color(0xFFFF9F43),
+    cherry = Color(0xFFD9818C),
+    heatEmpty = Color(0xFF151515),
+    heatLow = Color(0xFF1B3A27),
+    heatHigh = Color(0xFF6CCF8A),
     isDark = true,
 )
 
-/** One system sans-serif for text, one monospace for numbers. */
+/**
+ * Inter (SIL Open Font License, see docs/licenses.md): the quiet grotesque the chat apps use, with Cyrillic. It is the only
+ * face of the app. "Mono" styles are Inter with tabular figures: every digit is as wide as the next, so columns of numbers
+ * line up and a changing total never jitters. A real monospace stays only where text is code (the journal, the agent's prompt).
+ */
+val Inter = FontFamily(Font(R.font.inter_regular, FontWeight.Normal))
+
+private const val TABULAR = "tnum"
 @Immutable
 class AppType(
     val body: TextStyle,
@@ -71,13 +104,14 @@ class AppType(
     val monoSecondary: TextStyle,
 )
 
-private fun appType(colors: AppColors) = AppType(
-    body = TextStyle(fontFamily = FontFamily.SansSerif, fontSize = 16.sp, lineHeight = 22.sp, color = colors.foreground),
-    secondary = TextStyle(fontFamily = FontFamily.SansSerif, fontSize = 14.sp, lineHeight = 20.sp, color = colors.secondary),
-    caption = TextStyle(fontFamily = FontFamily.SansSerif, fontSize = 12.sp, lineHeight = 16.sp, color = colors.secondary),
-    mono = TextStyle(fontFamily = FontFamily.Monospace, fontSize = 14.sp, lineHeight = 20.sp, color = colors.foreground,
-        fontWeight = FontWeight.Normal),
-    monoSecondary = TextStyle(fontFamily = FontFamily.Monospace, fontSize = 14.sp, lineHeight = 20.sp, color = colors.secondary),
+private fun appType(colors: AppColors, font: FontFamily = Inter) = AppType(
+    body = TextStyle(fontFamily = font, fontSize = 16.sp, lineHeight = 22.sp, color = colors.foreground),
+    secondary = TextStyle(fontFamily = font, fontSize = 14.sp, lineHeight = 20.sp, color = colors.secondary),
+    caption = TextStyle(fontFamily = font, fontSize = 12.sp, lineHeight = 16.sp, color = colors.secondary),
+    mono = TextStyle(fontFamily = font, fontSize = 14.sp, lineHeight = 20.sp, color = colors.foreground,
+        fontWeight = FontWeight.Normal, fontFeatureSettings = TABULAR),
+    monoSecondary = TextStyle(fontFamily = font, fontSize = 14.sp, lineHeight = 20.sp, color = colors.secondary,
+        fontFeatureSettings = TABULAR),
 )
 
 private val LocalColors = staticCompositionLocalOf { LightColors }
@@ -91,7 +125,7 @@ object AppTheme {
 }
 
 @Composable
-fun AppTheme(darkTheme: Boolean = isSystemInDarkTheme(), content: @Composable () -> Unit) {
+fun AppTheme(darkTheme: Boolean = isSystemInDarkTheme(), font: FontFamily = Inter, content: @Composable () -> Unit) {
     val c = if (darkTheme) DarkColors else LightColors
     // Material 3 is only the foundation: every surface is the background colour, nothing is tinted.
     val scheme = if (darkTheme) {
@@ -107,7 +141,7 @@ fun AppTheme(darkTheme: Boolean = isSystemInDarkTheme(), content: @Composable ()
             surfaceTint = Color.Transparent, outline = c.border, outlineVariant = c.border, error = c.error,
         )
     }
-    CompositionLocalProvider(LocalColors provides c, LocalType provides appType(c)) {
+    CompositionLocalProvider(LocalColors provides c, LocalType provides appType(c, font)) {
         MaterialTheme(colorScheme = scheme, content = content)
     }
 }

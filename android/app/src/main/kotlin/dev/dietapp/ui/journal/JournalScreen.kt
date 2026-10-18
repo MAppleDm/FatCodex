@@ -26,6 +26,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -146,7 +147,7 @@ fun JournalScreen(
         SelectionContainer(Modifier.weight(1f).fillMaxWidth()) {
             Text(
                 text,
-                style = AppTheme.type.monoSecondary.copy(fontSize = 11.sp, lineHeight = 15.sp),
+                style = AppTheme.type.monoSecondary.copy(fontFamily = FontFamily.Monospace, fontSize = 11.sp, lineHeight = 15.sp),
                 modifier = Modifier.verticalScroll(vertical).padding(12.dp).testTag("journal"),
             )
         }

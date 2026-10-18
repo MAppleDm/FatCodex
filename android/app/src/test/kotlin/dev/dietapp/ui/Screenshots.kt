@@ -96,6 +96,10 @@ class ScreenshotTest {
         override fun onWeightTap(weightId: String) = Unit
         override fun onWeightDelete(weightId: String) = Unit
         override fun onMessageTap(messageId: String) = Unit
+        override fun onPartsToggle(entryId: String) = Unit
+        override fun onPartEditStart(entryId: String, index: Int) = Unit
+        override fun onPartGrams(text: String) = Unit
+        override fun onPartCommit() = Unit
         override fun onMessageRetry(messageId: String) = Unit
         override fun onMessageDiscard(messageId: String) = Unit
         override fun onNoteTap(noteId: Long) = Unit
@@ -106,6 +110,7 @@ class ScreenshotTest {
         override fun onCloseCamera() = Unit
         override fun onPhoto(jpeg: ByteArray) = Unit
         override fun onCameraFailed() = Unit
+        override fun onGalleryFailed() = Unit
         override fun onVoiceListening() = Unit
         override fun onVoiceText(text: String, final: Boolean) = Unit
         override fun onVoiceRecording() = Unit
@@ -338,13 +343,26 @@ class ScreenshotTest {
         )
     }
 
+    /** Six weeks of a diary: most days there, some forgotten, a few light ones, a few over the goal. */
+    private fun historyDays() = (0L..40L).filter { it % 9L != 4L && it != 11L }.map { back ->
+        val kcal = when (back % 7) {
+            0L -> 2350.0
+            1L -> 1750.0
+            2L -> 1980.0
+            3L -> 640.0
+            4L -> 1420.0
+            5L -> 2100.0
+            else -> 1190.0
+        } + back * 3
+        dev.dietapp.data.domain.DaySummary(LocalDate.parse("2026-09-29").minusDays(back), dev.dietapp.data.domain.Totals(kcal, 90.0, 50.0, 140.0))
+    }
+
     @Test fun historyLight() = shot("history_light", dark = false) {
-        HistoryScreen(
-            days = listOf(29, 28, 27, 26, 25).mapIndexed { i, d ->
-                dev.dietapp.data.domain.DaySummary(LocalDate.parse("2026-09-$d"), dev.dietapp.data.domain.Totals(1420.0 + i * 130, 90.0, 50.0, 140.0))
-            },
-            goal = 1900, onBack = {}, onPickDay = {},
-        )
+        HistoryScreen(days = historyDays(), goal = 1900, onBack = {}, onPickDay = {}, today = TODAY)
+    }
+
+    @Test fun historyDark() = shot("history_dark", dark = true) {
+        HistoryScreen(days = historyDays(), goal = 1900, onBack = {}, onPickDay = {}, today = TODAY)
     }
 
     private object NoopBody : dev.dietapp.ui.body.BodyActions {
@@ -439,6 +457,142 @@ class ScreenshotTest {
         MainScreen(
             buildState(Local(TODAY, TODAY), content, emptyList(), Profile(null, 2440)),
             Noop, emptyFlow(),
+        )
+    }
+
+    private val borschtParts = listOf(
+        dev.dietapp.data.domain.DishPart("свёкла", 40.0, Per100(43.0, 1.6, 0.2, 9.6)),
+        dev.dietapp.data.domain.DishPart("капуста", 50.0, Per100(27.0, 1.8, 0.1, 4.7)),
+        dev.dietapp.data.domain.DishPart("картофель", 60.0, Per100(77.0, 2.0, 0.4, 16.3)),
+        dev.dietapp.data.domain.DishPart("говядина", 45.0, Per100(250.0, 26.0, 15.0, 0.0)),
+        dev.dietapp.data.domain.DishPart("сметана", 15.0, Per100(206.0, 2.8, 20.0, 3.2)),
+        dev.dietapp.data.domain.DishPart("бульон", 90.0, Per100(0.0, 0.0, 0.0, 0.0)),
+    )
+
+    private fun borschtEntry(): dev.dietapp.data.domain.Entry {
+        val total = dev.dietapp.data.domain.Dish.totals(borschtParts)
+        val per = dev.dietapp.data.domain.Dish.per100(borschtParts)!!
+        return entry("d1", name = "борщ", grams = dev.dietapp.data.domain.Dish.grams(borschtParts), kcal = total.kcal, protein = total.protein, fat = total.fat, carbs = total.carbs)
+            .copy(parts = borschtParts, per100 = per, status = EntryStatus.Uncertain)
+    }
+
+    @Test fun dishOpenDark() = shot("dish_open_dark", dark = true) {
+        val content = DayContent(
+            entries = listOf(entry("e0", name = "гречка", grams = 200.0, kcal = 184.0), borschtEntry()),
+            outbox = emptyList(), notes = emptyList(), weights = emptyList(),
+        )
+        MainScreen(buildState(Local(TODAY, TODAY, expandedParts = setOf("d1")), content, emptyList(), Profile(null, 2440)), Noop, emptyFlow())
+    }
+
+    @Test fun dishEditingLight() = shot("dish_editing_light", dark = false) {
+        val content = DayContent(entries = listOf(borschtEntry()), outbox = emptyList(), notes = emptyList(), weights = emptyList())
+        MainScreen(
+            buildState(Local(TODAY, TODAY, expandedParts = setOf("d1"), partEdit = dev.dietapp.ui.main.PartEdit("d1", 3, "70")), content, emptyList(), Profile(null, 2440)),
+            Noop, emptyFlow(),
+        )
+    }
+
+    /** The count of the total after a food is recorded, frame by frame: the middle of the animation can be looked at. */
+    @Test fun summaryCountingDark() {
+        val dir = outDir
+        assumeTrue("set -Pscreenshots=<dir> to render screenshots", dir != null)
+        fun state(vararg kcal: Double) = buildState(
+            Local(TODAY, TODAY),
+            DayContent(entries = kcal.mapIndexed { i, k -> entry("c$i", "блюдо $i", 200.0, k, at = "2026-09-30T05:00:00Z") }, outbox = emptyList(), notes = emptyList(), weights = emptyList()),
+            emptyList(), Profile(null, 2440),
+        )
+        val shown = androidx.compose.runtime.mutableStateOf(state(600.0, 418.0))
+        compose.setContent { AppTheme(darkTheme = true) { MainScreen(shown.value, Noop, emptyFlow()) } }
+        compose.waitForIdle()
+        compose.mainClock.autoAdvance = false
+        shown.value = state(600.0, 418.0, 450.0)
+        dir!!.mkdirs()
+        var at = 0L
+        for (t in listOf(40L, 160L, 420L, 1200L)) {
+            compose.mainClock.advanceTimeBy(t - at)
+            at = t
+            File(dir, "summary_count_${t}ms.png").outputStream().use {
+                compose.onRoot().captureToImage().asAndroidBitmap().compress(android.graphics.Bitmap.CompressFormat.PNG, 100, it)
+            }
+        }
+    }
+
+    @Test fun lockDark() = shot("lock_dark", dark = true) { dev.dietapp.ui.lock.LockScreen(onOpen = {}) }
+
+    @Test fun lockLight() = shot("lock_light", dark = false) { dev.dietapp.ui.lock.LockScreen(onOpen = {}) }
+
+    @Test fun aboutLockLight() = shot("about_lock_light", dark = false) {
+        AboutScreen(local = false, version = "0.2.0", onBack = {}, onOpenUrl = {}, lockOn = true)
+    }
+
+    @Test fun aboutFontLight() = shot("about_font_light", dark = false) {
+        AboutScreen(
+            local = false, version = "0.2.0", onBack = {}, onOpenUrl = {},
+            font = dev.dietapp.ui.font.FontChoice(dev.dietapp.ui.font.FontKind.File, "VerdanaPro-Regular"),
+        )
+    }
+
+    @Test fun agentWorkingLight() = shot("agent_working_light", dark = false) {
+        val waiting = dev.dietapp.data.domain.OutboxMessage(
+            "w1", "борщ со сметаной, бутерброд с сыром и чай без сахара", false, TODAY, Instant.parse("2026-09-30T14:00:00Z"), dev.dietapp.data.domain.OutboxState.Queued, null, 0,
+            dev.dietapp.data.domain.AgentStatus(dev.dietapp.data.domain.AgentStep.ReadPage, "health-diet.ru"),
+        )
+        val content = DayContent(entries = emptyList(), outbox = listOf(waiting), notes = emptyList(), weights = emptyList())
+        MainScreen(buildState(Local(TODAY, TODAY), content, emptyList(), Profile(null, 2440)), Noop, emptyFlow())
+    }
+
+    @Test fun summaryWatchLight() = shot("summary_watch_light", dark = false) {
+        val content = DayContent(
+            entries = listOf(entry("e0", name = "гречка", grams = 200.0, kcal = 184.0)), outbox = emptyList(), notes = emptyList(), weights = emptyList(),
+            facts = dev.dietapp.data.domain.DayFacts(
+                TODAY, sleepMinutes = 440, steps = 8412,
+                workouts = listOf(
+                    dev.dietapp.data.domain.Workout(dev.dietapp.data.domain.WorkoutKind.Running, 45),
+                    dev.dietapp.data.domain.Workout(dev.dietapp.data.domain.WorkoutKind.Other, 30),
+                    dev.dietapp.data.domain.Workout(dev.dietapp.data.domain.WorkoutKind.Other, 25),
+                    dev.dietapp.data.domain.Workout(dev.dietapp.data.domain.WorkoutKind.Other, 40),
+                ),
+            ),
+        )
+        val weighIn = Weight("w0", TODAY, 119.5, Instant.parse("2026-09-30T05:00:00Z")) // a single weigh-in: no sparkline yet
+        MainScreen(buildState(Local(TODAY, TODAY, summaryExpanded = true), content, listOf(weighIn), Profile(null, 2440)), Noop, emptyFlow())
+    }
+
+    @Test fun summaryPastDayDark() = shot("summary_past_day_dark", dark = true) {
+        val past = TODAY.minusDays(2)
+        val weights = listOf(83.1, 82.9, 83.0, 82.6, 82.4).mapIndexed { i, kg ->
+            Weight("w$i", past.minusDays(4L - i), kg, Instant.parse("2026-09-${24 + i}T05:00:00Z"))
+        }
+        val content = DayContent(
+            entries = listOf(entry("e0", name = "гречка", grams = 200.0, kcal = 184.0).copy(day = past)),
+            outbox = emptyList(), notes = emptyList(), weights = weights.filter { it.day == past },
+        )
+        MainScreen(buildState(Local(past, TODAY, summaryExpanded = true), content, weights, Profile(null, 2440)), Noop, emptyFlow())
+    }
+
+    @Test fun watchConnectedDark() = shot("watch_connected_dark", dark = true) {
+        dev.dietapp.ui.watch.WatchScreen(
+            dev.dietapp.data.repo.WatchState(dev.dietapp.data.watch.WatchAvailability.Ready, true, true, Instant.parse("2026-09-30T18:14:00Z")),
+            {}, {}, {}, {},
+        )
+    }
+
+    @Test fun watchOffLight() = shot("watch_off_light", dark = false) {
+        dev.dietapp.ui.watch.WatchScreen(dev.dietapp.data.repo.WatchState(dev.dietapp.data.watch.WatchAvailability.Ready), {}, {}, {}, {})
+    }
+
+    @Test fun foodDishEditorLight() = shot("food_dish_editor_light", dark = false) {
+        val per = dev.dietapp.data.domain.Dish.per100(borschtParts)!!
+        FoodsScreen(
+            FoodsUiState(
+                editing = FoodEdit(
+                    1, "борщ", "", "%.1f".format(java.util.Locale.ROOT, per.kcal), "%.1f".format(java.util.Locale.ROOT, per.protein),
+                    "%.1f".format(java.util.Locale.ROOT, per.fat), "%.1f".format(java.util.Locale.ROOT, per.carbs), "типичный рецепт",
+                    estimated = true, original = per, parts = borschtParts,
+                ),
+                total = 1,
+            ),
+            NoopFoods, {}, {}, {},
         )
     }
 

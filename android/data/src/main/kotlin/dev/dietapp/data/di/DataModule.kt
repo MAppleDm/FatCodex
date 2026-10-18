@@ -111,4 +111,6 @@ abstract class DataBindsModule {
     @Binds abstract fun speech(impl: SpeechRepositoryImpl): SpeechRepository
     @Binds abstract fun body(impl: dev.dietapp.data.repo.BodyRepositoryImpl): dev.dietapp.data.repo.BodyRepository
     @Binds abstract fun export(impl: dev.dietapp.data.repo.ExportRepositoryImpl): dev.dietapp.data.repo.ExportRepository
+    @Binds abstract fun watch(impl: dev.dietapp.data.repo.WatchRepositoryImpl): dev.dietapp.data.repo.WatchRepository
+    @Binds abstract fun watchSource(impl: dev.dietapp.data.watch.HealthConnectSource): dev.dietapp.data.watch.WatchSource
 }

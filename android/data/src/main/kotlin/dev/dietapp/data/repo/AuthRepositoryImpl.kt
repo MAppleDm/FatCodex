@@ -50,6 +50,7 @@ class AuthRepositoryImpl @Inject constructor(
     private val secrets: SecretStore,
     private val thumbs: PhotoThumbs,
     private val body: BodyStore,
+    private val watch: dev.dietapp.data.watch.WatchStore,
     @AppScope scope: CoroutineScope,
 ) : AuthRepository {
 
@@ -95,10 +96,12 @@ class AuthRepositoryImpl @Inject constructor(
             db.notes().clear()
             db.messages().clear()
             db.foods().clear()
+            db.dayFacts().clear()
             db.profile().clear()
         }
         files.clear()
         thumbs.clear()
         body.clear() // what the person said about themselves goes with the diary
+        watch.clear() // and so does the watch: it has to be connected again
     }
 }

@@ -34,8 +34,8 @@ android {
         applicationId = "dev.dietapp"
         minSdk = 26
         targetSdk = 37
-        versionCode = 2
-        versionName = "0.2.0"
+        versionCode = 3
+        versionName = "0.3.0"
 
         buildConfigField("String", "API_BASE_URL", "\"$apiBaseUrl\"")
         buildConfigField("String", "MODEL_BASE_URL", "\"$modelBaseUrl\"")
@@ -101,6 +101,8 @@ tasks.withType<Test>().configureEach {
 dependencies {
     implementation(project(":core-ui"))
     implementation(project(":data"))
+    implementation(libs.androidx.health.connect)
+    implementation(libs.androidx.biometric)
     implementation(libs.okhttp)
 
     implementation(platform(libs.compose.bom))

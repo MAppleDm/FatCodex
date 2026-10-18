@@ -7,7 +7,8 @@ import kotlin.math.max
 import kotlin.math.roundToInt
 
 object ImageSizing {
-    const val MAX_SIDE = 1024
+    /** Large enough that the small print of a receipt stays legible, small enough to travel quickly (about 250 KB). */
+    const val MAX_SIDE = 1600
     const val JPEG_QUALITY = 80
 
     /** Scale so the longer side is at most [maxSide]; never enlarge. */
@@ -23,7 +24,7 @@ object ImageSizing {
 }
 
 object ImageCompressor {
-    /** Upright, at most 1024 px on the long side, JPEG 80%: what gets sent to the server. */
+    /** Upright, at most [ImageSizing.MAX_SIDE] px on the long side, JPEG 80%: what gets sent to the model or the server. */
     fun compress(source: Bitmap, rotationDegrees: Int): ByteArray {
         val rotation = ImageSizing.normalizeRotation(rotationDegrees)
         val (targetW, targetH) = ImageSizing.fit(source.width, source.height)

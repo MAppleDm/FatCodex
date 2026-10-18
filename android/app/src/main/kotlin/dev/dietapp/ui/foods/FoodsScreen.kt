@@ -208,6 +208,18 @@ private fun FoodEditor(edit: FoodEdit, state: FoodsUiState, actions: FoodsAction
         }
         val tail = if (edit.estimated) " · ${Texts.FOODS_ESTIMATED_HINT}" else ""
         Text("${Texts.FOODS_PER100}$tail", style = AppTheme.type.caption, modifier = Modifier.padding(top = 4.dp))
+        if (edit.parts.isNotEmpty()) {
+            Text(Texts.FOODS_PARTS, style = AppTheme.type.caption, modifier = Modifier.padding(top = 12.dp))
+            Column(Modifier.testTag("food-parts")) {
+                edit.parts.forEach { p ->
+                    Row(Modifier.fillMaxWidth().padding(vertical = 3.dp)) {
+                        Text(p.name, style = AppTheme.type.secondary, modifier = Modifier.weight(1f))
+                        Text("${num(p.grams)} ${Texts.GRAMS}", style = AppTheme.type.monoSecondary)
+                    }
+                }
+            }
+            Text(Texts.FOODS_PARTS_HINT, style = AppTheme.type.caption, modifier = Modifier.padding(top = 4.dp))
+        }
         // "откуда цифры" can be a sentence or two: it wraps into a block instead of running off the screen
         Text(Texts.FOODS_NOTE_LABEL, style = AppTheme.type.caption, modifier = Modifier.padding(top = 12.dp))
         UnderlineField(edit.note, { actions.onEditChange(edit.copy(note = it)) }, Modifier.testTag("food-note"),

@@ -33,6 +33,8 @@ data class EntryRow(
     val dirty: Boolean,
     /** Local mode: recognised, waiting for the user's "записать" (the agent was not sure, or the numbers are only approximate). Not counted in any total. */
     @ColumnInfo(defaultValue = "0") val pending: Boolean = false,
+    /** A dish: its ingredients as JSON (see DishCodec), in the amounts of this entry. Null for a plain food. */
+    val parts: String? = null,
 )
 
 @Entity(tableName = "weights", indices = [Index("day"), Index("dirty")])
@@ -128,6 +130,8 @@ data class FoodRow(
     @ColumnInfo(defaultValue = "user") val origin: String = "user",
     /** The page the numbers were taken from, for foods found on the web. */
     val url: String? = null,
+    /** A dish: its ingredients in the amounts of a typical serving, as JSON (see DishCodec). The values above are what they add up to. */
+    val parts: String? = null,
 )
 
 @Entity(tableName = "profile")
@@ -135,6 +139,17 @@ data class ProfileRow(
     @PrimaryKey val id: Int = 1,
     val email: String?,
     val calorieGoal: Int?,
+)
+
+/** What the watch said about one day (see DayFacts). One row per day, replaced each time the day is read again. */
+@Entity(tableName = "day_facts")
+data class DayFactsRow(
+    @PrimaryKey val day: String,
+    val sleepMinutes: Int?,
+    val steps: Int?,
+    /** The day's workouts as JSON (see WorkoutCodec). */
+    val workouts: String?,
+    val readAtMs: Long,
 )
 
 /** Result row of the per-day totals query (history). */

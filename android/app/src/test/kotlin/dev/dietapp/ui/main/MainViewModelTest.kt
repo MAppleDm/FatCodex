@@ -284,7 +284,7 @@ class MainViewModelTest {
             item.history.map { it.from },
         )
         assertEquals("это из магазина Мясновъ", item.history[1].text)
-        assertEquals("Колбаса любительская Мясновъ · health-diet.ru", item.summary)
+        assertEquals("the last answer is the last thing the user said", "Колбаса любительская Мясновъ · health-diet.ru", item.history.last { it.from == HistoryLine.From.User }.text)
     }
 
     @Test fun `an open question is asked in the panel, and its answer shows while it is processed`() = runTest {
@@ -300,6 +300,31 @@ class MainViewModelTest {
 
         vm.onQuestionSkip()
         assertEquals(listOf(1L), diary.skippedQuestions)
+    }
+
+    @Test fun `a food the open question is about is not offered for recording until it is answered`() = runTest {
+        val (vm, state) = viewModel()
+        diary.entries.value = listOf(
+            entry("e1", "гречка", kcal = null).copy(mealId = "m1", pending = true),
+            entry("e2", "кофе", kcal = 20.0, status = EntryStatus.Uncertain).copy(mealId = "m1", pending = true),
+        )
+        val question = Note(1, TODAY, NoteKind.Question, "Не нашёл «гречка». Что это точнее?", "e1", Instant.parse("2026-09-30T06:00:01Z"), "m1")
+        diary.notes.value = listOf(question)
+        assertEquals(1L, state.value.question!!.id)
+        assertEquals("only the other food waits for записать", listOf("e2"), state.value.confirm!!.entries.map { it.id })
+
+        // the question is skipped: now the food without numbers is offered too, and the person decides
+        diary.notes.value = listOf(question.copy(resolved = true))
+        assertNull(state.value.question)
+        assertEquals(listOf("e1", "e2"), state.value.confirm!!.entries.map { it.id })
+    }
+
+    @Test fun `a question about the only waiting food leaves no confirmation at all`() = runTest {
+        val (_, state) = viewModel()
+        diary.entries.value = listOf(entry("e1", "гречка", kcal = null).copy(mealId = "m1", pending = true))
+        diary.notes.value = listOf(Note(1, TODAY, NoteKind.Question, "Что это точнее?", "e1", Instant.parse("2026-09-30T06:00:01Z"), "m1"))
+        assertTrue(state.value.question != null)
+        assertNull(state.value.confirm)
     }
 
     @Test fun `an open proposal is asked in the panel, not in the feed`() = runTest {
@@ -413,12 +438,115 @@ class MainViewModelTest {
         assertTrue(diary.sent.isEmpty())
     }
 
+    // ---------- the sound of a food that is in for good ----------
+
+    @Test fun `a food that goes in for good makes the sound, what was there already does not`() = runTest {
+        diary.entries.value = listOf(entry("old", name = "овсянка"))
+        val (vm, _) = viewModel()
+        vm.effects.test {
+            expectNoEvents() // opening the app is not an addition
+            diary.entries.value = diary.entries.value + entry("new", name = "борщ")
+            assertEquals(UiEffect.Added, awaitItem())
+            expectNoEvents()
+        }
+    }
+
+    @Test fun `changing or removing a food is not an addition`() = runTest {
+        diary.entries.value = listOf(entry("a", name = "овсянка", grams = 60.0), entry("b", name = "борщ"))
+        val (vm, _) = viewModel()
+        vm.effects.test {
+            diary.entries.value = listOf(entry("a", name = "овсянка", grams = 80.0, kcal = 300.0), entry("b", name = "борщ"))
+            diary.entries.value = listOf(entry("a", name = "овсянка", grams = 80.0, kcal = 300.0))
+            expectNoEvents()
+        }
+    }
+
+    @Test fun `a food that waits for the person is silent until it is recorded`() = runTest {
+        val (vm, _) = viewModel()
+        vm.effects.test {
+            diary.entries.value = listOf(entry("p", name = "борщ").copy(pending = true))
+            expectNoEvents() // recognised, shown, not counted: "Записать?"
+            diary.entries.value = listOf(entry("p", name = "борщ").copy(pending = false))
+            assertEquals(UiEffect.Added, awaitItem())
+        }
+    }
+
+    @Test fun `a food that has no numbers yet is silent until it gets them`() = runTest {
+        val (vm, _) = viewModel()
+        vm.effects.test {
+            diary.entries.value = listOf(entry("s", name = "суши", kcal = null, status = EntryStatus.Unmatched))
+            expectNoEvents() // the agent asked what it is
+            diary.entries.value = listOf(entry("s", name = "суши", kcal = 250.0))
+            assertEquals(UiEffect.Added, awaitItem())
+        }
+    }
+
+    @Test fun `a weight that is added makes the sound too`() = runTest {
+        val (vm, _) = viewModel()
+        vm.effects.test {
+            diary.weights.value = listOf(dev.dietapp.data.domain.Weight("w9", TODAY, 82.4, Instant.parse("2026-09-30T05:00:00Z")))
+            assertEquals(UiEffect.Added, awaitItem())
+        }
+    }
+
+    @Test fun `another day opened is only looked at, a food added to it counts`() = runTest {
+        val yesterday = LocalDate.parse("2026-09-29")
+        diary.entries.value = listOf(entry("t1"), entry("y1", day = yesterday))
+        val (vm, _) = viewModel()
+        vm.effects.test {
+            vm.onSelectDay(yesterday)
+            expectNoEvents() // the day's food was there
+            diary.entries.value = diary.entries.value + entry("y2", day = yesterday, name = "ужин")
+            assertEquals(UiEffect.Added, awaitItem())
+            vm.onBackToToday()
+            expectNoEvents()
+        }
+    }
+
+    @Test fun `what is being typed comes back after the system closed the app, and a sent message does not`() = runTest {
+        val handle = androidx.lifecycle.SavedStateHandle()
+        val first = MainViewModel(diary, speech, localSettings, TEST_CLOCK, handle)
+        first.onDraftChange("кофе 200 мл")
+        // the process is gone; the system gives the new screen the state it kept
+        val again = MainViewModel(diary, speech, localSettings, TEST_CLOCK, handle)
+        assertEquals("кофе 200 мл", again.uiState.value.draft)
+        again.onSend()
+        assertEquals("", MainViewModel(diary, speech, localSettings, TEST_CLOCK, handle).uiState.value.draft)
+    }
+
+    @Test fun `sending a message while a food is open saves the change and folds it, so the feed follows the new message`() = runTest {
+        val (vm, state) = viewModel()
+        diary.entries.value = listOf(entry("e1", name = "гречка", grams = 200.0))
+        vm.onEditStart("e1")
+        vm.onEditGrams("150")
+        vm.onDraftChange("кофе")
+        vm.onSend()
+        assertNull("folded", state.value.editing)
+        assertEquals("the change was kept", 150.0, diary.updates.single().second!!, 0.0)
+        assertEquals("кофе", diary.sent.single().text)
+    }
+
+    @Test fun `a photo taken while an ingredient is open saves its grams first`() = runTest {
+        val (vm, state) = viewModel()
+        val beet = dev.dietapp.data.domain.DishPart("свёкла", 40.0, dev.dietapp.data.domain.Per100(43.0, 1.6, 0.2, 9.6))
+        val beef = dev.dietapp.data.domain.DishPart("говядина", 50.0, dev.dietapp.data.domain.Per100(250.0, 26.0, 15.0, 0.0))
+        diary.entries.value = listOf(entry("d1", name = "борщ", grams = 90.0, kcal = 142.2).copy(parts = listOf(beet, beef)))
+        vm.onPartsToggle("d1")
+        vm.onPartEditStart("d1", 1)
+        vm.onPartGrams("80")
+        vm.onPhoto(byteArrayOf(1, 2, 3))
+        assertNull(state.value.partEdit)
+        assertEquals(listOf(Triple("d1", 1, 80.0)), diary.partChanges)
+        assertTrue(diary.sent.single().image != null)
+    }
+
     @Test fun `a weigh-in command is recorded as weight, not sent as food`() = runTest {
         val (vm, state) = viewModel()
         vm.effects.test {
             vm.onDraftChange("вес 82,4")
             vm.onSend()
-            assertEquals(UiEffect.Confirm, awaitItem())
+            // the tick of the haptic confirmation and the sound of a record that is in: both, in whichever order they arrive
+            assertEquals(setOf(UiEffect.Added, UiEffect.Confirm), setOf(awaitItem(), awaitItem()))
         }
         assertTrue(diary.sent.isEmpty())
         assertEquals(listOf(TODAY to 82.4), diary.addedWeights)
@@ -516,6 +644,26 @@ class MainViewModelTest {
         vm.onCameraFailed()
         assertFalse(state.value.cameraOpen)
         assertEquals(Texts.CAMERA_FAILED, state.value.notice)
+    }
+
+    @Test fun `a picture from the gallery that cannot be opened closes the camera and says so`() = runTest {
+        val (vm, state) = viewModel()
+        vm.onOpenCamera()
+        vm.onGalleryFailed()
+        assertFalse(state.value.cameraOpen)
+        assertEquals(Texts.GALLERY_FAILED, state.value.notice)
+        assertTrue(diary.sent.isEmpty())
+    }
+
+    @Test fun `a picture from the gallery is sent like a snapshot, with the typed words as its caption`() = runTest {
+        val (vm, state) = viewModel()
+        vm.onDraftChange("чек вкусно и точка")
+        vm.onOpenCamera()
+        vm.onPhoto(byteArrayOf(5, 6, 7))
+        val sent = diary.sent.single()
+        assertEquals("чек вкусно и точка", sent.text)
+        assertEquals(MessageSource.Photo, sent.source)
+        assertFalse(state.value.cameraOpen)
     }
 
     @Test fun `server confirmations become haptic ticks`() = runTest {
@@ -671,6 +819,97 @@ class MainViewModelTest {
     }
 
     // ---------- weights, waiting messages, notes ----------
+
+    // ---------- the ingredients of a dish ----------
+
+    private val beet = dev.dietapp.data.domain.DishPart("свёкла", 40.0, dev.dietapp.data.domain.Per100(43.0, 1.6, 0.2, 9.6))
+    private val beef = dev.dietapp.data.domain.DishPart("говядина", 50.0, dev.dietapp.data.domain.Per100(250.0, 26.0, 15.0, 0.0))
+    private fun dish() = entry("d1", name = "борщ", grams = 90.0, kcal = 142.2).copy(parts = listOf(beet, beef))
+
+    @Test fun `the chevron of a dish opens its ingredients, and again folds them`() = runTest {
+        diary.entries.value = listOf(dish())
+        val (vm, state) = viewModel()
+        vm.onPartsToggle("d1")
+        assertEquals(setOf("d1"), state.value.expandedParts)
+        vm.onPartsToggle("d1")
+        assertTrue(state.value.expandedParts.isEmpty())
+    }
+
+    @Test fun `a tap on an ingredient lets its grams be changed, and done saves them`() = runTest {
+        diary.entries.value = listOf(dish())
+        val (vm, state) = viewModel()
+        vm.onPartsToggle("d1")
+        vm.onPartEditStart("d1", 1)
+        assertEquals(PartEdit("d1", 1, "50"), state.value.partEdit)
+        vm.onPartGrams("7x5,5")
+        assertEquals("only digits and a decimal mark", "75,5", state.value.partEdit!!.grams)
+        vm.onPartCommit()
+        assertEquals(listOf(Triple("d1", 1, 75.5)), diary.partChanges)
+        assertNull(state.value.partEdit)
+    }
+
+    @Test fun `a number that is the same, empty or absurd saves nothing`() = runTest {
+        diary.entries.value = listOf(dish())
+        val (vm, state) = viewModel()
+        for (typed in listOf("50", "", "99999")) {
+            vm.onPartEditStart("d1", 1)
+            vm.onPartGrams(typed)
+            vm.onPartCommit()
+            assertNull(state.value.partEdit)
+        }
+        assertTrue(diary.partChanges.isEmpty())
+    }
+
+    @Test fun `taking an ingredient out is a change to nothing`() = runTest {
+        diary.entries.value = listOf(dish())
+        val (vm, _) = viewModel()
+        vm.onPartEditStart("d1", 0)
+        vm.onPartGrams("0")
+        vm.onPartCommit()
+        assertEquals(listOf(Triple("d1", 0, 0.0)), diary.partChanges)
+    }
+
+    @Test fun `starting on another ingredient saves the first one`() = runTest {
+        diary.entries.value = listOf(dish())
+        val (vm, state) = viewModel()
+        vm.onPartEditStart("d1", 0)
+        vm.onPartGrams("60")
+        vm.onPartEditStart("d1", 1)
+        assertEquals(listOf(Triple("d1", 0, 60.0)), diary.partChanges)
+        assertEquals(1, state.value.partEdit!!.index)
+    }
+
+    @Test fun `opening the food for editing closes the ingredient being changed`() = runTest {
+        diary.entries.value = listOf(dish())
+        val (vm, state) = viewModel()
+        vm.onPartEditStart("d1", 0)
+        vm.onEditStart("d1")
+        assertNull(state.value.partEdit)
+        assertEquals("d1", state.value.editing!!.entryId)
+    }
+
+    @Test fun `a plain food has no ingredients to change`() = runTest {
+        diary.entries.value = listOf(entry("p1", name = "гречка"))
+        val (vm, state) = viewModel()
+        vm.onPartEditStart("p1", 0)
+        assertNull(state.value.partEdit)
+    }
+
+    @Test fun `what the watch said about the day reaches the screen`() = runTest {
+        val (_, state) = viewModel()
+        assertNull(state.value.facts)
+        diary.facts.value = dev.dietapp.data.domain.DayFacts(TODAY, sleepMinutes = 440, steps = 8412)
+        assertEquals(440, state.value.facts!!.sleepMinutes)
+    }
+
+    @Test fun `the watch page opens from the settings and goes back to them`() = runTest {
+        val (vm, state) = viewModel()
+        vm.onOpenSettings()
+        vm.onOpenWatch()
+        assertEquals(Screen.Watch, state.value.screen)
+        vm.onCloseWatch()
+        assertEquals(Screen.Settings, state.value.screen)
+    }
 
     @Test fun `tapping a weigh-in offers delete, tapping again hides it`() = runTest {
         val (vm, state) = viewModel()

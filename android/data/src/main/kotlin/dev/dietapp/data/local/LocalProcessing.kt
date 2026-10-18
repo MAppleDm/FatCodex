@@ -5,6 +5,7 @@ import dev.dietapp.data.db.AppDatabase
 import dev.dietapp.data.db.EntryRow
 import dev.dietapp.data.db.NoteRow
 import dev.dietapp.data.db.OutboxRow
+import dev.dietapp.data.domain.Dish
 import dev.dietapp.data.domain.EntryStatus
 import dev.dietapp.data.domain.Lang
 import dev.dietapp.data.domain.Lang.t
@@ -105,8 +106,17 @@ class LocalMessageProcessor(
     private val files: OutboxFiles,
     private val clock: Clock,
     private val threshold: Double = 0.6,
+    private val activity: AgentActivity = AgentActivity(),
 ) {
     suspend fun process(row: OutboxRow) {
+        try {
+            handle(row)
+        } finally {
+            activity.clear(row.id)
+        }
+    }
+
+    private suspend fun handle(row: OutboxRow) {
         val now = clock.millis()
         val eaten = OffsetDateTime.parse(row.eatenAt)
         val known = loadKnown(row)
@@ -123,7 +133,7 @@ class LocalMessageProcessor(
             localTime = "%02d:%02d".format(eaten.hour, eaten.minute),
             language = Lang.current.code,
         )
-        val parsed = parsers.parse(ParseRequest(row.text, image, row.imageMime, context))
+        val parsed = parsers.parse(ParseRequest(row.text, image, row.imageMime, context, onStep = { activity.report(row.id, it) }))
 
         // Looking foods up is done before the transaction.
         // A food the model proposed values for waits for the user's pick: a generic lookup ("frankfurter" for branded
@@ -259,7 +269,11 @@ class LocalMessageProcessor(
     }
 
     private fun rescale(target: EntryRow, item: ParsedItem): EntryRow {
-        var row = target.copy(grams = item.grams, confidence = item.confidence)
+        var row = target.copy(
+            grams = item.grams, confidence = item.confidence,
+            // a dish keeps its ingredients in the same proportions
+            parts = DishCodec.decode(target.parts).takeIf { it.isNotEmpty() }?.let { DishCodec.encode(Dish.scaleTo(it, item.grams)) },
+        )
         if (row.kcal100 != null) {
             row = row.copy(
                 kcal = NutrientMath.scale(row.kcal100!!, item.grams), protein = NutrientMath.scale(row.protein100!!, item.grams),
@@ -275,7 +289,7 @@ class LocalMessageProcessor(
         if (found == null) {
             return base.copy(
                 kcal = null, protein = null, fat = null, carbs = null, kcal100 = null, protein100 = null, fat100 = null, carbs100 = null,
-                foodName = null, status = EntryStatus.Unmatched.toWire(),
+                foodName = null, status = EntryStatus.Unmatched.toWire(), parts = null,
             )
         }
         val p = found.per100
@@ -284,6 +298,8 @@ class LocalMessageProcessor(
             kcal = NutrientMath.scale(p.kcal, item.grams), protein = NutrientMath.scale(p.protein, item.grams),
             fat = NutrientMath.scale(p.fat, item.grams), carbs = NutrientMath.scale(p.carbs, item.grams),
             foodName = found.foodName,
+            // a dish brings its ingredients, in the amounts of this portion
+            parts = DishCodec.encode(Dish.scaleTo(found.parts, item.grams)),
             // an estimated food and low confidence both show as "~"
             status = if (found.approximate || item.confidence < threshold) "uncertain" else "ok",
         )

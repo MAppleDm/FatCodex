@@ -15,7 +15,7 @@ import dev.dietapp.data.local.Capabilities
 import java.time.Instant
 import java.time.LocalDate
 
-enum class Screen { Main, Settings, Foods, Journal, Export, Agent, About, History, Me }
+enum class Screen { Main, Settings, Foods, Journal, Export, Agent, About, History, Me, Watch }
 
 enum class VoicePhase { Idle, Listening, Recording, Transcribing }
 
@@ -28,11 +28,10 @@ sealed interface FeedItem {
 
     /**
      * [history]: the conversation about this food (what the app asked, what the user answered, what it changed).
-     * Folded into the entry: shown when it is opened, the user's last answer as a one-line [summary] under it.
+     * Folded into the entry: it shows only when the entry is opened, the row itself stays a name, grams, kcal and a time.
      */
     data class EntryItem(val entry: Entry, val history: List<HistoryLine> = emptyList()) : FeedItem {
         override val key get() = "e:${entry.id}"
-        val summary: String? get() = history.lastOrNull { it.from == HistoryLine.From.User }?.text
     }
 
     data class WeightItem(val weight: Weight, val trendKg: Double?, val actionsOpen: Boolean) : FeedItem {
@@ -64,6 +63,9 @@ data class HistoryLine(val text: String, val from: From, val at: Instant) {
 /** An entry being edited in place. [grams] stays text while the user types. */
 data class EditState(val entryId: String, val name: String, val grams: String)
 
+/** One ingredient of a dish being changed: which entry, which ingredient, and the grams as typed. */
+data class PartEdit(val entryId: String, val index: Int, val grams: String)
+
 data class WeightSummary(val latestKg: Double, val trendKg: Double, val raw: List<Double>, val trend: List<Double>)
 
 /** Everything the main screen renders. */
@@ -74,6 +76,8 @@ data class MainUiState(
     val totals: Totals,
     val feed: List<FeedItem>,
     val summaryExpanded: Boolean = false,
+    /** What is on screen is this day's own content: false before it has been read and in the moment another day is opened. */
+    val loaded: Boolean = true,
     val weight: WeightSummary? = null,
     val draft: String = "",
     val editing: EditState? = null,
@@ -91,6 +95,11 @@ data class MainUiState(
     val question: Note? = null,
     /** "Записать?" for the day's food that waits for the user. Shown when nothing above it is open. */
     val confirm: ConfirmUi? = null,
+    /** Dishes whose ingredients are shown (entry ids), and the ingredient being changed. */
+    val expandedParts: Set<String> = emptySet(),
+    val partEdit: PartEdit? = null,
+    /** What the watch said about this day, if anything. */
+    val facts: dev.dietapp.data.domain.DayFacts? = null,
 ) {
     val isToday get() = day == today
     val isEmpty get() = feed.isEmpty()
@@ -137,6 +146,9 @@ data class ChoiceDraft(
 sealed interface UiEffect {
     /** A record was confirmed: a short haptic tick instead of any visual flourish. */
     data object Confirm : UiEffect
+
+    /** A food (or a weight) is in the diary for good, counted: the short sound, like a messenger's for a message. */
+    data object Added : UiEffect
 }
 
 /** The parts of the state that only live in the view model. */
@@ -161,6 +173,8 @@ internal data class Local(
     val confirmBusy: Boolean = false,
     /** The small pictures of the day's photo messages, by message id, as they have been read from the phone. */
     val thumbs: Map<String, ByteArray> = emptyMap(),
+    val expandedParts: Set<String> = emptySet(),
+    val partEdit: PartEdit? = null,
 )
 
 private const val TREND_POINTS = 30
@@ -171,6 +185,7 @@ internal fun buildState(
     allWeights: List<Weight>,
     profile: Profile,
     capabilities: Capabilities = Capabilities(),
+    loaded: Boolean = true,
 ): MainUiState {
     val trend = WeightTrend.compute(allWeights)
     val trendByDay = trend.associate { it.day to it.trend }
@@ -214,7 +229,8 @@ internal fun buildState(
         BaseChangeUi(n.id, n.text, busy = local.baseChangeBusy == n.id)
     }
     val question = content.notes.lastOrNull { it.kind == NoteKind.Question && !it.resolved }
-    val waiting = content.entries.filter { it.pending }
+    // a food the open question is about waits for its answer, not for "записать": recording it now would count it without numbers
+    val waiting = content.entries.filter { it.pending && it.id != question?.targetEntryId }
     val confirm = if (waiting.isEmpty()) null else ConfirmUi(waiting, busy = local.confirmBusy)
 
     val points = trend.takeLast(TREND_POINTS)
@@ -226,6 +242,7 @@ internal fun buildState(
         totals = Totals.of(content.entries.filterNot { it.pending }),
         feed = rows.map { it.item },
         summaryExpanded = local.summaryExpanded,
+        loaded = loaded,
         weight = points.lastOrNull()?.let {
             WeightSummary(it.raw, it.trend, points.map { p -> p.raw }, points.map { p -> p.trend })
         },
@@ -240,6 +257,9 @@ internal fun buildState(
         baseChange = if (proposal != null) null else baseChange,
         question = if (proposal != null || baseChange != null) null else question,
         confirm = if (proposal != null || baseChange != null) null else confirm,
+        expandedParts = local.expandedParts,
+        partEdit = local.partEdit,
+        facts = content.facts,
     )
 }
 

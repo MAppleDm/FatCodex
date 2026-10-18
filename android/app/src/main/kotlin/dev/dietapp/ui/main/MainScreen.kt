@@ -60,12 +60,14 @@ import dev.dietapp.coreui.StatRow
 import dev.dietapp.coreui.TextAction
 import dev.dietapp.coreui.formatInt
 import dev.dietapp.coreui.formatKg
+import dev.dietapp.data.domain.Entry
 import dev.dietapp.data.domain.EntryStatus
 import dev.dietapp.data.domain.Note
 import dev.dietapp.data.domain.NoteKind
 import dev.dietapp.data.domain.OutboxState
 import dev.dietapp.data.net.OFFLINE_MESSAGE
 import dev.dietapp.ui.camera.CameraCapture
+import dev.dietapp.ui.sound.LocalAddedSound
 import dev.dietapp.voice.VoiceController
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -96,7 +98,15 @@ private class VoiceHolder { var controller: VoiceController? = null }
 fun MainScreen(state: MainUiState, actions: MainActions, effects: Flow<UiEffect>, modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val haptic = LocalHapticFeedback.current
-    LaunchedEffect(effects) { effects.collect { haptic.performHapticFeedback(HapticFeedbackType.Confirm) } }
+    val sound = LocalAddedSound.current
+    LaunchedEffect(effects) {
+        effects.collect { effect ->
+            when (effect) {
+                UiEffect.Confirm -> haptic.performHapticFeedback(HapticFeedbackType.Confirm)
+                UiEffect.Added -> sound.play()
+            }
+        }
+    }
 
     // ---- permissions and the two kinds of media input ----
     val voiceHolder = remember { VoiceHolder() }
@@ -127,13 +137,17 @@ fun MainScreen(state: MainUiState, actions: MainActions, effects: Flow<UiEffect>
                     expanded = state.summaryExpanded,
                     onToggle = actions::onToggleSummary,
                     modifier = Modifier.weight(1f).testTag("summary"),
-                ) { SummaryDetails(state) }
+                    date = state.day.format(DayFormat),
+                    // another day, or the first load, shows its numbers at once; only a change of this day's total is counted
+                    resetKey = state.day to state.loaded,
+                ) { shownKcal -> SummaryDetails(state, shownKcal) }
                 IconAction(actions::onOpenSettings, Texts.CD_SETTINGS, Modifier.padding(top = 4.dp, end = 4.dp)) { MoreIcon(it) }
             }
             Hairline()
 
             if (!state.isToday) {
-                DayLine(state.day.format(DayFormat), Texts.BACK_TO_TODAY, actions::onBackToToday)
+                // 48 dp: the width of the settings icon, so that the action ends under the date above it
+                DayLine(Texts.BACK_TO_TODAY, actions::onBackToToday, Modifier.padding(end = 48.dp))
             }
 
             Feed(state, actions, Modifier.weight(1f))
@@ -162,30 +176,41 @@ fun MainScreen(state: MainUiState, actions: MainActions, effects: Flow<UiEffect>
         }
 
         if (state.cameraOpen) {
-            CameraCapture(onPhoto = actions::onPhoto, onFailed = actions::onCameraFailed, onClose = actions::onCloseCamera)
+            CameraCapture(
+                onPhoto = actions::onPhoto, onFailed = actions::onCameraFailed, onGalleryFailed = actions::onGalleryFailed,
+                onClose = actions::onCloseCamera,
+            )
         }
     }
 }
 
 @Composable
-private fun SummaryDetails(state: MainUiState) {
-    val t = state.totals
-    val goal = state.goal
-    val kcal = t.kcal.roundToInt()
-    if (goal != null) {
+private fun SummaryDetails(state: MainUiState, kcal: Int) {
+    // the macros are already the second line of the header; here only what the header does not say.
+    // [kcal] is the header's count, so the line and "Осталось" move with the number above them.
+    state.goal?.let { goal ->
         ProgressLine(kcal.toFloat() / goal)
         Spacer(Modifier.height(8.dp))
         val left = goal - kcal
         // neutral wording either way: going over a goal is information, not a failure
         DetailLine(if (left >= 0) Texts.LEFT else Texts.OVER, "${formatInt(abs(left))} ${Texts.KCAL}")
     }
-    DetailLine(Texts.PROTEIN, "${formatInt(t.protein)} ${Texts.GRAMS}")
-    DetailLine(Texts.FAT, "${formatInt(t.fat)} ${Texts.GRAMS}")
-    DetailLine(Texts.CARBS, "${formatInt(t.carbs)} ${Texts.GRAMS}")
     state.weight?.let { w ->
-        Spacer(Modifier.height(8.dp))
-        DetailLine(Texts.WEIGHT, "${formatKg(w.latestKg)} ${Texts.KG} · ${Texts.TREND} ${formatKg(w.trendKg)}")
-        Sparkline(w.raw, w.trend, Modifier.padding(top = 4.dp))
+        Spacer(Modifier.height(10.dp))
+        // one weigh-in has no trend and nothing to draw yet
+        val many = w.raw.size > 1
+        DetailLine(Texts.WEIGHT, "${formatKg(w.latestKg)} ${Texts.KG}" + if (many) " · ${Texts.TREND} ${formatKg(w.trendKg)}" else "")
+        if (many) Sparkline(w.raw, w.trend, Modifier.padding(top = 4.dp))
+    }
+    state.facts?.takeIf { !it.isEmpty }?.let { f ->
+        Spacer(Modifier.height(10.dp))
+        Text(Texts.WATCH, style = AppTheme.type.caption, modifier = Modifier.testTag("facts").padding(bottom = 2.dp))
+        f.sleepMinutes?.let { DetailLine(Texts.FACT_SLEEP, Texts.sleepText(it)) }
+        f.steps?.let { DetailLine(Texts.FACT_STEPS, formatInt(it)) }
+        // several sessions of one kind are one line: "Тренировка ×4  120 мин"
+        f.workouts.groupBy { it.kind }.forEach { (kind, sessions) ->
+            DetailLine(Texts.workoutName(kind, sessions.size), "${sessions.sumOf { it.minutes }} ${Texts.MIN}")
+        }
     }
 }
 
@@ -208,7 +233,7 @@ private fun Feed(state: MainUiState, actions: MainActions, modifier: Modifier) {
             // drawn over the row that took its place (seen on a device: the answered question over its answer).
             val animate = Modifier.animateItem(fadeInSpec = tween(120), placementSpec = tween(120), fadeOutSpec = null)
             when (item) {
-                is FeedItem.EntryItem -> EntryLine(item, state.editing, actions, animate)
+                is FeedItem.EntryItem -> EntryLine(item, state, actions, animate)
                 is FeedItem.WeightItem -> Column(animate) {
                     StatRow(
                         label = Texts.WEIGHT_LABEL,
@@ -227,6 +252,7 @@ private fun Feed(state: MainUiState, actions: MainActions, modifier: Modifier) {
                     val m = item.message
                     val p = item.pending
                     val failed = p?.state == OutboxState.Failed
+                    val step = p?.agent
                     val thumb = remember(item.thumb) {
                         item.thumb?.let { bytes -> BitmapFactory.decodeByteArray(bytes, 0, bytes.size)?.asImageBitmap() }
                     }
@@ -238,11 +264,13 @@ private fun Feed(state: MainUiState, actions: MainActions, modifier: Modifier) {
                         status = when {
                             p == null -> null
                             failed -> null // the red line under the message says it
+                            step != null -> null // being read right now: the line under the message says what the agent does
                             p.error == OFFLINE_MESSAGE -> Texts.STATUS_OFFLINE
                             p.attempts > 0 -> Texts.STATUS_RETRY
                             else -> Texts.STATUS_WAITING
                         },
                         isError = failed,
+                        progress = step?.let(Texts::agentStep),
                         onClick = { actions.onMessageTap(m.id) },
                         modifier = Modifier.testTag("message"),
                     )
@@ -292,19 +320,26 @@ private fun Feed(state: MainUiState, actions: MainActions, modifier: Modifier) {
 }
 
 @Composable
-private fun EntryLine(item: FeedItem.EntryItem, editing: EditState?, actions: MainActions, modifier: Modifier) {
+private fun EntryLine(item: FeedItem.EntryItem, state: MainUiState, actions: MainActions, modifier: Modifier) {
     val e = item.entry
+    val editing = state.editing
     if (editing?.entryId != e.id) {
-        EntryRow(
-            name = e.name,
-            grams = e.grams,
-            kcal = e.kcal,
-            approximate = e.status == EntryStatus.Uncertain,
-            pending = e.pending,
-            note = item.summary,
-            onClick = { actions.onEditStart(e.id) },
-            modifier = modifier.testTag("entry"),
-        )
+        val open = e.parts.isNotEmpty() && e.id in state.expandedParts
+        Column(modifier) {
+            EntryRow(
+                name = e.name,
+                grams = e.grams,
+                kcal = e.kcal,
+                approximate = e.status == EntryStatus.Uncertain,
+                pending = e.pending,
+                time = Texts.clock(e.eatenAt),
+                expanded = if (e.parts.isEmpty()) null else open,
+                onToggle = { actions.onPartsToggle(e.id) },
+                onClick = { actions.onEditStart(e.id) },
+                modifier = Modifier.testTag("entry"),
+            )
+            if (open) PartsList(e, state.partEdit?.takeIf { it.entryId == e.id }, actions)
+        }
         return
     }
     // the numbers follow the grams being typed, from the values per 100 g
@@ -344,6 +379,37 @@ private fun EntryLine(item: FeedItem.EntryItem, editing: EditState?, actions: Ma
 }
 
 /**
+ * The ingredients of a dish that was eaten, under its row: what and how much of each. A tap on one lets its grams be changed
+ * (more meat, no sour cream); the dish weighs what its ingredients now weigh and its numbers follow.
+ */
+@Composable
+private fun PartsList(e: Entry, edit: PartEdit?, actions: MainActions) {
+    val t = AppTheme.type
+    Column(Modifier.fillMaxWidth().padding(start = 28.dp, end = 16.dp, bottom = 6.dp).testTag("parts")) {
+        e.parts.forEachIndexed { i, p ->
+            if (edit?.index == i) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(p.name, style = t.secondary, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+                    UnderlineField(
+                        edit.grams, actions::onPartGrams, Modifier.width(76.dp).testTag("part-grams"), placeholder = Texts.GRAMS,
+                        keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Done, onImeAction = actions::onPartCommit, mono = true,
+                    )
+                    Text(" ${Texts.GRAMS}", style = t.monoSecondary)
+                    TextAction(Texts.PART_DONE, actions::onPartCommit, Modifier.testTag("part-done"))
+                }
+            } else {
+                Row(Modifier.fillMaxWidth().tap { actions.onPartEditStart(e.id, i) }.padding(vertical = 5.dp).testTag("part"), verticalAlignment = Alignment.CenterVertically) {
+                    Text(p.name, style = t.secondary, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+                    Spacer(Modifier.width(12.dp))
+                    Text("${formatGrams(p.grams)} ${Texts.GRAMS}", style = t.monoSecondary)
+                    Text(formatInt(p.kcal), style = t.monoSecondary, textAlign = TextAlign.End, modifier = Modifier.width(60.dp))
+                }
+            }
+        }
+    }
+}
+
+/**
  * The question that pops up above the input when the model found values for a food: one tap on an option puts it into
  * the food base and fills in the entry; "свой вариант" lets the user type their own; "пропустить" leaves it.
  */
@@ -374,6 +440,9 @@ private fun ProposalPanel(p: ProposalUi, actions: MainActions) {
                                     .joinToString(" · "),
                                 style = t.caption, maxLines = 2, overflow = TextOverflow.Ellipsis,
                             )
+                            if (c.parts.isNotEmpty()) {
+                                Text(Texts.dishOf(c.parts), style = t.caption, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.testTag("choice-parts"))
+                            }
                         }
                         Spacer(Modifier.width(12.dp))
                         Text("${if (c.estimated) "~" else ""}${formatInt(c.per100.kcal)} ${Texts.KCAL}", style = t.mono)

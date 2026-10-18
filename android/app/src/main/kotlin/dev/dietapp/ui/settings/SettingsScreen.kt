@@ -38,6 +38,7 @@ fun SettingsScreen(
     onLogout: () -> Unit,
     onOpenFoods: () -> Unit = {},
     onOpenMe: () -> Unit = {},
+    onOpenWatch: () -> Unit = {},
     onOpenHistory: () -> Unit = {},
     onOpenAbout: () -> Unit = {},
     onToggleLanguage: () -> Unit = {},
@@ -58,6 +59,7 @@ fun SettingsScreen(
                 Hairline()
             }
             StatRow(Texts.ME, "›", Modifier.testTag("me-entry"), onClick = onOpenMe)
+            StatRow(Texts.DEVICES, "›", Modifier.testTag("watch-entry"), onClick = onOpenWatch)
             if (state.local) StatRow(Texts.FOODS, formatInt(state.foodCount), Modifier.testTag("foods-entry"), onClick = onOpenFoods)
             StatRow(Texts.HISTORY, "›", Modifier.testTag("history-entry"), onClick = onOpenHistory)
         }

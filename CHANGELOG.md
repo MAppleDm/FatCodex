@@ -2,9 +2,15 @@
 
 User-facing releases follow `vMAJOR.MINOR.PATCH`. See [RELEASING.md](RELEASING.md).
 
-## Unreleased
+## v0.3.0 — 2026-10-18
 
 - In-app checks for GitHub releases and APK downloads.
+- Dishes with editable ingredients and matching calorie and macro totals.
+- Health Connect integration for sleep, steps, workouts, and weight from connected devices.
+- App lock using the system fingerprint, face, or device-credential prompt.
+- Inter and custom fonts, optional food-entry sound, and animated daily totals.
+- Photos from the gallery, including receipts and menus.
+- Updated diary history, exports, and database migrations for the new data.
 
 ## v0.2.0 — 2026-10-06
 

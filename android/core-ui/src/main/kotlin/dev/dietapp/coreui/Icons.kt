@@ -22,6 +22,21 @@ import androidx.compose.ui.unit.dp
 
 private fun DrawScope.stroke() = Stroke(width = 1.5.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round)
 
+/** A closed padlock: the app is locked. */
+@Composable
+fun LockIcon(color: Color, modifier: Modifier = Modifier) = Canvas(modifier.size(24.dp)) {
+    val w = size.width
+    drawRoundRect(color, Offset(w * 0.2f, w * 0.44f), Size(w * 0.6f, w * 0.4f), CornerRadius(w * 0.08f), style = stroke())
+    val shackle = Path().apply {
+        moveTo(w * 0.32f, w * 0.44f)
+        lineTo(w * 0.32f, w * 0.32f)
+        cubicTo(w * 0.32f, w * 0.1f, w * 0.68f, w * 0.1f, w * 0.68f, w * 0.32f)
+        lineTo(w * 0.68f, w * 0.44f)
+    }
+    drawPath(shackle, color, style = stroke())
+    drawLine(color, Offset(w * 0.5f, w * 0.57f), Offset(w * 0.5f, w * 0.69f), strokeWidth = 1.5.dp.toPx(), cap = StrokeCap.Round)
+}
+
 @Composable
 fun MicIcon(color: Color, modifier: Modifier = Modifier) = Canvas(modifier.size(24.dp)) {
     val w = size.width
@@ -72,6 +87,20 @@ fun BackIcon(color: Color, modifier: Modifier = Modifier) = Canvas(modifier.size
         lineTo(w * 0.62f, w * 0.8f)
     }
     drawPath(chevron, color, style = stroke())
+}
+
+/** A small chevron: down while a list is folded, up while it is open. */
+@Composable
+fun ChevronIcon(color: Color, up: Boolean, modifier: Modifier = Modifier) = Canvas(modifier.size(20.dp)) {
+    val w = size.width
+    val near = if (up) 0.62f else 0.38f
+    val far = if (up) 0.38f else 0.62f
+    val path = Path().apply {
+        moveTo(w * 0.25f, w * near)
+        lineTo(w * 0.5f, w * far)
+        lineTo(w * 0.75f, w * near)
+    }
+    drawPath(path, color, style = stroke())
 }
 
 @Composable

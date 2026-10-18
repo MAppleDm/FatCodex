@@ -1,5 +1,6 @@
 package dev.dietapp.data.local.parse
 
+import dev.dietapp.data.domain.AgentStatus
 import dev.dietapp.data.domain.Per100
 
 enum class Action { Add, Update, Remove }
@@ -81,6 +82,8 @@ data class ParseRequest(
     val imageBase64: String? = null,
     val imageMime: String = "image/jpeg",
     val context: ParseContext = ParseContext(),
+    /** Told at each step of the agent, so that the person can see what is going on while it works. */
+    val onStep: (AgentStatus) -> Unit = {},
 )
 
 /** Turns a message into items. Implemented by the language model (the agent). */

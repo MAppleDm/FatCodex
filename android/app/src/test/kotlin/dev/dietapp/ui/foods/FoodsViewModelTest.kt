@@ -103,6 +103,40 @@ class FoodsViewModelTest {
         assertEquals("x", state.value.editing!!.name)
     }
 
+    private val dishParts = listOf(
+        dev.dietapp.data.domain.DishPart("свёкла", 40.0, Per100(43.0, 1.6, 0.2, 9.6)),
+        dev.dietapp.data.domain.DishPart("говядина", 50.0, Per100(250.0, 26.0, 15.0, 0.0)),
+    )
+    private val borscht = Food(9, "борщ", emptyList(), dev.dietapp.data.domain.Dish.per100(dishParts)!!, true, null, Instant.EPOCH, parts = dishParts)
+
+    @Test fun `a dish opens with its ingredients and keeps them when only something else changes`() = runTest {
+        repo.foods.value = listOf(borscht)
+        val (vm, state) = viewModel()
+        vm.onEdit(borscht)
+        assertEquals(listOf("свёкла", "говядина"), state.value.editing!!.parts.map { it.name })
+        vm.onEditChange(state.value.editing!!.copy(note = "по бабушкиному"))
+        vm.onSave()
+        assertEquals(2, repo.saved.single().first.parts.size)
+    }
+
+    @Test fun `numbers changed by hand make the dish a plain food`() = runTest {
+        repo.foods.value = listOf(borscht)
+        val (vm, state) = viewModel()
+        vm.onEdit(borscht)
+        vm.onEditChange(state.value.editing!!.copy(kcal = "300"))
+        vm.onSave()
+        assertTrue(repo.saved.single().first.parts.isEmpty())
+    }
+
+    @Test fun `a plain food never has ingredients`() = runTest {
+        repo.foods.value = listOf(casein)
+        val (vm, state) = viewModel()
+        vm.onEdit(casein)
+        assertTrue(state.value.editing!!.parts.isEmpty())
+        vm.onSave()
+        assertTrue(repo.saved.single().first.parts.isEmpty())
+    }
+
     @Test fun `deleting from the editor`() = runTest {
         repo.foods.value = listOf(casein, bar)
         val (vm, state) = viewModel()

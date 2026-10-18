@@ -16,7 +16,9 @@ Write what you ate, say it out loud, or take a photo of your plate. FatCodex wor
 - `less oil`, `that was half`, `remove the bread` → fixes what you already logged
 - `weight 82.4` → logs your weight and shows the trend
 - first start → five short questions about you (sex, age, height, weight, activity), then an estimate of how many kcal a day you burn
-- a photo of your plate → the app recognizes the food and keeps a small picture of it in the chat
+- `borscht` → one row with a chevron: open it to see the ingredients and change one (more meat, no sour cream)
+- a watch and smart scales (through Health Connect, one button) → sleep, steps, workouts and the morning weigh-in appear by themselves
+- a photo of your plate → the app recognizes the food and keeps a small picture of it in the chat; a photo of a receipt or a menu (from the camera or the gallery) → it reads the lines
 
 ## Why you can trust the numbers
 
