@@ -1,4 +1,4 @@
-<img src="docs/icon-source.webp" width="96" alt="FatCodex app icon">
+<img src="docs/icon.svg" width="96" alt="FatCodex app icon">
 
 # FatCodex
 
