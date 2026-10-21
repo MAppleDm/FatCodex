@@ -2,6 +2,11 @@
 
 User-facing releases follow `vMAJOR.MINOR.PATCH`. See [RELEASING.md](RELEASING.md).
 
+## v0.3.1 — 2026-10-21
+
+- Updated green-apple launcher icon with the shared SpendCodex and VibeNotes app-family styling, including adaptive and monochrome variants.
+- Rebuilt the current food diary as an installable APK with an increased Android version code and the existing signing identity.
+
 ## v0.3.0 — 2026-10-18
 
 - In-app checks for GitHub releases and APK downloads.
