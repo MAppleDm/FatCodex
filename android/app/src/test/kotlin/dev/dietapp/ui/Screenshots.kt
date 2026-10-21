@@ -27,6 +27,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import dev.dietapp.data.domain.Food
@@ -302,8 +303,8 @@ class ScreenshotTest {
 
     /** The launcher icon as a round launcher would show it. */
     @Test fun appIcon() = shot("app_icon", dark = false) {
-        Box(Modifier.size(192.dp).clip(CircleShape).background(Color(0xFFFBF6EC)), contentAlignment = Alignment.Center) {
-            Image(painterResource(dev.dietapp.R.mipmap.ic_launcher_foreground), null, Modifier.size(192.dp * 108 / 72))
+        Box(Modifier.size(192.dp).clip(CircleShape).background(colorResource(dev.dietapp.R.color.ic_launcher_background)), contentAlignment = Alignment.Center) {
+            Image(painterResource(dev.dietapp.R.drawable.ic_launcher_foreground), null, Modifier.size(192.dp * 108 / 72))
         }
     }
 

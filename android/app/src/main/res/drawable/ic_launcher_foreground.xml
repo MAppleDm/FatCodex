@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Family artwork: docs/icon.svg. Rounded 3.4dp strokes inside the 66dp safe circle. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <path android:fillColor="#E0E8D6"
+        android:strokeColor="#56804B" android:strokeWidth="3.4"
+        android:strokeLineCap="round" android:strokeLineJoin="round"
+        android:pathData="M54,43 C47,37 34,39 34,51 C34,61 41,75 48,75 C51,75 51,73 54,73 C57,73 57,75 60,75 C67,75 74,61 74,51 C74,39 61,37 54,43 Z" />
+    <path android:fillColor="#00000000"
+        android:strokeColor="#56804B" android:strokeWidth="3.4"
+        android:strokeLineCap="round" android:strokeLineJoin="round"
+        android:pathData="M53,42 Q53,37 49,34" />
+    <path android:fillColor="#89A773"
+        android:strokeColor="#56804B" android:strokeWidth="3.4"
+        android:strokeLineCap="round" android:strokeLineJoin="round"
+        android:pathData="M56,38 C55,31 60,28 66,28 C66,35 62,39 56,38 Z" />
+</vector>
