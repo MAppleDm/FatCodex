@@ -34,8 +34,8 @@ android {
         applicationId = "dev.dietapp"
         minSdk = 26
         targetSdk = 37
-        versionCode = 3
-        versionName = "0.3.0"
+        versionCode = 4
+        versionName = "0.3.1"
 
         buildConfigField("String", "API_BASE_URL", "\"$apiBaseUrl\"")
         buildConfigField("String", "MODEL_BASE_URL", "\"$modelBaseUrl\"")
