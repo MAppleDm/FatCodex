@@ -11,6 +11,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.dietapp.coreui.AppTheme
+import dev.dietapp.coreui.AppAppearance
 import dev.dietapp.ui.font.FontViewModel
 import dev.dietapp.ui.foods.FoodsRoute
 import dev.dietapp.ui.foods.FoodsViewModel
@@ -59,6 +60,8 @@ fun AppRoot(
     lock: LockViewModel,
     sound: SoundViewModel,
     updates: UpdateViewModel,
+    appearance: AppAppearance = AppAppearance.System,
+    onAppearance: (AppAppearance) -> Unit = {},
 ) {
     val loginState by login.state.collectAsStateWithLifecycle()
     Box(Modifier.fillMaxSize().background(AppTheme.colors.background)) {
@@ -77,7 +80,7 @@ fun AppRoot(
                 onWithoutServer = login::onWithoutServer,
                 onKey = login::onKey,
             )
-            else -> Diary(main, settings, foods, journal, export, body, watch, fonts, lock, sound, updates)
+            else -> Diary(main, settings, foods, journal, export, body, watch, fonts, lock, sound, updates, appearance, onAppearance)
         }
     }
 }
@@ -88,6 +91,8 @@ private fun Diary(
     body: BodyViewModel, watch: WatchViewModel, fonts: FontViewModel, lock: LockViewModel,
     sound: SoundViewModel,
     updates: UpdateViewModel,
+    appearance: AppAppearance,
+    onAppearance: (AppAppearance) -> Unit,
 ) {
     val state by main.uiState.collectAsStateWithLifecycle()
     val settingsState by settings.state.collectAsStateWithLifecycle()
@@ -121,6 +126,8 @@ private fun Diary(
             onOpenWatch = main::onOpenWatch,
             onOpenHistory = main::onOpenHistory,
             onToggleLanguage = settings::onToggleLanguage,
+            appearance = appearance,
+            onAppearance = onAppearance,
             onOpenAbout = main::onOpenAbout,
             onLogout = { if (settings.onEraseTap()) main.onCloseSettings() },
         )

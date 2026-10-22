@@ -7,6 +7,20 @@ import dev.dietapp.data.domain.Lang.t
  * dev.dietapp.data.domain.Lang); the screens are rebuilt when it changes.
  */
 object Texts {
+    val THEME get() = t("Тема", "Theme")
+    val THEME_CLOSE get() = t("Готово", "Done")
+    fun themeName(theme: dev.dietapp.coreui.AppAppearance): String = when (theme) {
+        dev.dietapp.coreui.AppAppearance.System -> t("Как в системе", "Follow system")
+        dev.dietapp.coreui.AppAppearance.Paper -> t("Бумага", "Paper")
+        dev.dietapp.coreui.AppAppearance.Coal -> t("Уголь", "Coal")
+        dev.dietapp.coreui.AppAppearance.Matcha -> t("Матча", "Matcha")
+    }
+    fun themeDescription(theme: dev.dietapp.coreui.AppAppearance): String = when (theme) {
+        dev.dietapp.coreui.AppAppearance.System -> t("Светлая или тёмная — как на телефоне", "Light or dark, following your phone")
+        dev.dietapp.coreui.AppAppearance.Paper -> t("Светлая · овёс и лён", "Light · oats and linen")
+        dev.dietapp.coreui.AppAppearance.Coal -> t("Тёмная · керамика и янтарь", "Dark · ceramic and amber")
+        dev.dietapp.coreui.AppAppearance.Matcha -> t("Фирменная · фисташка и сливки", "Signature · pistachio and cream")
+    }
     val UPDATES get() = t("Обновления", "Updates")
     val UPDATE_HINT get() = t("Новые версии из GitHub. Проверка и скачивание — по нажатию.", "New versions from GitHub. Check and download when you choose.")
     val UPDATE_CHECK get() = t("Проверить обновления", "Check for updates")

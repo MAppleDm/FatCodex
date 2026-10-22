@@ -89,6 +89,19 @@ docker compose logs gateway | grep "LOGIN CODE"   # login code while SMTP is not
 
 Generate `JWT_SECRET` with `python -c "import secrets; print(secrets.token_urlsafe(48))"`. The gateway refuses to start with the value `change-me`. The login code is sent by email when `SMTP_*` is set in `.env`, otherwise it is printed to the gateway log.
 
+## Appearance
+
+Settings → **Theme** offers Paper (warm light), Coal (charcoal dark), Matcha (pistachio and cream), and Follow system
+(the default, resolving to Paper or Coal). `ui/theme/ThemeStore` loads the choice synchronously from the `appearance`
+preferences before the first frame and exposes it as a StateFlow. The choice is included in Android backup and transfer.
+`AppTheme(appearance = …)` supplies the same palette to shared components and Material controls. System bar icon contrast
+follows the resolved app palette, including a light theme selected while the phone is dark.
+
+The diary has a larger calorie total, quieter goal and macros, and a rounded input surface. Coal uses an inset summary
+panel; Matcha uses a pistachio header. Recorded food remains green, timestamps warm, and totals neutral beyond the goal.
+`ThemeTest` covers persistence, system following, the picker, and text contrast on all surfaces. `HistoryTest` checks the
+calendar in all three palettes; `ScreenshotTest` includes Matcha and a 320 dp screen with 150% text.
+
 ## Install the app
 
 Requires JDK 21 and the Android SDK. The Robolectric Android 16+ tests require Java 21; application bytecode still targets Java 17. The easiest way is to open `android/` in Android Studio.

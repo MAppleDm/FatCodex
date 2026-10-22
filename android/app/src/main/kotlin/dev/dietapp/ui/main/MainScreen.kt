@@ -7,6 +7,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -34,6 +35,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -42,6 +44,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import dev.dietapp.Texts
 import dev.dietapp.coreui.AppTheme
+import dev.dietapp.coreui.AppAppearance
 import dev.dietapp.coreui.DayLine
 import dev.dietapp.coreui.DaySummary
 import dev.dietapp.coreui.DetailLine
@@ -127,7 +130,17 @@ fun MainScreen(state: MainUiState, actions: MainActions, effects: Flow<UiEffect>
 
     Box(modifier.fillMaxSize().background(AppTheme.colors.background)) {
         Column(Modifier.fillMaxSize().statusBarsPadding().imePadding()) {
-            Row(verticalAlignment = Alignment.Top) {
+            val coal = AppTheme.appearance == AppAppearance.Coal
+            Column(
+                Modifier.fillMaxWidth()
+                    .padding(horizontal = if (coal) 12.dp else 0.dp, vertical = if (coal) 8.dp else 0.dp)
+                    .clip(RoundedCornerShape(if (coal) 16.dp else 0.dp))
+                    .background(AppTheme.colors.summary),
+            ) {
+                Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text("FatCodex", style = AppTheme.type.secondary.copy(color = AppTheme.colors.foreground), modifier = Modifier.weight(1f))
+                    IconAction(actions::onOpenSettings, Texts.CD_SETTINGS) { MoreIcon(it) }
+                }
                 DaySummary(
                     kcal = state.totals.kcal.roundToInt(),
                     goal = state.goal,
@@ -136,18 +149,16 @@ fun MainScreen(state: MainUiState, actions: MainActions, effects: Flow<UiEffect>
                     carbs = state.totals.carbs.roundToInt(),
                     expanded = state.summaryExpanded,
                     onToggle = actions::onToggleSummary,
-                    modifier = Modifier.weight(1f).testTag("summary"),
+                    modifier = Modifier.testTag("summary"),
                     date = state.day.format(DayFormat),
                     // another day, or the first load, shows its numbers at once; only a change of this day's total is counted
                     resetKey = state.day to state.loaded,
                 ) { shownKcal -> SummaryDetails(state, shownKcal) }
-                IconAction(actions::onOpenSettings, Texts.CD_SETTINGS, Modifier.padding(top = 4.dp, end = 4.dp)) { MoreIcon(it) }
             }
-            Hairline()
+            if (!coal) Hairline()
 
             if (!state.isToday) {
-                // 48 dp: the width of the settings icon, so that the action ends under the date above it
-                DayLine(Texts.BACK_TO_TODAY, actions::onBackToToday, Modifier.padding(end = 48.dp))
+                DayLine(Texts.BACK_TO_TODAY, actions::onBackToToday)
             }
 
             Feed(state, actions, Modifier.weight(1f))

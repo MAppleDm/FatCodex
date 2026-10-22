@@ -12,8 +12,10 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
@@ -44,6 +46,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
@@ -60,7 +63,7 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-/** Press feedback is a flat grey wash, not a ripple. */
+/** Press feedback uses the palette's quiet pressed surface. */
 fun Modifier.tap(enabled: Boolean = true, onClick: () -> Unit): Modifier = composed {
     val source = remember { MutableInteractionSource() }
     val pressed by source.collectIsPressedAsState()
@@ -169,12 +172,11 @@ fun DaySummary(
     val shownCarbs = rememberCounted(carbs, resetKey)
     fun counted(base: Color, n: Counted) = mono.copy(color = lerp(base, c.time, n.glow))
     val energy = buildAnnotatedString {
-        withStyle(counted(c.foreground, shownKcal)) { append(formatInt(shownKcal.value)) }
-        if (goal != null) {
-            append(" / ")
-            withStyle(mono) { append(formatInt(goal)) }
+        withStyle(counted(c.foreground, shownKcal).copy(fontSize = 32.sp)) { append(formatInt(shownKcal.value)) }
+        withStyle(mono.copy(color = c.secondary, fontSize = 14.sp)) {
+            if (goal != null) append(" / ${formatInt(goal)}")
+            append(" ${CoreTexts.kcal}")
         }
-        append(" ${CoreTexts.kcal}")
     }
     val macros = buildAnnotatedString {
         append("${CoreTexts.p} ")
@@ -192,20 +194,36 @@ fun DaySummary(
             .padding(horizontal = 16.dp, vertical = 12.dp)
             .semantics(mergeDescendants = true) {},
     ) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Top) {
-            Text(energy, style = AppTheme.type.body.copy(fontSize = 15.sp), modifier = Modifier.weight(1f, fill = false))
-            if (date != null) {
-                // another day fades in over the old one instead of switching
-                Crossfade(date, animationSpec = tween(180), modifier = Modifier.padding(start = 12.dp, top = 1.dp), label = "date") {
-                    Text(it, style = AppTheme.type.secondary.copy(fontSize = 14.sp))
+        BoxWithConstraints(Modifier.fillMaxWidth()) {
+            // Give the numbers the full line on a small screen or with larger text; a date must not orphan the unit.
+            val stackDate = maxWidth / LocalDensity.current.fontScale < 300.dp
+            Column {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Top) {
+                    Text(energy, style = AppTheme.type.body.copy(lineHeight = 40.sp), modifier = Modifier.weight(1f, fill = false))
+                    if (date != null && !stackDate) SummaryDate(date, Modifier.padding(start = 12.dp, top = 4.dp))
+                }
+                FlowRow(
+                    Modifier.fillMaxWidth().padding(top = 2.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                    itemVerticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(macros, style = AppTheme.type.secondary.copy(fontSize = 14.sp))
+                    if (date != null && stackDate) SummaryDate(date)
                 }
             }
         }
-        Text(macros, style = AppTheme.type.secondary.copy(fontSize = 14.sp), modifier = Modifier.padding(top = 2.dp))
         if (expanded) {
             Spacer(Modifier.height(12.dp))
             details(shownKcal.value)
         }
+    }
+}
+
+@Composable
+private fun SummaryDate(date: String, modifier: Modifier = Modifier) {
+    Crossfade(date, animationSpec = tween(180), modifier = modifier, label = "date") {
+        Text(it, style = AppTheme.type.caption)
     }
 }
 
@@ -475,10 +493,14 @@ fun InputBar(
 ) {
     val c = AppTheme.colors
     val hasText = value.isNotBlank()
-    Column(modifier.fillMaxWidth().background(c.background)) {
-        Hairline()
-        Row(Modifier.padding(start = 16.dp, end = 4.dp, top = 4.dp, bottom = 4.dp), verticalAlignment = Alignment.Bottom) {
-            Box(Modifier.weight(1f).padding(vertical = 12.dp)) {
+    val shape = RoundedCornerShape(16.dp)
+    Box(modifier.fillMaxWidth().background(c.background).padding(horizontal = 12.dp, vertical = 10.dp)) {
+        Row(
+            Modifier.fillMaxWidth().clip(shape).background(c.surface).border(1.dp, c.border, shape)
+                .padding(start = 14.dp, end = 4.dp, top = 4.dp, bottom = 4.dp),
+            verticalAlignment = Alignment.Bottom,
+        ) {
+            Box(Modifier.weight(1f).padding(vertical = 11.dp)) {
                 if (value.isEmpty()) Text(placeholder, style = AppTheme.type.body.copy(color = c.tertiary))
                 BasicTextField(
                     value = value,

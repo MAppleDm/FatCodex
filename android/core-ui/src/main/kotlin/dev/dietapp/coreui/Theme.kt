@@ -16,14 +16,28 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 
-/**
- * Black, white and three greys. The only colours are state colours: error, confirm, the green tint of recorded food and
- * the orange of the time it was recorded. One more, cherry, is kept for later.
- * There is deliberately no dynamic colour and no tonal elevation.
- */
+/** The system option follows the phone; the three named palettes keep their own appearance. */
+enum class AppAppearance {
+    System, Paper, Coal, Matcha;
+
+    fun resolve(systemDark: Boolean): AppAppearance = when (this) {
+        System -> if (systemDark) Coal else Paper
+        else -> this
+    }
+
+    fun colors(systemDark: Boolean = false): AppColors = when (resolve(systemDark)) {
+        Coal -> DarkColors
+        Matcha -> MatchaColors
+        else -> LightColors
+    }
+}
+
+/** Quiet, warm surfaces. Green means recorded; the warm accent marks time, never a verdict on food. */
 @Immutable
 class AppColors(
     val background: Color,
+    val surface: Color,
+    val summary: Color,
     val foreground: Color,
     val secondary: Color,
     val tertiary: Color,
@@ -36,8 +50,7 @@ class AppColors(
     /** The time a food was recorded: the one warm colour of the diary. */
     val time: Color,
     /**
-     * A brownish raspberry, "вишнёвый", chosen for the calories the watch burned. That feature is gone (what the watches put into
-     * Health Connect was not right); the colour stays here for something later. Over 7:1 on the background in both themes.
+     * A muted raspberry accent, reserved for future use.
      */
     val cherry: Color,
     /**
@@ -51,40 +64,65 @@ class AppColors(
 )
 
 val LightColors = AppColors(
-    background = Color(0xFFFFFFFF),
-    foreground = Color(0xFF0A0A0A),
-    secondary = Color(0xFF6B6B6B),
-    tertiary = Color(0xFFA3A3A3),
-    border = Color(0xFFE5E5E5),
-    pressed = Color(0xFFEBEBEB),
+    background = Color(0xFFF7F5F0),
+    surface = Color(0xFFFDFCFA),
+    summary = Color(0xFFF7F5F0),
+    foreground = Color(0xFF252823),
+    secondary = Color(0xFF666B61),
+    tertiary = Color(0xFF6D7267),
+    border = Color(0xFFDDDCD3),
+    pressed = Color(0xFFE8ECE1),
     error = Color(0xFFC62828),
-    confirm = Color(0xFF2E7D32),
-    recorded = Color(0xFF1E4D2E),
-    time = Color(0xFFC2570C),
+    confirm = Color(0xFF365C43),
+    recorded = Color(0xFF365C43),
+    time = Color(0xFF9B4D22),
     cherry = Color(0xFF913949),
-    heatEmpty = Color(0xFFE9E9E9),
-    heatLow = Color(0xFFBDDFC9),
-    heatHigh = Color(0xFF1E4D2E),
+    heatEmpty = Color(0xFFECE9E0),
+    heatLow = Color(0xFFCDDDC6),
+    heatHigh = Color(0xFF365C43),
     isDark = false,
 )
 
-/** Pure black background: on an OLED screen those pixels are off. */
+/** Coal: matte charcoal, warm white, sage and amber. */
 val DarkColors = AppColors(
-    background = Color(0xFF000000),
-    foreground = Color(0xFFF2F2F2),
-    secondary = Color(0xFF9A9A9A),
-    tertiary = Color(0xFF666666),
-    border = Color(0xFF262626),
-    pressed = Color(0xFF262626),
-    error = Color(0xFFFF6B6B),
-    confirm = Color(0xFF5BC27C),
-    recorded = Color(0xFFDDF4E4),
-    time = Color(0xFFFF9F43),
+    background = Color(0xFF171B18),
+    surface = Color(0xFF202720),
+    summary = Color(0xFF202720),
+    foreground = Color(0xFFE7E9E1),
+    secondary = Color(0xFFA8B0A3),
+    tertiary = Color(0xFF97A18F),
+    border = Color(0xFF343D34),
+    pressed = Color(0xFF2A342B),
+    error = Color(0xFFF3A19B),
+    confirm = Color(0xFFB7D2B6),
+    recorded = Color(0xFFB7D2B6),
+    time = Color(0xFFE1A76F),
     cherry = Color(0xFFD9818C),
-    heatEmpty = Color(0xFF151515),
-    heatLow = Color(0xFF1B3A27),
-    heatHigh = Color(0xFF6CCF8A),
+    heatEmpty = Color(0xFF202720),
+    heatLow = Color(0xFF294A34),
+    heatHigh = Color(0xFFB7D2B6),
     isDark = true,
+)
+
+/** Matcha: the cream and green of the app icon, with a pistachio summary and terracotta timestamps. */
+val MatchaColors = AppColors(
+    background = Color(0xFFEDF1E2),
+    surface = Color(0xFFF7F8EF),
+    summary = Color(0xFFD9E4C0),
+    foreground = Color(0xFF263725),
+    secondary = Color(0xFF57654F),
+    tertiary = Color(0xFF626F57),
+    border = Color(0xFFCBD2BB),
+    pressed = Color(0xFFD9E4C0),
+    error = Color(0xFFAE3E33),
+    confirm = Color(0xFF45613D),
+    recorded = Color(0xFF45613D),
+    time = Color(0xFF984C29),
+    cherry = Color(0xFF873D4A),
+    heatEmpty = Color(0xFFDFE5D3),
+    heatLow = Color(0xFFBFCEA9),
+    heatHigh = Color(0xFF45613D),
+    isDark = false,
 )
 
 /**
@@ -116,8 +154,11 @@ private fun appType(colors: AppColors, font: FontFamily = Inter) = AppType(
 
 private val LocalColors = staticCompositionLocalOf { LightColors }
 private val LocalType = staticCompositionLocalOf { appType(LightColors) }
+private val LocalAppearance = staticCompositionLocalOf { AppAppearance.Paper }
 
 object AppTheme {
+    val appearance: AppAppearance
+        @Composable @ReadOnlyComposable get() = LocalAppearance.current
     val colors: AppColors
         @Composable @ReadOnlyComposable get() = LocalColors.current
     val type: AppType
@@ -125,23 +166,28 @@ object AppTheme {
 }
 
 @Composable
-fun AppTheme(darkTheme: Boolean = isSystemInDarkTheme(), font: FontFamily = Inter, content: @Composable () -> Unit) {
-    val c = if (darkTheme) DarkColors else LightColors
-    // Material 3 is only the foundation: every surface is the background colour, nothing is tinted.
-    val scheme = if (darkTheme) {
-        darkColorScheme(
-            primary = c.foreground, onPrimary = c.background, background = c.background, onBackground = c.foreground,
-            surface = c.background, onSurface = c.foreground, surfaceVariant = c.pressed, onSurfaceVariant = c.secondary,
-            surfaceTint = Color.Transparent, outline = c.border, outlineVariant = c.border, error = c.error,
-        )
-    } else {
-        lightColorScheme(
-            primary = c.foreground, onPrimary = c.background, background = c.background, onBackground = c.foreground,
-            surface = c.background, onSurface = c.foreground, surfaceVariant = c.pressed, onSurfaceVariant = c.secondary,
-            surfaceTint = Color.Transparent, outline = c.border, outlineVariant = c.border, error = c.error,
-        )
-    }
-    CompositionLocalProvider(LocalColors provides c, LocalType provides appType(c, font)) {
+fun AppTheme(
+    darkTheme: Boolean = isSystemInDarkTheme(),
+    font: FontFamily = Inter,
+    appearance: AppAppearance = AppAppearance.System,
+    content: @Composable () -> Unit,
+) {
+    val resolved = appearance.resolve(darkTheme)
+    val c = resolved.colors()
+    val base = if (c.isDark) darkColorScheme() else lightColorScheme()
+    val scheme = base.copy(
+        primary = c.recorded, onPrimary = c.background, primaryContainer = c.pressed, onPrimaryContainer = c.foreground,
+        secondary = c.time, onSecondary = c.background, secondaryContainer = c.summary, onSecondaryContainer = c.foreground,
+        tertiary = c.cherry, onTertiary = c.background, tertiaryContainer = c.pressed, onTertiaryContainer = c.foreground,
+        background = c.background, onBackground = c.foreground,
+        surface = c.surface, onSurface = c.foreground, surfaceVariant = c.pressed, onSurfaceVariant = c.secondary,
+        surfaceDim = c.background, surfaceBright = c.surface, surfaceContainerLowest = c.background,
+        surfaceContainerLow = c.surface, surfaceContainer = c.surface, surfaceContainerHigh = c.surface, surfaceContainerHighest = c.pressed,
+        surfaceTint = Color.Transparent, outline = c.border, outlineVariant = c.border, error = c.error, onError = c.background,
+        errorContainer = c.surface, onErrorContainer = c.error, inverseSurface = c.foreground, inverseOnSurface = c.background,
+        inversePrimary = c.background,
+    )
+    CompositionLocalProvider(LocalColors provides c, LocalType provides appType(c, font), LocalAppearance provides resolved) {
         MaterialTheme(colorScheme = scheme, content = content)
     }
 }

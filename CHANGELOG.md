@@ -2,6 +2,14 @@
 
 User-facing releases follow `vMAJOR.MINOR.PATCH`. See [RELEASING.md](RELEASING.md).
 
+## v0.4.0 — 2026-10-22
+
+- Three appearance themes: Paper (warm light), Coal (charcoal dark), and Matcha (pistachio and cream).
+- A theme picker in Settings with a saved choice and an option to follow the phone's light or dark appearance.
+- A clearer diary header with larger calorie totals, quieter goals and macros, and a rounded input surface.
+- Improved contrast, matching system bar icons, and a responsive summary for small screens and larger text.
+- Android version code increases from 4 to 5; the package and signing identity remain compatible with v0.3.1.
+
 ## v0.3.1 — 2026-10-21
 
 - Updated green-apple launcher icon with the shared SpendCodex and VibeNotes app-family styling, including adaptive and monochrome variants.

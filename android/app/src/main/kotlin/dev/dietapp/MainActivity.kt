@@ -7,6 +7,8 @@ import android.view.WindowManager
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
+import androidx.core.view.WindowCompat
 import dev.dietapp.ui.lock.AppLock
 import dev.dietapp.ui.lock.Biometrics
 import dev.dietapp.ui.lock.LockScreen
@@ -41,6 +43,7 @@ import dev.dietapp.ui.main.MainViewModel
 import dev.dietapp.ui.settings.SettingsViewModel
 import dev.dietapp.ui.watch.WatchViewModel
 import dev.dietapp.ui.update.UpdateViewModel
+import dev.dietapp.ui.theme.ThemeStore
 
 @AndroidEntryPoint
 class MainActivity : FragmentActivity() {
@@ -60,25 +63,37 @@ class MainActivity : FragmentActivity() {
     @Inject lateinit var modes: ModeStore
     @Inject lateinit var lock: AppLock
     @Inject lateinit var sound: SoundPoolPlayer
+    @Inject lateinit var themes: ThemeStore
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         sound.warmUp()
-        // Follows the system light/dark setting; there is no dynamic (wallpaper) colour. A new language rebuilds the
-        // screens (the view models and their state stay).
+        // Appearance is read before the first frame. Language changes rebuild screens while keeping their view models.
         setContent {
             val language by modes.language.collectAsState()
             CoreTexts.english = language == Language.En
             val font by fonts.choice.collectAsState()
+            val appearance by themes.choice.collectAsState()
             val locked by lock.locked.collectAsState()
             // the system's prompt comes up by itself whenever the app is closed
             LaunchedEffect(locked) { if (locked) askToUnlock() }
             key(language) {
                 CompositionLocalProvider(LocalAddedSound provides sound) {
-                    AppTheme(font = fonts.family(font)) {
+                    AppTheme(font = fonts.family(font), appearance = appearance) {
+                        val dark = AppTheme.colors.isDark
+                        SideEffect {
+                            WindowCompat.getInsetsController(window, window.decorView).apply {
+                                isAppearanceLightStatusBars = !dark
+                                isAppearanceLightNavigationBars = !dark
+                            }
+                        }
                         if (locked) LockScreen(onOpen = ::askToUnlock)
-                        else AppRoot(main, login, settings, foods, journal, export, body, watch, fonts, lockModel, soundModel, updates)
+                        else AppRoot(
+                            main, login, settings, foods, journal, export, body, watch, fonts, lockModel, soundModel, updates,
+                            appearance = appearance,
+                            onAppearance = themes::use,
+                        )
                     }
                 }
             }
