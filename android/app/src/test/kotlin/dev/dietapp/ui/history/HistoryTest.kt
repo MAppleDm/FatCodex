@@ -6,6 +6,7 @@ import androidx.compose.ui.graphics.luminance
 import dev.dietapp.coreui.AppColors
 import dev.dietapp.coreui.DarkColors
 import dev.dietapp.coreui.LightColors
+import dev.dietapp.coreui.MatchaColors
 import java.time.DayOfWeek
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
@@ -59,8 +60,8 @@ class HistoryTest {
 
     private fun ramp(c: AppColors, steps: Int = 20) = (0..steps).map { lerp(c.heatLow, c.heatHigh, it / steps.toFloat()) }
 
-    @Test fun `the date in every filled square reads well enough, in both themes`() {
-        for ((name, c) in listOf("light" to LightColors, "dark" to DarkColors)) {
+    @Test fun `the date in every filled square reads well enough, in all three themes`() {
+        for ((name, c) in listOf("paper" to LightColors, "coal" to DarkColors, "matcha" to MatchaColors)) {
             for (fill in ramp(c)) {
                 val ratio = contrast(textOn(fill), fill)
                 assertTrue("$name $fill: $ratio", ratio >= 4.5)
@@ -69,7 +70,7 @@ class HistoryTest {
     }
 
     @Test fun `the date in an empty square is quiet but can be read`() {
-        for ((name, c) in listOf("light" to LightColors, "dark" to DarkColors)) {
+        for ((name, c) in listOf("paper" to LightColors, "coal" to DarkColors, "matcha" to MatchaColors)) {
             val ratio = contrast(c.secondary, c.heatEmpty)
             assertTrue("$name: $ratio", ratio >= 4.0)
         }
@@ -85,7 +86,7 @@ class HistoryTest {
     }
 
     @Test fun `a day with the least food is told apart from a day with none`() {
-        for ((name, c) in listOf("light" to LightColors, "dark" to DarkColors)) {
+        for ((name, c) in listOf("paper" to LightColors, "coal" to DarkColors, "matcha" to MatchaColors)) {
             assertTrue(name, kotlin.math.abs(c.heatEmpty.luminance() - c.heatLow.luminance()) > 0.02)
             assertTrue("$name: an empty day is told apart from the background", c.heatEmpty != c.background)
         }

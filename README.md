@@ -20,6 +20,14 @@ Write what you ate, say it out loud, or take a photo of your plate. FatCodex wor
 - a watch and smart scales (through Health Connect, one button) → sleep, steps, workouts and the morning weigh-in appear by themselves
 - a photo of your plate → the app recognizes the food and keeps a small picture of it in the chat; a photo of a receipt or a menu (from the camera or the gallery) → it reads the lines
 
+## Themes
+
+Choose **Paper**, **Coal**, **Matcha**, or **Follow system** in Settings → Theme. The choice applies immediately and is remembered.
+
+| Paper | Coal | Matcha |
+| --- | --- | --- |
+| <img src="docs/themes/paper.png" width="220" alt="Paper light theme"> | <img src="docs/themes/coal.png" width="220" alt="Coal dark theme"> | <img src="docs/themes/matcha.png" width="220" alt="Matcha signature theme"> |
+
 ## Why you can trust the numbers
 
 The AI only names foods and amounts. Calories come from your own food database, which the AI builds: it looks a food up on the web, shows you the values with their source, and only what you confirm goes into the database. There is no built-in table of "similar" foods to fall back on. Rough estimates are marked with `~`, and when something is unclear the app asks one short question instead of guessing. If the AI cannot be reached, the message waits in the chat with a red **Try again**; nothing is recorded by guesswork.

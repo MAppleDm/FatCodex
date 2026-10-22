@@ -13,12 +13,18 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import dev.dietapp.Texts
 import dev.dietapp.coreui.AppTheme
+import dev.dietapp.coreui.AppAppearance
+import dev.dietapp.ui.theme.ThemePicker
 import dev.dietapp.coreui.BackIcon
 import dev.dietapp.coreui.Hairline
 import dev.dietapp.coreui.IconAction
@@ -42,8 +48,11 @@ fun SettingsScreen(
     onOpenHistory: () -> Unit = {},
     onOpenAbout: () -> Unit = {},
     onToggleLanguage: () -> Unit = {},
+    appearance: AppAppearance = AppAppearance.System,
+    onAppearance: (AppAppearance) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
+    var pickingTheme by rememberSaveable { mutableStateOf(false) }
     Column(modifier.fillMaxSize().background(AppTheme.colors.background).statusBarsPadding().navigationBarsPadding()) {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 4.dp, end = 16.dp, top = 4.dp)) {
             IconAction(onBack, Texts.CD_BACK) { BackIcon(it) }
@@ -66,6 +75,7 @@ fun SettingsScreen(
 
         // the bottom group: set once and left alone, then the page about the app
         Hairline()
+        StatRow(Texts.THEME, Texts.themeName(appearance), Modifier.testTag("theme-entry"), onClick = { pickingTheme = true })
         StatRow(Texts.LANGUAGE, Texts.LANGUAGE_NAME, Modifier.testTag("language"), onClick = onToggleLanguage)
         StatRow(Texts.ABOUT, "›", Modifier.testTag("about-entry"), onClick = onOpenAbout)
         if (!state.local) {
@@ -75,4 +85,9 @@ fun SettingsScreen(
             }
         }
     }
+    if (pickingTheme) ThemePicker(
+        selected = appearance,
+        onSelect = { onAppearance(it); pickingTheme = false },
+        onDismiss = { pickingTheme = false },
+    )
 }

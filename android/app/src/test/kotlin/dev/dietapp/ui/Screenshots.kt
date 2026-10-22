@@ -1,6 +1,7 @@
 package dev.dietapp.ui
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -9,6 +10,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import dev.dietapp.MainDispatcherRule
 import dev.dietapp.TODAY
 import dev.dietapp.coreui.AppTheme
+import dev.dietapp.coreui.AppAppearance
 import dev.dietapp.data.domain.DayContent
 import dev.dietapp.data.domain.EntryStatus
 import dev.dietapp.data.domain.Note
@@ -30,6 +32,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.platform.LocalDensity
 import dev.dietapp.data.domain.Food
 import dev.dietapp.data.domain.Message
 import dev.dietapp.data.domain.Per100
@@ -130,10 +134,10 @@ class ScreenshotTest {
         override fun onCancel() = Unit
     }
 
-    private fun shot(name: String, dark: Boolean, content: @Composable () -> Unit) {
+    private fun shot(name: String, dark: Boolean, appearance: AppAppearance = AppAppearance.System, content: @Composable () -> Unit) {
         val dir = outDir
         assumeTrue("set -Pscreenshots=<dir> to render screenshots", dir != null)
-        compose.setContent { AppTheme(darkTheme = dark) { content() } }
+        compose.setContent { AppTheme(darkTheme = dark, appearance = appearance) { content() } }
         compose.waitForIdle()
         dir!!.mkdirs()
         File(dir, "$name.png").outputStream().use {
@@ -186,6 +190,30 @@ class ScreenshotTest {
     @Test fun mainLight() = shot("main_light", dark = false) { MainScreen(sampleState(), Noop, emptyFlow()) }
 
     @Test fun mainDark() = shot("main_dark", dark = true) { MainScreen(sampleState(), Noop, emptyFlow()) }
+
+    @Test fun mainMatcha() = shot("main_matcha", dark = false, appearance = AppAppearance.Matcha) {
+        MainScreen(sampleState(), Noop, emptyFlow())
+    }
+
+    @Test fun mainExpandedMatcha() = shot("main_expanded_matcha", dark = false, appearance = AppAppearance.Matcha) {
+        MainScreen(sampleState(expanded = true), Noop, emptyFlow())
+    }
+
+    @Test @Config(qualifiers = "w320dp-h640dp-xhdpi")
+    fun mainMatchaLargeText() = shot("main_matcha_large_text", dark = false, appearance = AppAppearance.Matcha) {
+        val density = LocalDensity.current
+        CompositionLocalProvider(LocalDensity provides Density(density.density, fontScale = 1.5f)) {
+            MainScreen(sampleState(withExtras = false), Noop, emptyFlow())
+        }
+    }
+
+    @Test fun settingsMatcha() = shot("settings_matcha", dark = false, appearance = AppAppearance.Matcha) {
+        SettingsScreen(SettingsUiState(local = true, foodCount = 42), {}, {}, appearance = AppAppearance.Matcha)
+    }
+
+    @Test fun themePickerMatcha() = shot("theme_picker_matcha", dark = false, appearance = AppAppearance.Matcha) {
+        dev.dietapp.ui.theme.ThemePicker(AppAppearance.Matcha, {}, {})
+    }
 
     @Test fun mainExpandedLight() = shot("main_expanded_light", dark = false) {
         MainScreen(sampleState(expanded = true), Noop, emptyFlow())
