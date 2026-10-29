@@ -73,15 +73,20 @@ interface MainActions {
     fun onVoiceRecorded(audio: ByteArray, mime: String, filename: String)
     fun onVoiceStopped()
     fun onVoiceProblem(message: String)
-    fun onProposalPick(index: Int)
-    fun onProposalCustom()
+    /** One of the options of the offer [noteId] (several can be open at once, each on its line of the chat). */
+    fun onProposalPick(noteId: Long, index: Int)
+    fun onProposalCustom(noteId: Long)
     fun onProposalDraft(draft: ChoiceDraft)
     fun onProposalSave()
-    fun onProposalSkip()
+    fun onProposalSkip(noteId: Long)
     fun onProposalBack()
     fun onConfirm(record: Boolean)
-    fun onBaseChange(apply: Boolean)
+    fun onBaseChange(noteId: Long, apply: Boolean)
     fun onQuestionSkip()
+
+    /** A food swiped to the right: it leaves the chat at once and is deleted unless "вернуть" is tapped in time. */
+    fun onEntrySwipe(entryId: String)
+    fun onUndo()
 
     /** The chevron of a dish: its ingredients open or fold. */
     fun onPartsToggle(entryId: String)
@@ -385,14 +390,17 @@ class MainViewModel @Inject constructor(
 
     // ---------- confirming a food the model found ----------
 
-    override fun onProposalPick(index: Int) {
-        val p = uiState.value.proposal ?: return
+    private fun openProposal(noteId: Long): ProposalUi? =
+        uiState.value.feed.firstNotNullOfOrNull { (it as? FeedItem.NoteItem)?.proposal?.takeIf { p -> p.noteId == noteId } }
+
+    override fun onProposalPick(noteId: Long, index: Int) {
+        val p = openProposal(noteId) ?: return
         accept(p.noteId, p.choices.getOrNull(index) ?: return)
     }
 
     /** "свой вариант": start from the model's first option, the user corrects what they want. */
-    override fun onProposalCustom() {
-        val p = uiState.value.proposal ?: return
+    override fun onProposalCustom(noteId: Long) {
+        val p = openProposal(noteId) ?: return
         val first = p.choices.first()
         fun n(v: Double) = if (v == Math.rint(v)) v.toLong().toString() else "%.1f".format(Locale.ROOT, v)
         update {
@@ -409,16 +417,16 @@ class MainViewModel @Inject constructor(
     override fun onProposalBack() = update { it.copy(customFor = null, custom = null) }
 
     override fun onProposalSave() {
-        val p = uiState.value.proposal ?: return
+        val p = local.value.customFor?.let(::openProposal) ?: return
         val draft = local.value.custom ?: return
         val per100 = draft.per100 ?: return
         accept(p.noteId, FoodChoice(draft.name.trim(), per100, source = Texts.PROPOSAL_OWN_SOURCE))
     }
 
     /** "пропустить": the entry stays without numbers; the food can still be added in the food base later. */
-    override fun onProposalSkip() {
-        val p = uiState.value.proposal ?: return
-        update { it.copy(customFor = null, custom = null) }
+    override fun onProposalSkip(noteId: Long) {
+        val p = openProposal(noteId) ?: return
+        update { if (it.customFor == noteId) it.copy(customFor = null, custom = null) else it }
         viewModelScope.launch { diary.skipProposal(p.noteId) }
     }
 
@@ -431,8 +439,8 @@ class MainViewModel @Inject constructor(
     // ---------- a change to the food base that waits for a yes ----------
 
     /** [apply]: the agent's change to the food base is made; otherwise it is dropped. */
-    override fun onBaseChange(apply: Boolean) {
-        val c = uiState.value.baseChange ?: return
+    override fun onBaseChange(noteId: Long, apply: Boolean) {
+        val c = uiState.value.feed.firstNotNullOfOrNull { (it as? FeedItem.NoteItem)?.baseChange?.takeIf { b -> b.noteId == noteId } } ?: return
         if (local.value.baseChangeBusy != null) return
         update { it.copy(baseChangeBusy = c.noteId) }
         viewModelScope.launch {
@@ -444,6 +452,41 @@ class MainViewModel @Inject constructor(
                 },
             )
         }
+    }
+
+    // ---------- swiping a food away ----------
+
+    private var pendingDelete: kotlinx.coroutines.Job? = null
+
+    override fun onEntrySwipe(entryId: String) {
+        val entry = uiState.value.feed.filterIsInstance<FeedItem.EntryItem>().firstOrNull { it.entry.id == entryId }?.entry ?: return
+        commitDelete() // the one swiped before goes for good now: one "вернуть" at a time
+        update {
+            it.copy(
+                hidden = it.hidden + entryId, undo = UndoUi(entryId, entry.name),
+                editing = it.editing?.takeIf { e -> e.entryId != entryId }, partEdit = it.partEdit?.takeIf { e -> e.entryId != entryId },
+            )
+        }
+        pendingDelete = viewModelScope.launch {
+            delay(UNDO_MS)
+            commitDelete()
+        }
+    }
+
+    override fun onUndo() {
+        val undo = local.value.undo ?: return
+        pendingDelete?.cancel()
+        pendingDelete = null
+        update { it.copy(hidden = it.hidden - undo.entryId, undo = null) }
+    }
+
+    private fun commitDelete() {
+        val undo = local.value.undo ?: return
+        pendingDelete?.cancel()
+        pendingDelete = null
+        update { it.copy(undo = null) }
+        // it stays hidden: the diary's own flow drops it once it is deleted, without it flashing back in between
+        viewModelScope.launch { diary.deleteEntry(undo.entryId) }
     }
 
     // ---------- "Записать?" ----------
@@ -487,6 +530,7 @@ class MainViewModel @Inject constructor(
 
     private companion object {
         const val NOTICE_MS = 4_000L
+        const val UNDO_MS = 5_000L
         const val MAX_SHARED = 1_000
     }
 }

@@ -60,7 +60,25 @@ sealed interface BaseChange {
     ) : BaseChange
 }
 
-data class ContextEntry(val id: String, val name: String, val grams: Double)
+/**
+ * An entry of the day as the model sees it: besides the name and the grams, the food of the base it took its numbers from
+ * and what they are, so "не та курица" or "у макарон калорий больше" can be told apart from a change of amount.
+ */
+data class ContextEntry(
+    val id: String,
+    val name: String,
+    val grams: Double,
+    /** The base food the numbers come from; null while the entry has none. */
+    val food: String? = null,
+    val kcal100: Double? = null,
+    val kcal: Double? = null,
+    /** Waits for the user's "записать": not in the day's total yet. */
+    val pending: Boolean = false,
+    val time: String? = null,
+)
+
+/** One earlier message of the day and what the app made of it, so "с макаронами также" has something to refer to. */
+data class RecentTurn(val time: String, val text: String, val outcome: List<String>)
 
 data class FrequentItem(val name: String, val queryEn: String?, val grams: Double)
 
@@ -75,6 +93,8 @@ data class ParseContext(
     val localTime: String? = null,
     /** "ru" or "en": the language the model writes questions and replies in. */
     val language: String? = null,
+    /** The day's earlier messages, oldest first (local mode). */
+    val recent: List<RecentTurn> = emptyList(),
 )
 
 data class ParseRequest(

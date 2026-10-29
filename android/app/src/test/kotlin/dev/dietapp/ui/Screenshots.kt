@@ -81,14 +81,16 @@ class ScreenshotTest {
     private val outDir: File? = System.getProperty("screenshots.dir")?.takeIf { it.isNotBlank() }?.let(::File)
 
     private object Noop : MainActions {
-        override fun onProposalPick(index: Int) = Unit
-        override fun onProposalCustom() = Unit
+        override fun onProposalPick(noteId: Long, index: Int) = Unit
+        override fun onProposalCustom(noteId: Long) = Unit
         override fun onProposalDraft(draft: dev.dietapp.ui.main.ChoiceDraft) = Unit
         override fun onProposalSave() = Unit
-        override fun onProposalSkip() = Unit
+        override fun onProposalSkip(noteId: Long) = Unit
         override fun onProposalBack() = Unit
         override fun onConfirm(record: Boolean) = Unit
-        override fun onBaseChange(apply: Boolean) = Unit
+        override fun onBaseChange(noteId: Long, apply: Boolean) = Unit
+        override fun onEntrySwipe(entryId: String) = Unit
+        override fun onUndo() = Unit
         override fun onQuestionSkip() = Unit
         override fun onDraftChange(text: String) = Unit
         override fun onSend() = Unit
@@ -225,7 +227,7 @@ class ScreenshotTest {
 
     /**
      * A day as a chat: pasta recorded at once (green), sausages recorded after the user picked their values (the
-     * question folded into the entry), borscht waiting for "записать" (grey, the panel above the input).
+     * question, the pick and what was added stay in the chat), borscht waiting for "записать" (grey, the panel above the input).
      */
     private fun chatContent(english: Boolean = false): DayContent {
         val t = { s: String -> Instant.parse("2026-09-30T12:$s:00Z") }
@@ -267,10 +269,59 @@ class ScreenshotTest {
         MainScreen(buildState(Local(TODAY, TODAY), chatContent(), emptyList(), Profile(null, 2200)), Noop, emptyFlow())
     }
 
-    /** The sausages opened: their numbers, and the question and the pick folded inside. */
+    /** The sausages opened: their numbers, the amount and the name to correct. */
     @Test fun mainChatOpenedDark() = shot("main_chat_opened_dark", dark = true) {
         MainScreen(buildState(Local(TODAY, TODAY, editing = EditState("2", "сосиски ремит рубленые", "50")), chatContent(),
             emptyList(), Profile(null, 2200)), Noop, emptyFlow())
+    }
+
+    /** The agent asks: a question already answered by a message, and values for a food offered right in the chat. */
+    private fun askingContent(): DayContent {
+        val t = { s: String -> Instant.parse("2026-09-30T16:$s:00Z") }
+        val choices = listOf(
+            dev.dietapp.data.domain.FoodChoice("Курица с морковью и луком, запечённая с майонезом", Per100(160.0, 18.0, 9.5, 1.0), "типичный рецепт",
+                estimated = true, parts = listOf(
+                    dev.dietapp.data.domain.DishPart("куриное бедро", 70.0, Per100(185.0, 19.0, 12.0, 0.0)),
+                    dev.dietapp.data.domain.DishPart("майонез", 10.0, Per100(629.0, 2.8, 67.0, 3.7)),
+                    dev.dietapp.data.domain.DishPart("морковь и лук", 20.0, Per100(37.0, 1.2, 0.1, 7.8)),
+                )),
+            dev.dietapp.data.domain.FoodChoice("Курица запечённая с майонезом", Per100(198.0, 20.7, 11.3, 2.1), "health-diet.ru",
+                "https://health-diet.ru/table_calorie_users/4561541/"),
+        )
+        return DayContent(
+            entries = listOf(
+                entry("1", "суп с фрикадельками и щавелем", 500.0, 225.0, at = "2026-09-30T16:01:00Z")
+                    .copy(mealId = "m1", protein = 9.0, fat = 4.5, carbs = 4.5, per100 = Per100(45.0, 1.8, 0.9, 0.9)),
+                entry("2", "курица с морковкой и майонезом", 130.0, null, at = "2026-09-30T16:10:00Z")
+                    .copy(mealId = "m3", pending = true),
+            ),
+            outbox = emptyList(),
+            notes = listOf(
+                Note(1, TODAY, NoteKind.Question, "Сколько примерно грамм супа — тарелка?", "1", t("02"), "m1", resolved = true),
+                Note(2, TODAY, NoteKind.Info, "Исправил: суп с фрикадельками и щавелем — 500 г, 225 ккал", "1", t("04"), "m2", resolved = true),
+                Note(3, TODAY, NoteKind.Proposal, "Курицы с майонезом нет в базе. Какие значения взять?", "2", t("11"), "m3", choices = choices),
+            ),
+            weights = emptyList(),
+            messages = listOf(
+                Message("m1", TODAY, "Суп с фрикадельками и щавелем", false, t("01")),
+                Message("m2", TODAY, "500 грамм", false, t("03"), aboutEntryId = "1"),
+                Message("m3", TODAY, "Курица с морковкой и майонезом в духовке, грамм 130", false, t("10")),
+            ),
+        )
+    }
+
+    @Test fun chatAskingDark() = shot("chat_asking_dark", dark = true) {
+        MainScreen(buildState(Local(TODAY, TODAY), askingContent(), emptyList(), Profile(null, 2200)), Noop, emptyFlow())
+    }
+
+    @Test fun chatAskingLight() = shot("chat_asking_light", dark = false) {
+        MainScreen(buildState(Local(TODAY, TODAY), askingContent(), emptyList(), Profile(null, 2200)), Noop, emptyFlow())
+    }
+
+    /** The pasta swiped away: gone from the chat and the total, "вернуть" above the input for a few seconds. */
+    @Test fun chatUndoMatcha() = shot("chat_undo_matcha", dark = false, appearance = AppAppearance.Matcha) {
+        MainScreen(buildState(Local(TODAY, TODAY, hidden = setOf("1"), undo = dev.dietapp.ui.main.UndoUi("1", "макароны вареные")),
+            chatContent(), emptyList(), Profile(null, 2200)), Noop, emptyFlow())
     }
 
     @Test fun mainChatEnglishLight() {

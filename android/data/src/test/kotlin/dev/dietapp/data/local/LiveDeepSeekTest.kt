@@ -43,13 +43,13 @@ class LiveDeepSeekTest {
         env = TestEnv()
         env.mode.set(AppMode.Local)
         env.secrets.saveKey(key!!)
-        val http = OkHttpClient.Builder().connectTimeout(15, TimeUnit.SECONDS).readTimeout(60, TimeUnit.SECONDS).build()
+        val http = OkHttpClient.Builder().connectTimeout(15, TimeUnit.SECONDS).readTimeout(120, TimeUnit.SECONDS).build()
         val model = ModelParser(
             http, env.prompts, { env.secrets.deepseekKey },
             tools = FoodTools(env.foods, WebSearch(http, env.journal)),
             trace = env.journal,
         )
-        val chooser = ParserChooser(model, { true }, env.journal, budgetMs = 150_000)
+        val chooser = ParserChooser(model, { true }, env.journal, budgetMs = 300_000)
         val processor = LocalMessageProcessor(env.db, chooser, env.resolver, env.files, env.clock, activity = env.activity)
         val engine = LocalEngine(env.db, processor, env.files, env.journal)
         val now = { runBlocking { engine.run() } }

@@ -20,17 +20,15 @@ enum class Screen { Main, Settings, Foods, Journal, Export, Agent, About, Histor
 enum class VoicePhase { Idle, Listening, Recording, Transcribing }
 
 /**
- * One line of the feed. The feed is a conversation: each message the user sent, then what the app made of it
- * (its entries, then its notes). Things that belong to no message (weigh-ins, older entries) sit by their own time.
+ * One line of the feed. The feed is a conversation, read like a messenger: each message the user sent, then what the app
+ * made of it (its entries, then its lines), in the order it happened. A question, an offer of values or a change to the
+ * food base is asked where it came up and stays there once answered, with the answer after it.
+ * Things that belong to no message (weigh-ins, older entries) sit by their own time.
  */
 sealed interface FeedItem {
     val key: String
 
-    /**
-     * [history]: the conversation about this food (what the app asked, what the user answered, what it changed).
-     * Folded into the entry: it shows only when the entry is opened, the row itself stays a name, grams, kcal and a time.
-     */
-    data class EntryItem(val entry: Entry, val history: List<HistoryLine> = emptyList()) : FeedItem {
+    data class EntryItem(val entry: Entry) : FeedItem {
         override val key get() = "e:${entry.id}"
     }
 
@@ -43,20 +41,17 @@ sealed interface FeedItem {
         override val key get() = "m:${message.id}"
     }
 
-    data class NoteItem(val note: Note) : FeedItem {
+    /**
+     * A line from the app, or the user's pick. While it waits for the user: [proposal] for an offer of values,
+     * [baseChange] for a change to the food base, [open] for a question answered by the next message.
+     */
+    data class NoteItem(
+        val note: Note,
+        val proposal: ProposalUi? = null,
+        val baseChange: BaseChangeUi? = null,
+        val open: Boolean = false,
+    ) : FeedItem {
         override val key get() = "n:${note.id}"
-    }
-}
-
-/** One line of the conversation about a food. */
-data class HistoryLine(val text: String, val from: From, val at: Instant) {
-    enum class From {
-        /** A question or an offer of values. */
-        AppAsks,
-        /** What the app did ("Добавил в базу", "Исправил"). */
-        App,
-        /** The user's answer: a pick, or a message. */
-        User,
     }
 }
 
@@ -87,14 +82,16 @@ data class MainUiState(
     val cameraOpen: Boolean = false,
     val screen: Screen = Screen.Main,
     val capabilities: Capabilities = Capabilities(),
-    /** Values the model found for a food, waiting for the user to pick one: shown above the input. */
+    /** The latest offer of values still waiting for a pick (each open one is also on its line of the feed). */
     val proposal: ProposalUi? = null,
-    /** "Удалить «X» из базы?": a change the agent may not make before the user says yes. Shown when no proposal is open. */
+    /** The latest "Удалить «X» из базы?" still waiting for a yes or a no. */
     val baseChange: BaseChangeUi? = null,
-    /** The app's open question, answered by the next message. Shown when nothing above it is open. */
+    /** The app's open question, answered by the next message. */
     val question: Note? = null,
-    /** "Записать?" for the day's food that waits for the user. Shown when nothing above it is open. */
+    /** "Записать?" for the day's food that waits for the user, shown above the input. */
     val confirm: ConfirmUi? = null,
+    /** A food just swiped away: "вернуть" brings it back for a few seconds, then it is deleted. */
+    val undo: UndoUi? = null,
     /** Dishes whose ingredients are shown (entry ids), and the ingredient being changed. */
     val expandedParts: Set<String> = emptySet(),
     val partEdit: PartEdit? = null,
@@ -122,6 +119,9 @@ data class ProposalUi(
 
 /** A change to the user's food base waiting for "да" or "нет". [question] may have several lines (what it is now, what it becomes). */
 data class BaseChangeUi(val noteId: Long, val question: String, val busy: Boolean = false)
+
+/** "Удалено: гречка · вернуть". */
+data class UndoUi(val entryId: String, val name: String)
 
 /** The day's food waiting for "записать" or "не записывать". */
 data class ConfirmUi(val entries: List<Entry>, val busy: Boolean = false)
@@ -175,18 +175,22 @@ internal data class Local(
     val thumbs: Map<String, ByteArray> = emptyMap(),
     val expandedParts: Set<String> = emptySet(),
     val partEdit: PartEdit? = null,
+    /** Foods swiped away and not deleted yet (the undo window): out of the feed and the totals. */
+    val hidden: Set<String> = emptySet(),
+    val undo: UndoUi? = null,
 )
 
 private const val TREND_POINTS = 30
 
 internal fun buildState(
     local: Local,
-    content: DayContent,
+    dayContent: DayContent,
     allWeights: List<Weight>,
     profile: Profile,
     capabilities: Capabilities = Capabilities(),
     loaded: Boolean = true,
 ): MainUiState {
+    val content = if (local.hidden.isEmpty()) dayContent else dayContent.copy(entries = dayContent.entries.filter { it.id !in local.hidden })
     val trend = WeightTrend.compute(allWeights)
     val trendByDay = trend.associate { it.day to it.trend }
 
@@ -197,40 +201,41 @@ internal fun buildState(
         content.outbox.filter { o -> content.messages.none { it.id == o.id } }
             .associate { it.id to Message(it.id, it.day, it.text, it.hasImage, it.createdAt) }
 
-    val fold = fold(content, pending.keys)
-
-    data class Row(val at: Instant, val anchor: String, val order: Int, val sub: String, val item: FeedItem)
-    val rows = buildList {
-        messages.values.filter { it.id !in fold.messages }.forEach { add(Row(it.at, "m:${it.id}", 0, "", FeedItem.MessageItem(it, pending[it.id], local.thumbs[it.id]))) }
-        content.entries.forEach { e ->
-            val m = e.mealId?.let(messages::get)
-            val item = FeedItem.EntryItem(e, fold.history[e.id].orEmpty())
-            add(if (m != null) Row(m.at, "m:${m.id}", 1, "%06d:%s".format(e.position, e.id), item) else Row(e.eatenAt, "e:${e.position}:${e.id}", 0, "", item))
-        }
-        content.weights.forEach {
-            add(Row(it.updatedAt, "w:${it.id}", 0, "", FeedItem.WeightItem(it, trendByDay[it.day], local.weightActionsId == it.id)))
-        }
-        // the conversation about a food lives in its entry; open questions are asked in the panel above the input
-        content.notes.filter { it.id !in fold.notes }.forEach { n ->
-            val m = n.messageId?.let(messages::get)
-            val sub = "%020d:%020d".format(n.createdAt.toEpochMilli(), n.id)
-            add(if (m != null) Row(m.at, "m:${m.id}", 2, sub, FeedItem.NoteItem(n)) else Row(n.createdAt, "n:$sub", 0, "", FeedItem.NoteItem(n)))
-        }
-    }.sortedWith(compareBy<Row>({ it.at }, { it.anchor }, { it.order }, { it.sub }))
-
-    val proposal = content.notes.lastOrNull { it.kind == NoteKind.Proposal && !it.resolved && it.choices.isNotEmpty() }?.let { n ->
-        ProposalUi(
+    // what is still asked: on its own line of the feed, where it came up
+    val proposals = content.notes.filter { it.kind == NoteKind.Proposal && !it.resolved && it.choices.isNotEmpty() }.associate { n ->
+        n.id to ProposalUi(
             noteId = n.id, question = n.text, choices = n.choices,
             custom = local.custom?.takeIf { local.customFor == n.id },
             busy = local.proposalBusy == n.id,
         )
     }
-    val baseChange = content.notes.lastOrNull { it.kind == NoteKind.BaseChange && !it.resolved }?.let { n ->
-        BaseChangeUi(n.id, n.text, busy = local.baseChangeBusy == n.id)
+    val changes = content.notes.filter { it.kind == NoteKind.BaseChange && !it.resolved }.associate { n ->
+        n.id to BaseChangeUi(n.id, n.text, busy = local.baseChangeBusy == n.id)
     }
     val question = content.notes.lastOrNull { it.kind == NoteKind.Question && !it.resolved }
-    // a food the open question is about waits for its answer, not for "записать": recording it now would count it without numbers
-    val waiting = content.entries.filter { it.pending && it.id != question?.targetEntryId }
+
+    data class Row(val at: Instant, val anchor: String, val order: Int, val sub: String, val item: FeedItem)
+    val rows = buildList {
+        messages.values.forEach { add(Row(it.at, "m:${it.id}", 0, "", FeedItem.MessageItem(it, pending[it.id], local.thumbs[it.id]))) }
+        content.entries.forEach { e ->
+            val m = e.mealId?.let(messages::get)
+            val item = FeedItem.EntryItem(e)
+            add(if (m != null) Row(m.at, "m:${m.id}", 1, "%06d:%s".format(e.position, e.id), item) else Row(e.eatenAt, "e:${e.position}:${e.id}", 0, "", item))
+        }
+        content.weights.forEach {
+            add(Row(it.updatedAt, "w:${it.id}", 0, "", FeedItem.WeightItem(it, trendByDay[it.day], local.weightActionsId == it.id)))
+        }
+        content.notes.forEach { n ->
+            val m = n.messageId?.let(messages::get)
+            val sub = "%020d:%020d".format(n.createdAt.toEpochMilli(), n.id)
+            val item = FeedItem.NoteItem(n, proposals[n.id], changes[n.id], open = n.id == question?.id)
+            add(if (m != null) Row(m.at, "m:${m.id}", 2, sub, item) else Row(n.createdAt, "n:$sub", 0, "", item))
+        }
+    }.sortedWith(compareBy<Row>({ it.at }, { it.anchor }, { it.order }, { it.sub }))
+
+    // a food a question or an offer is about waits for its answer, not for "записать": recording it now would count it without numbers
+    val asked = content.notes.filter { !it.resolved && (it.kind == NoteKind.Question || it.kind == NoteKind.Proposal) }.mapNotNullTo(HashSet()) { it.targetEntryId }
+    val waiting = content.entries.filter { it.pending && it.id !in asked }
     val confirm = if (waiting.isEmpty()) null else ConfirmUi(waiting, busy = local.confirmBusy)
 
     val points = trend.takeLast(TREND_POINTS)
@@ -253,58 +258,13 @@ internal fun buildState(
         cameraOpen = local.cameraOpen,
         screen = local.screen,
         capabilities = capabilities,
-        proposal = proposal,
-        baseChange = if (proposal != null) null else baseChange,
-        question = if (proposal != null || baseChange != null) null else question,
-        confirm = if (proposal != null || baseChange != null) null else confirm,
+        proposal = proposals.values.lastOrNull(),
+        baseChange = changes.values.lastOrNull(),
+        question = question,
+        confirm = confirm,
+        undo = local.undo,
         expandedParts = local.expandedParts,
         partEdit = local.partEdit,
         facts = content.facts,
     )
-}
-
-/** What is folded away from the feed: [notes] and [messages] by id, and the conversation of each entry. */
-internal class Fold(val notes: Set<Long>, val messages: Set<String>, val history: Map<String, List<HistoryLine>>)
-
-/**
- * Sorts the day's conversation. Everything about one food (the app's questions and offers, the user's picks and
- * answering messages, what the app changed) folds into that food's entry, in the order it happened. Open questions
- * are asked in the panel above the input. The rest are lines of the chat.
- */
-internal fun fold(content: DayContent, unprocessed: Set<String>): Fold {
-    val ids = content.entries.mapTo(HashSet()) { it.id }
-    val notes = HashSet<Long>()
-    val messages = HashSet<String>()
-    val lines = HashMap<String, MutableList<HistoryLine>>()
-    fun attach(entry: String, line: HistoryLine) = lines.getOrPut(entry) { ArrayList() }.add(line)
-
-    for (n in content.notes) {
-        val target = n.targetEntryId
-        val asks = n.kind == NoteKind.Question || n.kind == NoteKind.Proposal || n.kind == NoteKind.BaseChange
-        when {
-            asks && !n.resolved -> notes += n.id
-            n.kind == NoteKind.Error -> Unit
-            target != null && target in ids -> {
-                notes += n.id
-                val from = when (n.kind) {
-                    NoteKind.Answer -> HistoryLine.From.User
-                    NoteKind.Question, NoteKind.Proposal, NoteKind.BaseChange -> HistoryLine.From.AppAsks
-                    else -> HistoryLine.From.App
-                }
-                attach(target, HistoryLine(n.text, from, n.createdAt))
-            }
-            target != null -> notes += n.id // its entry was deleted
-            n.kind == NoteKind.Proposal || n.kind == NoteKind.Answer || n.kind == NoteKind.BaseChange -> notes += n.id
-        }
-    }
-    for (m in content.messages) {
-        val about = m.aboutEntryId ?: continue
-        // while it is being processed the message stays in sight, so the user sees it was taken
-        if (about in ids && m.id !in unprocessed) {
-            messages += m.id
-            attach(about, HistoryLine(listOfNotNull(m.text, if (m.hasImage) dev.dietapp.Texts.PHOTO else null).joinToString(" · "),
-                HistoryLine.From.User, m.sentAt))
-        }
-    }
-    return Fold(notes, messages, lines.mapValues { (_, l) -> l.sortedBy { it.at } })
 }

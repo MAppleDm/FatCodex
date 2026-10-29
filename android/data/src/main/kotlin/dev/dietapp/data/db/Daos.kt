@@ -132,6 +132,9 @@ interface NoteDao {
     @Query("SELECT * FROM notes WHERE id = :id")
     suspend fun get(id: Long): NoteRow?
 
+    @Query("SELECT * FROM notes WHERE day = :day ORDER BY createdAtMs, id")
+    suspend fun forDay(day: String): List<NoteRow>
+
     @Query("UPDATE notes SET resolved = 1 WHERE targetEntryId = :entryId")
     suspend fun resolveForEntry(entryId: String)
 
@@ -190,6 +193,10 @@ interface MessageDao {
 
     @Query("SELECT * FROM messages WHERE id = :id")
     suspend fun get(id: String): MessageRow?
+
+    /** The day's messages once, for the agent: what was said before the message it reads. */
+    @Query("SELECT * FROM messages WHERE day = :day ORDER BY atMs, createdAtMs, id")
+    suspend fun forDay(day: String): List<MessageRow>
 
     @Upsert
     suspend fun upsert(row: MessageRow)
