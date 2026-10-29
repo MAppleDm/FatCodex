@@ -109,28 +109,38 @@ class MainViewModelTest {
         resolved = resolved, choices = found,
     )
 
-    @Test fun `an open proposal pops up above the input with its options`() = runTest {
+    @Test fun `an open proposal is asked in the chat, on its own line, with its options`() = runTest {
         val (_, state) = viewModel()
         diary.notes.value = listOf(proposalNote())
-        val p = state.value.proposal!!
+        val line = state.value.feed.filterIsInstance<FeedItem.NoteItem>().single()
+        val p = line.proposal!!
         assertEquals(5L, p.noteId)
         assertEquals(listOf("Сосиски Рубленые [Ремит]", "сосиски"), p.choices.map { it.name })
         assertNull(p.custom)
+        assertEquals(p, state.value.proposal)
     }
 
-    @Test fun `picking an option confirms it and the panel goes away`() = runTest {
+    @Test fun `several open proposals are each answered on their own`() = runTest {
+        val (vm, _) = viewModel()
+        diary.notes.value = listOf(proposalNote(), proposalNote(id = 6).copy(createdAt = Instant.parse("2026-09-30T06:00:01Z")))
+        vm.onProposalPick(5, 1)
+        assertEquals(5L to found[1], diary.accepted.single())
+    }
+
+    @Test fun `picking an option confirms it and the options go away`() = runTest {
         val (vm, state) = viewModel()
         diary.notes.value = listOf(proposalNote())
-        vm.onProposalPick(0)
+        vm.onProposalPick(5, 0)
         assertEquals(5L to found[0], diary.accepted.single())
         assertNull(state.value.proposal)
-        assertTrue("the answered question is not a line of its own", state.value.feed.none { it is FeedItem.NoteItem && it.note.id == 5L })
+        val line = state.value.feed.filterIsInstance<FeedItem.NoteItem>().single { it.note.id == 5L }
+        assertNull("the answered question stays in the chat, without its options", line.proposal)
     }
 
     @Test fun `own values start from the first option and are sent as the user's`() = runTest {
         val (vm, state) = viewModel()
         diary.notes.value = listOf(proposalNote())
-        vm.onProposalCustom()
+        vm.onProposalCustom(5)
         val draft = state.value.proposal!!.custom!!
         assertEquals(ChoiceDraft("Сосиски Рубленые [Ремит]", "190", "13", "15", "1"), draft)
         vm.onProposalDraft(draft.copy(kcal = "185", carbs = "1,5"))
@@ -145,7 +155,7 @@ class MainViewModelTest {
     @Test fun `cancel in own values goes back to the options, it does not drop the proposal`() = runTest {
         val (vm, state) = viewModel()
         diary.notes.value = listOf(proposalNote())
-        vm.onProposalCustom()
+        vm.onProposalCustom(5)
         vm.onProposalBack()
         assertNull(state.value.proposal!!.custom)
         assertTrue(diary.dismissedNotes.isEmpty())
@@ -154,7 +164,7 @@ class MainViewModelTest {
     @Test fun `skipping closes the proposal but keeps it in the chat`() = runTest {
         val (vm, state) = viewModel()
         diary.notes.value = listOf(proposalNote())
-        vm.onProposalSkip()
+        vm.onProposalSkip(5)
         assertEquals(listOf(5L), diary.skipped)
         assertTrue(diary.dismissedNotes.isEmpty())
         assertNull(state.value.proposal)
@@ -168,24 +178,23 @@ class MainViewModelTest {
         Instant.parse("2026-09-30T06:00:00Z"), "m1", resolved = resolved,
     )
 
-    @Test fun `a change the agent may not make alone is asked above the input, not in the feed`() = runTest {
+    @Test fun `a change the agent may not make alone is asked in the chat`() = runTest {
         val (_, state) = viewModel()
         diary.notes.value = listOf(baseChangeNote())
-        val ask = state.value.baseChange!!
+        val ask = state.value.feed.filterIsInstance<FeedItem.NoteItem>().single().baseChange!!
         assertEquals(8L, ask.noteId)
         assertTrue(ask.question.startsWith("Удалить «казеин» из базы?"))
-        assertTrue(state.value.feed.none { it is FeedItem.NoteItem })
     }
 
-    @Test fun `yes and no are sent to the diary, and the panel goes away`() = runTest {
+    @Test fun `yes and no are sent to the diary, and the buttons go away`() = runTest {
         val (vm, state) = viewModel()
         diary.notes.value = listOf(baseChangeNote())
-        vm.onBaseChange(true)
+        vm.onBaseChange(8, true)
         assertEquals(listOf(8L to true), diary.baseChangeAnswers)
         assertNull(state.value.baseChange)
 
         diary.notes.value = listOf(baseChangeNote(id = 9))
-        vm.onBaseChange(false)
+        vm.onBaseChange(9, false)
         assertEquals(9L to false, diary.baseChangeAnswers.last())
     }
 
@@ -193,30 +202,27 @@ class MainViewModelTest {
         val (vm, state) = viewModel()
         diary.notes.value = listOf(baseChangeNote())
         diary.baseChangeResult = Result.failure(dev.dietapp.data.net.AppError("Не вышло.", "x"))
-        vm.onBaseChange(true)
+        vm.onBaseChange(8, true)
         assertEquals("Не вышло.", state.value.notice)
         assertTrue(state.value.baseChange != null)
         assertFalse(state.value.baseChange!!.busy)
     }
 
-    @Test fun `it is asked before the confirmation and before a question, after a proposal`() = runTest {
+    @Test fun `a change, a proposal and the confirmation can all be open at once, each where it belongs`() = runTest {
         val (_, state) = viewModel()
-        diary.entries.value = waiting()
-        diary.notes.value = listOf(baseChangeNote())
-        assertTrue(state.value.baseChange != null)
-        assertNull(state.value.confirm)
-        assertNull(state.value.question)
-
+        diary.entries.value = waiting() + entry("e3", "кофе", kcal = 20.0).copy(mealId = "m1", pending = true)
         diary.notes.value = listOf(baseChangeNote(), proposalNote())
+        assertTrue(state.value.baseChange != null)
         assertTrue(state.value.proposal != null)
-        assertNull("the proposal first", state.value.baseChange)
+        assertEquals("the food the proposal is about waits for the pick, not for записать", listOf("e3"), state.value.confirm!!.entries.map { it.id })
     }
 
-    @Test fun `an answered change is not a line of the chat on its own`() = runTest {
+    @Test fun `an answered change stays in the chat as a line`() = runTest {
         val (_, state) = viewModel()
         diary.notes.value = listOf(baseChangeNote(resolved = true))
         assertNull(state.value.baseChange)
-        assertTrue(state.value.feed.none { it is FeedItem.NoteItem })
+        val line = state.value.feed.filterIsInstance<FeedItem.NoteItem>().single()
+        assertNull(line.baseChange)
     }
 
     // ---------- "Записать?" and the feed as a chat ----------
@@ -234,7 +240,7 @@ class MainViewModelTest {
         assertEquals(2, state.value.feed.count { it is FeedItem.EntryItem })
     }
 
-    @Test fun `a proposal is answered before the confirmation`() = runTest {
+    @Test fun `the food a proposal is about is not offered for recording before the pick`() = runTest {
         val (_, state) = viewModel()
         diary.entries.value = waiting()
         diary.notes.value = listOf(proposalNote())
@@ -259,7 +265,7 @@ class MainViewModelTest {
         assertEquals(listOf("e2"), state.value.feed.filterIsInstance<FeedItem.EntryItem>().map { it.entry.id })
     }
 
-    @Test fun `the whole conversation about a food folds into its entry`() = runTest {
+    @Test fun `the whole conversation about a food stays in the chat, in the order it happened`() = runTest {
         val (_, state) = viewModel()
         val at = { s: Int -> Instant.parse("2026-09-30T06:00:%02dZ".format(s)) }
         diary.entries.value = listOf(entry("e1", "колбаса любительская", kcal = 240.0).copy(mealId = "m1"))
@@ -273,26 +279,20 @@ class MainViewModelTest {
             proposalNote(resolved = true).copy(id = 2, text = "Нашёл «Мясновъ». Подходит?", targetEntryId = "e1", createdAt = at(4), messageId = "m2"),
             Note(3, TODAY, NoteKind.Answer, "Колбаса любительская Мясновъ · health-diet.ru", "e1", at(5), "m2", resolved = true),
             Note(4, TODAY, NoteKind.Info, "Исправил: колбаса любительская — 80 г", "e1", at(6), "m2", resolved = true),
-            Note(5, TODAY, NoteKind.Info, "В базе: …", null, at(7), "m2", resolved = true),
         )
-        val feed = state.value.feed
-        assertEquals("the first message stays, the answer folds", listOf("m1"), feed.filterIsInstance<FeedItem.MessageItem>().map { it.message.id })
-        assertEquals("a line about no food in particular stays", listOf(5L), feed.filterIsInstance<FeedItem.NoteItem>().map { it.note.id })
-        val item = feed.filterIsInstance<FeedItem.EntryItem>().single()
         assertEquals(
-            listOf(HistoryLine.From.AppAsks, HistoryLine.From.User, HistoryLine.From.AppAsks, HistoryLine.From.User, HistoryLine.From.App),
-            item.history.map { it.from },
+            listOf("m:m1", "e:e1", "n:1", "m:m2", "n:2", "n:3", "n:4"),
+            state.value.feed.map { it.key },
         )
-        assertEquals("это из магазина Мясновъ", item.history[1].text)
-        assertEquals("the last answer is the last thing the user said", "Колбаса любительская Мясновъ · health-diet.ru", item.history.last { it.from == HistoryLine.From.User }.text)
+        assertTrue("nothing is still asked", state.value.feed.filterIsInstance<FeedItem.NoteItem>().all { it.proposal == null && !it.open })
     }
 
-    @Test fun `an open question is asked in the panel, and its answer shows while it is processed`() = runTest {
+    @Test fun `an open question is asked in the chat, and its answer shows after it`() = runTest {
         val (vm, state) = viewModel()
         diary.entries.value = listOf(entry("e1", kcal = null).copy(mealId = "m1", pending = true))
         diary.notes.value = listOf(Note(1, TODAY, NoteKind.Question, "Что это точнее?", "e1", Instant.parse("2026-09-30T06:00:01Z"), "m1"))
         assertEquals(1L, state.value.question!!.id)
-        assertTrue(state.value.feed.none { it is FeedItem.NoteItem })
+        assertTrue(state.value.feed.filterIsInstance<FeedItem.NoteItem>().single().open)
 
         diary.messages.value = listOf(dev.dietapp.data.domain.Message("m2", TODAY, "роллы", false, Instant.parse("2026-09-30T06:00:05Z"), aboutEntryId = "e1"))
         diary.outbox.value = listOf(outboxMessage("m2"))
@@ -327,11 +327,12 @@ class MainViewModelTest {
         assertNull(state.value.confirm)
     }
 
-    @Test fun `an open proposal is asked in the panel, not in the feed`() = runTest {
+    @Test fun `an open proposal sits under the message it answers`() = runTest {
         val (_, state) = viewModel()
         diary.entries.value = listOf(entry("e1", kcal = null).copy(mealId = "m1", pending = true))
+        diary.messages.value = listOf(dev.dietapp.data.domain.Message("m1", TODAY, "сосиски ремит", false, Instant.parse("2026-09-30T05:59:00Z")))
         diary.notes.value = listOf(proposalNote())
-        assertTrue(state.value.feed.none { it is FeedItem.NoteItem })
+        assertEquals(listOf("m:m1", "e:e1", "n:5"), state.value.feed.map { it.key })
         assertTrue(state.value.proposal != null)
     }
 
@@ -339,7 +340,7 @@ class MainViewModelTest {
         diary.acceptResult = Result.failure(AppError("Это предложение уже неактуально.", "stale"))
         val (vm, state) = viewModel()
         diary.notes.value = listOf(proposalNote())
-        vm.onProposalPick(1)
+        vm.onProposalPick(5, 1)
         assertEquals("Это предложение уже неактуально.", state.value.notice)
         assertFalse(state.value.proposal!!.busy)
     }
@@ -810,6 +811,40 @@ class MainViewModelTest {
         vm.onEditDelete()
         assertEquals(listOf("a"), diary.deletedEntries)
         assertNull(state.value.editing)
+    }
+
+    @Test fun `a swiped food leaves the chat and the totals at once, and is deleted when the undo time is over`() = runTest {
+        val (vm, state) = viewModel()
+        diary.entries.value = listOf(entry("a", "гречка", kcal = 184.0), entry("b", "кофе", kcal = 20.0))
+        vm.onEntrySwipe("a")
+        assertEquals(listOf("b"), state.value.feed.filterIsInstance<FeedItem.EntryItem>().map { it.entry.id })
+        assertEquals(20.0, state.value.totals.kcal, 0.0)
+        assertEquals(UndoUi("a", "гречка"), state.value.undo)
+        assertTrue("not yet: it can still come back", diary.deletedEntries.isEmpty())
+        advanceTimeBy(5_001)
+        assertEquals(listOf("a"), diary.deletedEntries)
+        assertNull(state.value.undo)
+    }
+
+    @Test fun `undo brings a swiped food back and nothing is deleted`() = runTest {
+        val (vm, state) = viewModel()
+        diary.entries.value = listOf(entry("a", "гречка", kcal = 184.0))
+        vm.onEntrySwipe("a")
+        vm.onUndo()
+        assertEquals(listOf("a"), state.value.feed.filterIsInstance<FeedItem.EntryItem>().map { it.entry.id })
+        assertNull(state.value.undo)
+        advanceTimeBy(10_000)
+        assertTrue(diary.deletedEntries.isEmpty())
+    }
+
+    @Test fun `a second swipe deletes the first food for good and offers to bring back the second`() = runTest {
+        val (vm, state) = viewModel()
+        diary.entries.value = listOf(entry("a", "гречка", kcal = 184.0), entry("b", "кофе", kcal = 20.0))
+        vm.onEntrySwipe("a")
+        vm.onEntrySwipe("b")
+        assertEquals(listOf("a"), diary.deletedEntries)
+        assertEquals("b", state.value.undo!!.entryId)
+        assertTrue(state.value.feed.none { it is FeedItem.EntryItem })
     }
 
     @Test fun `editing an unknown entry does nothing`() = runTest {

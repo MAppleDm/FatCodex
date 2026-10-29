@@ -175,8 +175,11 @@ sealed class ModelFailure(val detail: String, val retryable: Boolean, summary: S
  *
  * Without [tools]: the same request as the ai-parser service (forced `record_food` call, thinking off, temperature 0,
  * same retries). With [tools] it is a small agent: it may search the food base, add or change the user's own foods
- * and reply, for at most [maxSteps] rounds, and must finish with `record_food` (forced on the last round).
- * Thinking stays off: DeepSeek does not allow a forced tool choice in thinking mode, and the tools matter more here.
+ * and reply, for at most [maxSteps] rounds, and must finish with `record_food`.
+ * The agent thinks before it acts ([effort]): without it the model answered "с макаронами также" or "у курицы больше
+ * калорий" in 40 tokens and got them wrong. DeepSeek refuses a forced tool choice in thinking mode, so the last round
+ * leaves it only record_food and reply and says so. Its reasoning goes back with every later round, as the API requires
+ * when tools are present.
  * Either way record_food only names foods and grams; the numbers come from the food base.
  */
 class ModelParser(
@@ -190,8 +193,10 @@ class ModelParser(
     private val threshold: Double = 0.6,
     private val pause: suspend (Long) -> Unit = { delay(it) },
     private val tools: AgentTools? = null,
-    private val maxSteps: Int = 8,
+    private val maxSteps: Int = 12,
     private val trace: ModelTrace = ModelTrace.None,
+    /** DeepSeek's reasoning_effort for the agent: "low", "high" or "max"; "none" turns thinking off. */
+    private val effort: String = "high",
 ) : MessageParser {
 
     override suspend fun parse(request: ParseRequest): ParseResult {
@@ -229,7 +234,12 @@ class ModelParser(
         var newFrom = 1 // the messages this round adds to the conversation: only those are written to the journal
         for (step in 0 until maxSteps) {
             request.onStep(AgentStatus(if (step > 0) AgentStep.Thinking else if (request.imageBase64 != null) AgentStep.Looking else AgentStep.Reading))
-            val answer = callWithRetries(key, agentBody(messages, tools, forceRecord = step == maxSteps - 1), step, newFrom)
+            val last = step == maxSteps - 1
+            if (last) messages += buildJsonObject {
+                put("role", "system")
+                put("content", "This is the last round: call record_food now with what you have (reply first if the user must know something).")
+            }
+            val answer = callWithRetries(key, agentBody(messages, tools, forceRecord = last), step, newFrom)
             newFrom = messages.size
             val message = (answer["choices"] as? JsonArray)?.firstOrNull()?.jsonObject?.get("message") as? JsonObject
                 ?: throw ModelFailure.BadOutput("no choices")
@@ -239,6 +249,8 @@ class ModelParser(
             messages += buildJsonObject {
                 put("role", "assistant")
                 put("content", message["content"] ?: JsonNull)
+                // with tools in the request, DeepSeek wants every earlier round's reasoning back (400 otherwise)
+                message["reasoning_content"]?.takeIf { it !is JsonNull }?.let { put("reasoning_content", it) }
                 put("tool_calls", JsonArray(calls))
             }
             var recorded: JsonArray? = null
@@ -300,26 +312,29 @@ class ModelParser(
         }
     }
 
+    /** [forceRecord]: the last round, where only record_food (and reply) are left to call. */
     internal fun agentBody(messages: List<JsonObject>, tools: AgentTools, forceRecord: Boolean): JsonObject = buildJsonObject {
         put("model", model)
         put("messages", JsonArray(messages))
         put("tools", buildJsonArray {
             add(prompts.toolSpecWithFoodId)
-            tools.specs.forEach { add(it) }
+            tools.specs.filter { !forceRecord || toolName(it) == "reply" }.forEach { add(it) }
         })
-        if (forceRecord) {
-            putJsonObject("tool_choice") {
-                put("type", "function")
-                putJsonObject("function") { put("name", prompts.toolName) }
-            }
+        put("tool_choice", "auto")
+        val thinking = effort != "none"
+        if (thinking) {
+            putJsonObject("thinking") { put("type", "enabled") }
+            put("reasoning_effort", effort)
+            // the reasoning counts against max_tokens: room for it and for a receipt of a dozen tool calls
+            put("max_tokens", 32768)
         } else {
-            put("tool_choice", "auto")
+            putJsonObject("thinking") { put("type", "disabled") }
+            put("temperature", 0)
+            put("max_tokens", 4096)
         }
-        put("temperature", 0)
-        // a receipt of ten lines is ten tool calls in one turn: 1024 tokens cut it off in the middle of the JSON
-        put("max_tokens", 4096)
-        putJsonObject("thinking") { put("type", "disabled") }
     }
+
+    private fun toolName(spec: JsonObject): String? = ((spec["function"] as? JsonObject)?.get("name") as? JsonPrimitive)?.content
 
     private suspend fun callWithRetries(key: String, body: JsonObject, round: Int, newFrom: Int): JsonObject {
         var last: ModelFailure? = null
@@ -376,7 +391,16 @@ class ModelParser(
             ctx.language?.let { put("language", it) }
             if (ctx.entries.isNotEmpty()) {
                 putJsonArray("entries") {
-                    ctx.entries.forEach { e -> add(buildJsonObject { put("id", e.id); put("name", e.name); put("grams", e.grams) }) }
+                    ctx.entries.forEach { e ->
+                        add(buildJsonObject {
+                            put("id", e.id); put("name", e.name); put("grams", e.grams)
+                            e.time?.let { put("time", it) }
+                            e.food?.let { put("food", it) }
+                            e.kcal100?.let { put("kcal_per_100g", round1(it)) }
+                            e.kcal?.let { put("kcal", round1(it)) }
+                            if (e.pending) put("waits_for_user", true)
+                        })
+                    }
                 }
             }
             if (ctx.frequent.isNotEmpty()) {
@@ -393,6 +417,17 @@ class ModelParser(
                                     })
                                 }
                             }
+                        })
+                    }
+                }
+            }
+            if (ctx.recent.isNotEmpty()) {
+                putJsonArray("earlier_messages") {
+                    ctx.recent.forEach { r ->
+                        add(buildJsonObject {
+                            put("time", r.time)
+                            put("text", r.text)
+                            putJsonArray("result") { r.outcome.forEach { add(it) } }
                         })
                     }
                 }
@@ -500,7 +535,9 @@ class ModelParser(
             " tokens=${(u["prompt_tokens"] as? JsonPrimitive)?.content}+${(u["completion_tokens"] as? JsonPrimitive)?.content}"
         }.orEmpty()
         val content = (message?.get("content") as? JsonPrimitive)?.takeIf { it !is JsonNull }?.content
+        val reasoning = (message?.get("reasoning_content") as? JsonPrimitive)?.takeIf { it !is JsonNull }?.content
         return "  finish=$finish$usage" +
+            (reasoning?.takeIf { it.isNotBlank() }?.let { "\n  thought: ${short(it.replace(Regex("\\s+"), " "), 1500)}" } ?: "") +
             (message?.let { toolCalls(it) }?.takeIf { it.isNotEmpty() }?.let { "\n  calls: $it" } ?: "") +
             (content?.takeIf { it.isNotBlank() }?.let { "\n  content: ${short(it, 600)}" } ?: "")
     }
@@ -509,6 +546,8 @@ class ModelParser(
         val fn = (c as? JsonObject)?.get("function") as? JsonObject
         "${(fn?.get("name") as? JsonPrimitive)?.content}(${short((fn?.get("arguments") as? JsonPrimitive)?.content.orEmpty(), 500)})"
     }
+
+    private fun round1(v: Double) = Math.round(v * 10) / 10.0
 
     private fun short(text: String, max: Int) = if (text.length <= max) text else text.take(max) + "… (${text.length} chars)"
 

@@ -47,7 +47,8 @@ object LocalModule {
     @Provides @Singleton @Named("model")
     fun modelHttp(): OkHttpClient = OkHttpClient.Builder()
         .connectTimeout(10, TimeUnit.SECONDS)
-        .readTimeout(45, TimeUnit.SECONDS)
+        // the agent thinks before it answers: a round over a long day can take a minute
+        .readTimeout(120, TimeUnit.SECONDS)
         .writeTimeout(30, TimeUnit.SECONDS)
         .build()
 
@@ -69,8 +70,8 @@ object LocalModule {
 
     @Provides @Singleton
     fun parserChooser(model: ModelParser, secrets: SecretStore, log: DiagLog): ParserChooser =
-        // web pages and a few tool rounds take longer than a plain parse
-        ParserChooser(model, hasKey = { secrets.hasKey.value }, trace = log, budgetMs = 120_000)
+        // web pages, a few tool rounds and the agent's thinking take longer than a plain parse
+        ParserChooser(model, hasKey = { secrets.hasKey.value }, trace = log, budgetMs = 240_000)
 
     @Provides @Singleton
     fun processor(

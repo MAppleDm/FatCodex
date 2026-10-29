@@ -43,7 +43,9 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import dev.dietapp.Texts
+import dev.dietapp.coreui.AppBubble
 import dev.dietapp.coreui.AppTheme
+import dev.dietapp.coreui.SwipeToDelete
 import dev.dietapp.coreui.AppAppearance
 import dev.dietapp.coreui.DayLine
 import dev.dietapp.coreui.DaySummary
@@ -163,11 +165,10 @@ fun MainScreen(state: MainUiState, actions: MainActions, effects: Flow<UiEffect>
 
             Feed(state, actions, Modifier.weight(1f))
 
-            state.proposal?.let { ProposalPanel(it, actions) }
-            state.baseChange?.let { BaseChangePanel(it, actions) }
-            state.question?.let { QuestionPanel(it.text, actions) }
+            // what the app asks is in the chat, where it asked it; above the input only "записать?" and the undo of a swipe
             state.confirm?.let { ConfirmPanel(it, actions) }
-            state.notice?.let { FeedNote(it, NoteTone.Info, Modifier.testTag("notice")) }
+            state.undo?.let { UndoBar(it, actions) }
+            state.notice?.let { Text(it, style = AppTheme.type.secondary, modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp).testTag("notice")) }
             InputBar(
                 value = state.draft,
                 onValueChange = actions::onDraftChange,
@@ -304,11 +305,14 @@ private fun Feed(state: MainUiState, actions: MainActions, modifier: Modifier) {
                         }
                     }
                 }
-                // the user's answer to a question sits on their side of the chat, like a message
-                is FeedItem.NoteItem -> if (item.note.kind == NoteKind.Answer) {
-                    MessageRow(item.note.text, status = null, isError = false, modifier = animate.testTag("answer"), newTurn = false) {}
-                } else {
-                    FeedNote(
+                is FeedItem.NoteItem -> when {
+                    // the user's pick sits on their side of the chat, like a message
+                    item.note.kind == NoteKind.Answer ->
+                        MessageRow(item.note.text, status = null, isError = false, modifier = animate.testTag("answer"), newTurn = false) {}
+                    item.proposal != null -> ProposalCard(item.proposal, actions, animate)
+                    item.baseChange != null -> BaseChangeCard(item.baseChange, actions, animate)
+                    item.open -> QuestionCard(item.note.text, actions, animate)
+                    else -> FeedNote(
                         text = item.note.text,
                         tone = when (item.note.kind) {
                             NoteKind.Question, NoteKind.Proposal, NoteKind.BaseChange -> NoteTone.Question
@@ -336,7 +340,8 @@ private fun EntryLine(item: FeedItem.EntryItem, state: MainUiState, actions: Mai
     val editing = state.editing
     if (editing?.entryId != e.id) {
         val open = e.parts.isNotEmpty() && e.id in state.expandedParts
-        Column(modifier) {
+        // a swipe to the right deletes the food; "вернуть" above the input brings it back for a few seconds
+        SwipeToDelete(Texts.DELETE, { actions.onEntrySwipe(e.id) }, modifier) { Column {
             EntryRow(
                 name = e.name,
                 grams = e.grams,
@@ -350,7 +355,7 @@ private fun EntryLine(item: FeedItem.EntryItem, state: MainUiState, actions: Mai
                 modifier = Modifier.testTag("entry"),
             )
             if (open) PartsList(e, state.partEdit?.takeIf { it.entryId == e.id }, actions)
-        }
+        } }
         return
     }
     // the numbers follow the grams being typed, from the values per 100 g
@@ -378,7 +383,6 @@ private fun EntryLine(item: FeedItem.EntryItem, state: MainUiState, actions: Mai
             e.kcal == null -> Texts.ENTRY_UNKNOWN
             else -> null
         },
-        history = { if (item.history.isNotEmpty()) EntryHistory(item.history) },
         name = editing.name,
         grams = editing.grams,
         onName = actions::onEditName,
@@ -421,94 +425,66 @@ private fun PartsList(e: Entry, edit: PartEdit?, actions: MainActions) {
 }
 
 /**
- * The question that pops up above the input when the model found values for a food: one tap on an option puts it into
- * the food base and fills in the entry; "свой вариант" lets the user type their own; "пропустить" leaves it.
+ * Values the agent found for a food, in the chat where it offered them: one tap on an option puts it into the food base
+ * and fills in the entry; "свой вариант" lets the user type their own; "пропустить" leaves it. Several can be open at once
+ * (a receipt), each answered on its own. Once answered only the question stays, with the pick after it.
  */
 @Composable
-private fun ProposalPanel(p: ProposalUi, actions: MainActions) {
+private fun ProposalCard(p: ProposalUi, actions: MainActions, modifier: Modifier) {
     val t = AppTheme.type
-    Column(Modifier.fillMaxWidth().background(AppTheme.colors.background).testTag("proposal")) {
-        Hairline()
-        Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 4.dp)) {
-            Box(Modifier.width(1.dp).height(20.dp).background(AppTheme.colors.foreground))
-            Spacer(Modifier.width(10.dp))
-            Text(p.question, style = t.body)
-        }
+    val c = AppTheme.colors
+    AppBubble(modifier.testTag("proposal"), wide = true) {
+        Text(p.question, style = t.body)
         val custom = p.custom
         if (custom == null) {
-            Column(Modifier.heightIn(max = 300.dp).verticalScroll(rememberScrollState())) {
-                p.choices.forEachIndexed { i, c ->
-                    Row(
-                        Modifier.fillMaxWidth().tap(enabled = !p.busy) { actions.onProposalPick(i) }
-                            .padding(horizontal = 16.dp, vertical = 8.dp).testTag("choice"),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Column(Modifier.weight(1f)) {
-                            Text(c.name, style = t.body, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                            val source = c.source ?: c.url?.let(::hostOf) ?: if (c.estimated) Texts.PROPOSAL_TYPICAL else null
-                            Text(
-                                listOfNotNull("${Texts.P} ${num(c.per100.protein)} · ${Texts.F} ${num(c.per100.fat)} · ${Texts.C} ${num(c.per100.carbs)}", source)
-                                    .joinToString(" · "),
-                                style = t.caption, maxLines = 2, overflow = TextOverflow.Ellipsis,
-                            )
-                            if (c.parts.isNotEmpty()) {
-                                Text(Texts.dishOf(c.parts), style = t.caption, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.testTag("choice-parts"))
-                            }
+            p.choices.forEachIndexed { i, choice ->
+                Hairline(Modifier.padding(top = if (i == 0) 8.dp else 0.dp))
+                Row(
+                    Modifier.fillMaxWidth().tap(enabled = !p.busy) { actions.onProposalPick(p.noteId, i) }
+                        .padding(vertical = 8.dp).testTag("choice"),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        Text(choice.name, style = t.body, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                        val source = choice.source ?: choice.url?.let(::hostOf) ?: if (choice.estimated) Texts.PROPOSAL_TYPICAL else null
+                        Text(
+                            listOfNotNull("${Texts.P} ${num(choice.per100.protein)} · ${Texts.F} ${num(choice.per100.fat)} · ${Texts.C} ${num(choice.per100.carbs)}", source)
+                                .joinToString(" · "),
+                            style = t.caption, maxLines = 2, overflow = TextOverflow.Ellipsis,
+                        )
+                        if (choice.parts.isNotEmpty()) {
+                            Text(Texts.dishOf(choice.parts), style = t.caption, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.testTag("choice-parts"))
                         }
-                        Spacer(Modifier.width(12.dp))
-                        Text("${if (c.estimated) "~" else ""}${formatInt(c.per100.kcal)} ${Texts.KCAL}", style = t.mono)
+                    }
+                    Spacer(Modifier.width(12.dp))
+                    Column(horizontalAlignment = Alignment.End) {
+                        Text("${if (choice.estimated) "~" else ""}${formatInt(choice.per100.kcal)}", style = t.mono.copy(color = c.recorded))
+                        Text("${Texts.KCAL}/100 ${Texts.GRAMS}", style = t.caption)
                     }
                 }
             }
-            Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                TextAction(Texts.PROPOSAL_OWN, actions::onProposalCustom, Modifier.testTag("proposal-own"))
+            Hairline()
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                TextAction(Texts.PROPOSAL_OWN, { actions.onProposalCustom(p.noteId) }, Modifier.testTag("proposal-own"))
                 Spacer(Modifier.weight(1f))
-                TextAction(if (p.busy) "…" else Texts.PROPOSAL_SKIP, actions::onProposalSkip, Modifier.testTag("proposal-skip"),
-                    color = AppTheme.colors.secondary)
+                TextAction(if (p.busy) "…" else Texts.PROPOSAL_SKIP, { actions.onProposalSkip(p.noteId) }, Modifier.testTag("proposal-skip"), color = c.secondary)
             }
         } else {
-            Column(Modifier.padding(horizontal = 16.dp)) {
-                UnderlineField(custom.name, { actions.onProposalDraft(custom.copy(name = it)) }, Modifier.testTag("own-name"),
-                    placeholder = Texts.FOODS_NAME, imeAction = ImeAction.Next)
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.padding(top = 4.dp)) {
-                    OwnNumber(Texts.KCAL, custom.kcal, "own-kcal", Modifier.weight(1f)) { actions.onProposalDraft(custom.copy(kcal = it)) }
-                    OwnNumber(Texts.P, custom.protein, "own-protein", Modifier.weight(1f)) { actions.onProposalDraft(custom.copy(protein = it)) }
-                    OwnNumber(Texts.F, custom.fat, "own-fat", Modifier.weight(1f)) { actions.onProposalDraft(custom.copy(fat = it)) }
-                    OwnNumber(Texts.C, custom.carbs, "own-carbs", Modifier.weight(1f)) { actions.onProposalDraft(custom.copy(carbs = it)) }
-                }
-                Text(Texts.FOODS_PER100, style = t.caption, modifier = Modifier.padding(top = 4.dp))
+            UnderlineField(custom.name, { actions.onProposalDraft(custom.copy(name = it)) }, Modifier.testTag("own-name"),
+                placeholder = Texts.FOODS_NAME, imeAction = ImeAction.Next)
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.padding(top = 4.dp)) {
+                OwnNumber(Texts.KCAL, custom.kcal, "own-kcal", Modifier.weight(1f)) { actions.onProposalDraft(custom.copy(kcal = it)) }
+                OwnNumber(Texts.P, custom.protein, "own-protein", Modifier.weight(1f)) { actions.onProposalDraft(custom.copy(protein = it)) }
+                OwnNumber(Texts.F, custom.fat, "own-fat", Modifier.weight(1f)) { actions.onProposalDraft(custom.copy(fat = it)) }
+                OwnNumber(Texts.C, custom.carbs, "own-carbs", Modifier.weight(1f)) { actions.onProposalDraft(custom.copy(carbs = it)) }
             }
-            Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp), horizontalArrangement = Arrangement.End) {
-                TextAction(Texts.CANCEL, actions::onProposalBack, Modifier.testTag("own-back"), color = AppTheme.colors.secondary)
+            Text(Texts.FOODS_PER100, style = t.caption, modifier = Modifier.padding(top = 4.dp))
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                TextAction(Texts.CANCEL, actions::onProposalBack, Modifier.testTag("own-back"), color = c.secondary)
                 TextAction(
                     if (p.busy) "…" else Texts.PROPOSAL_SAVE, actions::onProposalSave, Modifier.testTag("own-save"),
-                    color = if (custom.canSave) AppTheme.colors.foreground else AppTheme.colors.tertiary,
+                    color = if (custom.canSave) c.foreground else c.tertiary,
                 )
-            }
-        }
-    }
-}
-
-/**
- * What was asked about a food and what the user answered, inside the opened entry: like the folded steps of an
- * agent's turn, there when you look, out of the way otherwise.
- */
-@Composable
-private fun EntryHistory(lines: List<HistoryLine>) {
-    val t = AppTheme.type
-    val c = AppTheme.colors
-    Column(Modifier.padding(top = 12.dp).testTag("entry-history")) {
-        Text(Texts.ENTRY_HISTORY, style = t.caption.copy(color = c.tertiary))
-        lines.forEach { l ->
-            when (l.from) {
-                HistoryLine.From.User -> Text(l.text, style = t.caption.copy(color = c.foreground, textAlign = TextAlign.End),
-                    modifier = Modifier.fillMaxWidth().padding(start = 40.dp, top = 6.dp))
-                HistoryLine.From.AppAsks -> Row(Modifier.padding(top = 6.dp)) {
-                    Box(Modifier.width(1.dp).height(16.dp).background(c.secondary))
-                    Spacer(Modifier.width(8.dp))
-                    Text(l.text, style = t.caption)
-                }
-                HistoryLine.From.App -> Text(l.text, style = t.caption, modifier = Modifier.padding(top = 6.dp))
             }
         }
     }
@@ -519,83 +495,66 @@ private fun EntryHistory(lines: List<HistoryLine>) {
  * how the values would change, "да" makes the change, "нет" leaves the food as it is.
  */
 @Composable
-private fun BaseChangePanel(c: BaseChangeUi, actions: MainActions) {
-    Column(Modifier.fillMaxWidth().background(AppTheme.colors.background).testTag("base-change")) {
-        Hairline()
-        Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 4.dp)) {
-            Box(Modifier.width(1.dp).height(20.dp).background(AppTheme.colors.foreground))
-            Spacer(Modifier.width(10.dp))
-            Column {
-                val lines = c.question.lines()
-                Text(lines.first(), style = AppTheme.type.body)
-                lines.drop(1).forEach { Text(it, style = AppTheme.type.caption) }
-            }
-        }
-        Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-            TextAction(Texts.BASE_CHANGE_NO, { actions.onBaseChange(false) }, Modifier.testTag("base-change-no"), color = AppTheme.colors.secondary)
+private fun BaseChangeCard(b: BaseChangeUi, actions: MainActions, modifier: Modifier) {
+    AppBubble(modifier.testTag("base-change"), wide = true) {
+        val lines = b.question.lines()
+        Text(lines.first(), style = AppTheme.type.body)
+        lines.drop(1).forEach { Text(it, style = AppTheme.type.caption) }
+        Row(Modifier.fillMaxWidth().padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+            TextAction(Texts.BASE_CHANGE_NO, { actions.onBaseChange(b.noteId, false) }, Modifier.testTag("base-change-no"), color = AppTheme.colors.secondary)
             Spacer(Modifier.weight(1f))
-            TextAction(if (c.busy) "…" else Texts.BASE_CHANGE_YES, { actions.onBaseChange(true) }, Modifier.testTag("base-change-yes"))
+            TextAction(if (b.busy) "…" else Texts.BASE_CHANGE_YES, { actions.onBaseChange(b.noteId, true) }, Modifier.testTag("base-change-yes"))
         }
     }
 }
 
-/** The app's open question, above the input: the next message is its answer, or "пропустить" closes it. */
+/** The app's open question, in the chat: the next message is its answer, or "пропустить" closes it. */
 @Composable
-private fun QuestionPanel(text: String, actions: MainActions) {
-    Column(Modifier.fillMaxWidth().background(AppTheme.colors.background).testTag("question-panel")) {
-        Hairline()
-        Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 10.dp)) {
-            Box(Modifier.width(1.dp).height(20.dp).background(AppTheme.colors.foreground))
-            Spacer(Modifier.width(10.dp))
-            Text(text, style = AppTheme.type.body)
-        }
-        Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+private fun QuestionCard(text: String, actions: MainActions, modifier: Modifier) {
+    Column(modifier.testTag("question-open")) {
+        FeedNote(text, NoteTone.Question, Modifier.testTag("question"))
+        Row(Modifier.fillMaxWidth().padding(start = 26.dp, end = 8.dp), verticalAlignment = Alignment.CenterVertically) {
             Text(Texts.QUESTION_HINT, style = AppTheme.type.caption, modifier = Modifier.weight(1f))
             TextAction(Texts.SKIP, actions::onQuestionSkip, Modifier.testTag("question-skip"), color = AppTheme.colors.secondary)
         }
     }
 }
 
+/** "Удалено: гречка · вернуть" for the few seconds a swiped food can still come back. */
+@Composable
+private fun UndoBar(u: UndoUi, actions: MainActions) {
+    Column(Modifier.fillMaxWidth().background(AppTheme.colors.background).testTag("undo")) {
+        Hairline()
+        Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text(Texts.deleted(u.name), style = AppTheme.type.secondary, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+            TextAction(Texts.UNDO, actions::onUndo, Modifier.testTag("undo-action"))
+        }
+    }
+}
+
 /**
- * "Записать?" above the input: the day's food that waits for the user, with what each item holds. Tapping an item
- * opens it in the feed for correcting; "записать" counts it, "не записывать" takes it back.
+ * "Записать?" above the input, one line: the foods themselves are in the chat right above (grey, a tap opens one to
+ * correct it), so here only what they come to. "записать" counts them, "не записывать" takes them back.
  */
 @Composable
 private fun ConfirmPanel(c: ConfirmUi, actions: MainActions) {
     val t = AppTheme.type
     Column(Modifier.fillMaxWidth().background(AppTheme.colors.background).testTag("confirm")) {
         Hairline()
-        Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 4.dp)) {
-            Box(Modifier.width(1.dp).height(20.dp).background(AppTheme.colors.foreground))
-            Spacer(Modifier.width(10.dp))
-            Text(Texts.CONFIRM_QUESTION, style = t.body)
-        }
-        Column(Modifier.heightIn(max = 240.dp).verticalScroll(rememberScrollState())) {
-            c.entries.forEach { e ->
-                Row(
-                    Modifier.fillMaxWidth().tap { actions.onEditStart(e.id) }.padding(horizontal = 16.dp, vertical = 6.dp).testTag("confirm-item"),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Column(Modifier.weight(1f)) {
-                        Text(e.name, style = t.body, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                        Text(
-                            if (e.kcal == null) Texts.ENTRY_UNKNOWN
-                            else "${Texts.P} ${num1(e.protein)} · ${Texts.F} ${num1(e.fat)} · ${Texts.C} ${num1(e.carbs)}",
-                            style = t.caption,
-                        )
-                    }
-                    Spacer(Modifier.width(12.dp))
-                    Text("${formatGrams(e.grams)} ${Texts.GRAMS}", style = t.monoSecondary)
-                    Text(
-                        e.kcal?.let { (if (e.status == EntryStatus.Uncertain) "~" else "") + formatInt(it) } ?: "—",
-                        style = t.mono, textAlign = TextAlign.End, modifier = Modifier.width(60.dp),
-                    )
-                }
+        Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 8.dp, top = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text(Texts.CONFIRM_QUESTION, style = t.body)
+                val known = c.entries.mapNotNull { it.kcal }
+                val approximate = c.entries.any { it.status == EntryStatus.Uncertain || it.kcal == null }
+                Text(
+                    listOfNotNull(
+                        c.entries.joinToString(", ") { it.name },
+                        known.takeIf { it.isNotEmpty() }?.let { "${if (approximate) "~" else ""}${formatInt(it.sum())} ${Texts.KCAL}" },
+                    ).joinToString(" · "),
+                    style = t.caption, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.testTag("confirm-what"),
+                )
             }
-        }
-        Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
             TextAction(Texts.CONFIRM_DROP, { actions.onConfirm(false) }, Modifier.testTag("confirm-drop"), color = AppTheme.colors.secondary)
-            Spacer(Modifier.weight(1f))
             TextAction(if (c.busy) "…" else Texts.CONFIRM_RECORD, { actions.onConfirm(true) }, Modifier.testTag("confirm-record"))
         }
     }

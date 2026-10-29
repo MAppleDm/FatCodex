@@ -62,6 +62,21 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.animation.core.Animatable
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.draggable
+import androidx.compose.foundation.gestures.rememberDraggableState
+import androidx.compose.foundation.layout.offset
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.customActions
+import androidx.compose.ui.unit.IntOffset
+import kotlin.math.roundToInt
+import kotlinx.coroutines.launch
 
 /** Press feedback uses the palette's quiet pressed surface. */
 fun Modifier.tap(enabled: Boolean = true, onClick: () -> Unit): Modifier = composed {
@@ -350,24 +365,48 @@ fun EntryEditor(
 
 enum class NoteTone { Question, Info, Error }
 
-/** A line from the app in the feed: a clarifying question, a notice, an error. */
+/** The app's side of the chat: a bubble at the left, under the user's message it answers. [wide] for a card with choices. */
+@Composable
+fun AppBubble(modifier: Modifier = Modifier, wide: Boolean = false, onClick: (() -> Unit)? = null, content: @Composable ColumnScope.() -> Unit) {
+    val c = AppTheme.colors
+    Row(modifier.fillMaxWidth().padding(start = 12.dp, end = if (wide) 12.dp else 48.dp, top = 3.dp, bottom = 3.dp)) {
+        Column(
+            Modifier.then(if (wide) Modifier.fillMaxWidth() else Modifier)
+                .clip(AppBubbleShape)
+                .background(c.surface)
+                .border(1.dp, c.border, AppBubbleShape)
+                .then(if (onClick != null) Modifier.tap(onClick = onClick) else Modifier)
+                .padding(horizontal = 14.dp, vertical = 9.dp),
+            content = content,
+        )
+    }
+}
+
+private val AppBubbleShape = RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp, bottomEnd = 18.dp, bottomStart = 6.dp)
+private val UserBubbleShape = RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp, bottomEnd = 6.dp, bottomStart = 18.dp)
+
+/**
+ * A line from the app in the feed, in its bubble: a reply, what it changed, a question it asked. An error is plain red text
+ * (a tap dismisses it), not something the app says.
+ */
 @Composable
 fun FeedNote(text: String, tone: NoteTone, modifier: Modifier = Modifier, onClick: (() -> Unit)? = null) {
     val c = AppTheme.colors
-    val color = if (tone == NoteTone.Error) c.error else c.secondary
-    val click = if (onClick != null) Modifier.tap(onClick = onClick) else Modifier
-    Row(modifier.fillMaxWidth().then(click).padding(horizontal = 16.dp, vertical = 8.dp)) {
-        if (tone == NoteTone.Question) {
-            Box(Modifier.width(1.dp).height(20.dp).background(c.foreground))
-            Spacer(Modifier.width(10.dp))
-        }
-        Text(text, style = AppTheme.type.secondary.copy(color = if (tone == NoteTone.Question) c.foreground else color))
+    if (tone == NoteTone.Error) {
+        val click = if (onClick != null) Modifier.tap(onClick = onClick) else Modifier
+        Text(text, style = AppTheme.type.secondary.copy(color = c.error), modifier = modifier.fillMaxWidth().then(click).padding(horizontal = 16.dp, vertical = 8.dp))
+        return
+    }
+    AppBubble(modifier, onClick = onClick) {
+        val lines = text.lines()
+        Text(lines.first(), style = AppTheme.type.body.copy(color = if (tone == NoteTone.Question) c.foreground else c.secondary))
+        lines.drop(1).forEach { Text(it, style = AppTheme.type.caption) }
     }
 }
 
 /**
- * What the user sent, on the right, so it never reads as part of the answer below it. A gap above it starts a new
- * turn of the conversation. [status] shows while it waits ("…") or when it failed; [progress] is what the agent is
+ * What the user sent, in a bubble on the right, so it never reads as part of the answer below it. A gap above it starts a
+ * new turn of the conversation. [status] shows while it waits ("…") or when it failed; [progress] is what the agent is
  * doing with it right now, one quiet mono line under it (it is longer than a status and changes, so it does not share the
  * message's line).
  */
@@ -386,42 +425,86 @@ fun MessageRow(
     onClick: () -> Unit,
 ) {
     val t = AppTheme.type
-    Row(
-        modifier.fillMaxWidth().tap(onClick = onClick)
-            .padding(start = 56.dp, end = 16.dp, top = if (newTurn) 16.dp else 4.dp, bottom = 6.dp),
-        horizontalArrangement = Arrangement.End,
-        verticalAlignment = Alignment.Bottom,
+    val c = AppTheme.colors
+    Column(
+        modifier.fillMaxWidth().tap(onClick = onClick).padding(start = 56.dp, end = 12.dp, top = if (newTurn) 14.dp else 3.dp, bottom = 3.dp),
+        horizontalAlignment = Alignment.End,
     ) {
-        if (status != null) {
-            Text(status, style = t.monoSecondary.copy(color = if (isError) AppTheme.colors.error else AppTheme.colors.secondary))
-            Spacer(Modifier.width(12.dp))
+        Row(verticalAlignment = Alignment.Bottom) {
+            if (status != null) {
+                Text(status, style = t.monoSecondary.copy(color = if (isError) c.error else c.secondary), modifier = Modifier.padding(bottom = 8.dp))
+                Spacer(Modifier.width(10.dp))
+            }
+            Column(
+                Modifier.weight(1f, fill = false).clip(UserBubbleShape).background(c.pressed)
+                    .padding(if (thumbnail != null && text.isEmpty()) 4.dp else 0.dp),
+                horizontalAlignment = Alignment.End,
+            ) {
+                if (thumbnail != null) {
+                    // the longer side is at most 160dp, whatever the shape of the photo
+                    val ratio = (thumbnail.width.toFloat() / thumbnail.height).coerceIn(0.5f, 2f)
+                    Image(
+                        bitmap = thumbnail, contentDescription = thumbnailDescription, contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .padding(if (text.isEmpty()) 0.dp else 4.dp)
+                            .then(if (ratio >= 1f) Modifier.width(160.dp) else Modifier.height(160.dp))
+                            .aspectRatio(ratio)
+                            .clip(RoundedCornerShape(15.dp))
+                            .testTag("message-thumb"),
+                    )
+                }
+                if (text.isNotEmpty()) {
+                    Text(
+                        text,
+                        style = t.body.copy(color = if (isError) c.error else c.foreground),
+                        maxLines = 8,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 9.dp),
+                    )
+                }
+            }
         }
-        Column(horizontalAlignment = Alignment.End, modifier = Modifier.weight(1f, fill = false)) {
-            if (thumbnail != null) {
-                // the longer side is at most 140dp, whatever the shape of the photo
-                val ratio = (thumbnail.width.toFloat() / thumbnail.height).coerceIn(0.5f, 2f)
-                Image(
-                    bitmap = thumbnail, contentDescription = thumbnailDescription, contentScale = ContentScale.Crop,
-                    modifier = Modifier
-                        .then(if (ratio >= 1f) Modifier.width(140.dp) else Modifier.height(140.dp))
-                        .aspectRatio(ratio)
-                        .clip(RoundedCornerShape(14.dp))
-                        .testTag("message-thumb"),
-                )
-            }
-            if (text.isNotEmpty()) {
-                Text(
-                    text,
-                    style = t.body.copy(color = AppTheme.colors.secondary, textAlign = TextAlign.End),
-                    maxLines = 4,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.padding(top = if (thumbnail != null) 6.dp else 0.dp),
-                )
-            }
-            if (progress != null) {
-                Text(progress, style = t.monoSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 4.dp).testTag("progress"))
-            }
+        if (progress != null) {
+            Text(progress, style = t.monoSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 4.dp, end = 4.dp).testTag("progress"))
         }
+    }
+}
+
+/**
+ * A row that can be swiped to the right to delete it: the row follows the finger over a quiet red "[label]", and past a
+ * third of its width (or flung) it goes. Screen readers get the same as an action of the row.
+ */
+@Composable
+fun SwipeToDelete(label: String, onDelete: () -> Unit, modifier: Modifier = Modifier, enabled: Boolean = true, content: @Composable () -> Unit) {
+    val c = AppTheme.colors
+    val offset = remember { Animatable(0f) }
+    var width by remember { mutableIntStateOf(0) }
+    val scope = rememberCoroutineScope()
+    val drag = rememberDraggableState { delta -> scope.launch { offset.snapTo((offset.value + delta).coerceIn(0f, width.toFloat())) } }
+    Box(
+        modifier.fillMaxWidth().onSizeChanged { width = it.width }.clipToBounds()
+            .semantics { customActions = listOf(CustomAccessibilityAction(label) { onDelete(); true }) },
+    ) {
+        if (offset.value > 0f) {
+            Row(
+                Modifier.matchParentSize().background(c.error.copy(alpha = if (c.isDark) 0.22f else 0.12f)).padding(start = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) { Text(label, style = AppTheme.type.secondary.copy(color = c.error)) }
+        }
+        Box(
+            Modifier.offset { IntOffset(offset.value.roundToInt(), 0) }.background(c.background).testTag("swipe")
+                .draggable(
+                    state = drag, orientation = Orientation.Horizontal, enabled = enabled,
+                    onDragStopped = { velocity ->
+                        if (width > 0 && (offset.value > width / 3f || (velocity > 2000f && offset.value > 24f))) {
+                            offset.animateTo(width.toFloat(), tween(140))
+                            onDelete()
+                        } else {
+                            offset.animateTo(0f, tween(160))
+                        }
+                    },
+                ),
+        ) { content() }
     }
 }
 

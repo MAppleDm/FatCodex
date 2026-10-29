@@ -260,29 +260,95 @@ class FoodAgentTest {
         assertEquals(listOf("Добавил в базу: мой хлеб — 231 ккал · Б 9 · Ж 3 · У 41 на 100 г"), notes().map { it.text })
     }
 
-    @Test fun `the last round forces record_food so the agent always ends`() = runTest {
+    @Test fun `the last round leaves only record_food and reply, and says so, so the agent always ends`() = runTest {
         withKey()
         env.foods.save(FoodInput("гречка", Per100(92.0, 3.4, 0.6, 19.9)))
-        repeat(7) { env.enqueue(200, turn("search_foods" to """{"query": "гречка"}""")) }
+        repeat(11) { env.enqueue(200, turn("search_foods" to """{"query": "гречка"}""")) }
         env.enqueue(200, turn("record_food" to """{"items": [{"action": "add", "name": "гречка", "grams": 200, "confidence": 0.9}]}"""))
         say("гречка 200")
-        val choices = (1..8).map { request()["tool_choice"]!! }
-        assertTrue(choices.take(7).all { it is JsonPrimitive && it.content == "auto" })
-        assertEquals("record_food", choices[7].jsonObject["function"]!!.jsonObject["name"]!!.jsonPrimitive.content)
+        val sent = (1..12).map { request() }
+        // thinking mode refuses a forced tool choice: the last round narrows the tools instead
+        assertTrue(sent.all { it["tool_choice"]!!.jsonPrimitive.content == "auto" })
+        fun tools(r: JsonObject) = r["tools"]!!.jsonArray.map { it.jsonObject["function"]!!.jsonObject["name"]!!.jsonPrimitive.content }
+        assertTrue(tools(sent[10]).contains("search_foods"))
+        assertEquals(listOf("record_food", "reply"), tools(sent[11]))
+        val last = sent[11]["messages"]!!.jsonArray.last().jsonObject
+        assertEquals("system", last["role"]!!.jsonPrimitive.content)
+        assertTrue(last["content"]!!.jsonPrimitive.content.contains("last round"))
         assertEquals(184.0, entries().single().kcal!!, 0.5)
     }
 
-    @Test fun `the agent does not think, so its tools work as they always did`() = runTest {
+    @Test fun `the agent thinks, and its reasoning goes back with the next round`() = runTest {
         withKey()
-        env.enqueue(200, turn("search_foods" to """{"query": "гречка"}"""))
-        env.enqueue(200, turn("record_food" to """{"items": [{"action": "add", "name": "гречка", "query_en": "buckwheat groats, roasted, cooked", "grams": 200, "confidence": 0.9}]}"""))
+        env.enqueue(200, """{"choices": [{"message": {"role": "assistant", "content": null, "reasoning_content": "Нужно найти гречку в базе.",
+            "tool_calls": [{"id": "call_0", "type": "function", "function": {"name": "search_foods", "arguments": "{\"query\": \"гречка\"}"}}]}}]}""")
+        env.enqueue(200, turn("record_food" to """{"items": [{"action": "add", "name": "гречка", "grams": 200, "confidence": 0.9}]}"""))
         say("гречка 200")
         val first = request()
-        assertEquals("disabled", first["thinking"]!!.jsonObject["type"]!!.jsonPrimitive.content)
-        assertFalse("no reasoning level is sent", "reasoning_effort" in first)
-        assertEquals(0.0, first["temperature"]!!.jsonPrimitive.content.toDouble(), 0.0)
-        assertTrue(first["tools"]!!.jsonArray.size > 1)
-        assertEquals("room for a dozen tool calls in one answer: a receipt", 4096, first["max_tokens"]!!.jsonPrimitive.content.toInt())
+        assertEquals("enabled", first["thinking"]!!.jsonObject["type"]!!.jsonPrimitive.content)
+        assertEquals("high", first["reasoning_effort"]!!.jsonPrimitive.content)
+        assertFalse("thinking mode ignores temperature: none is sent", "temperature" in first)
+        assertTrue("room for the reasoning and a receipt's dozen tool calls", first["max_tokens"]!!.jsonPrimitive.content.toInt() >= 32768)
+        val assistant = request()["messages"]!!.jsonArray[2].jsonObject
+        assertEquals("assistant", assistant["role"]!!.jsonPrimitive.content)
+        assertEquals("the API wants it back when tools are present", "Нужно найти гречку в базе.", assistant["reasoning_content"]!!.jsonPrimitive.content)
+        assertTrue("and the journal shows it", env.journal.read().contains("thought: Нужно найти гречку в базе."))
+    }
+
+    @Test fun `the agent sees the day's earlier messages with what came of them, and each entry's food and numbers`() = runTest {
+        withKey()
+        val buckwheat = env.foods.save(FoodInput("гречка", Per100(92.0, 3.4, 0.6, 19.9)))
+        env.enqueue(200, turn("record_food" to """{"items": [{"action": "add", "name": "гречка", "grams": 200, "confidence": 0.9, "food_id": "my:${buckwheat.id}"}]}"""))
+        say("гречка 200")
+        request()
+        env.clock.advanceSeconds(60)
+        env.enqueue(200, turn("record_food" to """{"items": []}"""))
+        say("с макаронами также")
+        val user = request()["messages"]!!.jsonArray[1].jsonObject["content"]!!.jsonArray[0].jsonObject["text"]!!.jsonPrimitive.content
+        val context = Json.parseToJsonElement(user.substringAfter("context: ").substringBefore("\nmessage:")).jsonObject
+        val entry = context["entries"]!!.jsonArray.single().jsonObject
+        assertEquals("гречка", entry["food"]!!.jsonPrimitive.content)
+        assertEquals(92.0, entry["kcal_per_100g"]!!.jsonPrimitive.content.toDouble(), 0.0)
+        assertEquals(184.0, entry["kcal"]!!.jsonPrimitive.content.toDouble(), 0.0)
+        val earlier = context["earlier_messages"]!!.jsonArray.single().jsonObject
+        assertEquals("гречка 200", earlier["text"]!!.jsonPrimitive.content)
+        val result = earlier["result"]!!.jsonArray.single().jsonPrimitive.content
+        assertTrue(result, result.startsWith("entry ${entries().single().id}: гречка 200 g, 184 kcal"))
+        assertFalse("the message being read is not among the earlier ones", context.toString().contains("с макаронами также"))
+    }
+
+    @Test fun `an update that names another food of the base takes that food's numbers, even under the same name`() = runTest {
+        withKey()
+        val thin = env.foods.save(FoodInput("курица с майонезом", Per100(76.0, 13.0, 2.1, 0.5)))
+        val rich = env.foods.save(FoodInput("курица с майонезом (больше майонеза)", Per100(198.0, 20.7, 11.3, 2.1)))
+        env.enqueue(200, turn("record_food" to """{"items": [{"action": "add", "name": "курица", "grams": 130, "confidence": 0.9, "food_id": "my:${thin.id}"}]}"""))
+        say("курица 130")
+        assertEquals(98.8, entries().single().kcal!!, 0.01)
+        env.enqueue(200, turn("record_food" to """{"items": [{"action": "update", "target_id": "${entries().single().id}", "name": "курица",
+            "grams": 130, "confidence": 0.9, "food_id": "my:${rich.id}"}]}"""))
+        say("не та курица, у неё больше калорий")
+        val e = entries().single()
+        assertEquals("not just rescaled: the food the agent picked", 257.4, e.kcal!!, 0.01)
+        assertEquals("курица с майонезом (больше майонеза)", e.foodName)
+    }
+
+    @Test fun `new values proposed for an entry that has numbers make it wait for them, and the pick fills it in`() = runTest {
+        withKey()
+        val thin = env.foods.save(FoodInput("курица с майонезом", Per100(76.0, 13.0, 2.1, 0.5)))
+        env.enqueue(200, turn("record_food" to """{"items": [{"action": "add", "name": "курица с майонезом", "grams": 130, "confidence": 0.9, "food_id": "my:${thin.id}"}]}"""))
+        say("курица с майонезом 130")
+        val id = entries().single().id
+        env.enqueue(200, turn("propose_food" to """{"for_item": "курица с майонезом", "options": [{"name": "курица с майонезом, жирнее",
+            "kcal": 160, "protein": 18, "fat": 9.5, "carbs": 1, "source": "типичные значения"}]}"""))
+        env.enqueue(200, turn("record_food" to """{"items": [{"action": "update", "target_id": "$id", "name": "курица с майонезом", "grams": 130, "confidence": 0.9}]}"""))
+        say("у курицы явно больше калорий")
+        val waiting = entries().single()
+        assertNull("the old 99 kcal do not stay while new values are offered", waiting.kcal)
+        assertTrue(waiting.pending)
+        val proposal = notes().single { it.kind == "proposal" }
+        assertEquals(id, proposal.targetEntryId)
+        assertTrue(env.localDiary.acceptProposal(proposal.id, ProposalCodec.decode(proposal.payload).single()).isSuccess)
+        assertEquals(208.0, entries().single().kcal!!, 0.01)
     }
 
     @Test fun `a receipt is read line by line, each line gets its own proposal, the picture and the word go along`() = runTest {
@@ -381,6 +447,21 @@ class FoodAgentTest {
         val choice = ProposalCodec.decode(notes().single { it.kind == "proposal" }.payload).single()
         assertTrue(choice.parts.isEmpty())
         assertEquals(50.0, choice.per100.kcal, 0.0)
+    }
+
+    @Test fun `a dish whose ingredients add up to other calories than it claims is sent back to the model`() = runTest {
+        withKey()
+        // as it happened: "160 kcal" with ingredients that came to about 76, which the diary would have taken
+        val lean = listOf(part("куриная грудка", 70.0, 113.0, 23.6, 1.9, 0.4), part("морковь", 25.0, 35.0, 1.3, 0.1, 6.9),
+            part("лук", 10.0, 41.0, 1.4, 0.2, 8.2), part("майонез", 3.0, 629.0, 2.8, 67.0, 3.7), part("вода", 60.0, 0.0, 0.0, 0.0, 0.0)).joinToString(",")
+        env.enqueue(200, turn("propose_food" to """{"for_item": "курица в духовке", "options": [{"name": "курица в духовке", "kcal": 160,
+            "protein": 20, "fat": 7, "carbs": 4, "source": "типичный рецепт", "parts": [$lean]}]}"""))
+        env.enqueue(200, turn("record_food" to """{"items": [{"action": "add", "name": "курица в духовке", "grams": 130, "confidence": 0.9}]}"""))
+        say("курица в духовке 130")
+        request()
+        val told = toolAnswer(request())
+        assertTrue(told, told.contains("\"ok\":false") && told.contains("parts add up to 66 kcal") && told.contains("not the 160 kcal"))
+        assertTrue("nothing is offered to the user", notes().none { it.kind == "proposal" })
     }
 
     @Test fun `a plain product is proposed without ingredients, as before`() = runTest {

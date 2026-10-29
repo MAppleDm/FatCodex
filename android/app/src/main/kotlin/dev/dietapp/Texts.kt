@@ -330,14 +330,15 @@ object Texts {
     val CONFIRM_QUESTION get() = t("Записать?", "Record?")
     val CONFIRM_RECORD get() = t("записать", "record")
     val CONFIRM_DROP get() = t("не записывать", "don't record")
-    val QUESTION_HINT get() = t("Ответь сообщением ниже.", "Answer with a message below.")
+    val QUESTION_HINT get() = t("Ответь сообщением", "Answer with a message")
 
     // an entry opened for editing
     val ENTRY_PER100 get() = t("на 100 г", "per 100 g")
     val ENTRY_UNKNOWN get() = t("КБЖУ неизвестны: такого продукта нет в базе.", "Values unknown: this food is not in the base.")
     val ENTRY_NAME get() = t("название", "name")
     val ENTRY_GRAMS get() = t("граммы", "grams")
-    val ENTRY_HISTORY get() = t("Как выбрано", "How it was chosen")
+    fun deleted(name: String) = t("Удалено: $name", "Deleted: $name")
+    val UNDO get() = t("вернуть", "undo")
 
     // the history page
     val HISTORY_EXPORT get() = t("экспорт", "export")

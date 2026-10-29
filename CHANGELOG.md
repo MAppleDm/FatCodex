@@ -2,6 +2,15 @@
 
 User-facing releases follow `vMAJOR.MINOR.PATCH`. See [RELEASING.md](RELEASING.md).
 
+## v0.5.0 — 2026-10-29
+
+- The chat reads like a messenger: your messages and picks on the right, the agent's replies, questions and changes on the left, in the order they happened. Answered questions stay in the chat instead of folding into the food.
+- Questions, offers of values and changes to the food base are asked inside the chat where they came up; several offers (a receipt) can be answered one by one. "Записать?" above the input is one line.
+- Swipe a food to the right to delete it, with a few seconds to bring it back.
+- The agent thinks before it acts (DeepSeek thinking mode) and sees the day's earlier messages and each entry's food and numbers, so follow-ups such as "the same for the pasta" or "that chicken has more calories" work.
+- A correction that names another food of the base now takes that food's numbers; new values offered for a recorded food make it wait for the pick; a dish whose ingredients do not add up to its calories is sent back to the agent instead of being offered.
+- Android version code increases from 5 to 6; the package and signing identity remain compatible with v0.4.0.
+
 ## v0.4.0 — 2026-10-22
 
 - Three appearance themes: Paper (warm light), Coal (charcoal dark), and Matcha (pistachio and cream).

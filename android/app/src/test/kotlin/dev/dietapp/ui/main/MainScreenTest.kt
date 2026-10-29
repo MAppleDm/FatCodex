@@ -12,6 +12,8 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipeRight
 import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -98,18 +100,18 @@ class MainScreenTest {
         org.junit.Assert.assertEquals(Triple("e1", 150.0, "гречка"), diary.updates.single())
     }
 
-    @Test fun `an open question is asked above the input`() {
+    @Test fun `an open question is asked in the chat, with a way to skip it`() {
         diary.notes.value = listOf(
             dev.dietapp.data.domain.Note(1, TODAY, dev.dietapp.data.domain.NoteKind.Question, "Какой суп?", null,
                 java.time.Instant.parse("2026-09-30T06:00:00Z")),
         )
         show()
-        compose.onNodeWithTag("question-panel").assertIsDisplayed()
+        compose.onNodeWithTag("question-open").assertIsDisplayed()
         compose.onNodeWithText("Какой суп?").assertIsDisplayed()
         compose.onNodeWithTag("question-skip").performClick()
         compose.waitForIdle()
         org.junit.Assert.assertEquals(listOf(1L), diary.skippedQuestions)
-        compose.onNodeWithTag("question-panel").assertDoesNotExist()
+        compose.onNodeWithTag("question-open").assertDoesNotExist()
     }
 
     @Test fun `a change to the food base is asked with yes and no, and yes goes to the diary`() {
@@ -358,7 +360,7 @@ class MainScreenTest {
         times[0].assertTextEquals(Texts.clock(java.time.Instant.parse("2026-09-30T05:15:00Z")))
     }
 
-    @Test fun `the row of a food that was asked about has no grey line of the answer, it is in the opened food`() {
+    @Test fun `the user's pick stays in the chat as their own message`() {
         val at = { s: Int -> java.time.Instant.parse("2026-09-30T06:00:%02dZ".format(s)) }
         diary.entries.value = listOf(entry("e1", "колбаса любительская", kcal = 240.0).copy(mealId = "m1"))
         diary.messages.value = listOf(dev.dietapp.data.domain.Message("m1", TODAY, "бутерброд с колбасой", false, at(0)))
@@ -367,8 +369,29 @@ class MainScreenTest {
         )
         show()
         compose.onNodeWithTag("entry").assertIsDisplayed()
-        compose.onNodeWithText("health-diet.ru", substring = true, useUnmergedTree = true).assertDoesNotExist()
-        compose.onNodeWithText("Мясновъ", substring = true, useUnmergedTree = true).assertDoesNotExist()
+        compose.onNodeWithTag("answer").assertIsDisplayed().assertTextContains("Мясновъ", substring = true)
+    }
+
+    @Test fun `a food swiped to the right is offered back for a moment`() {
+        diary.entries.value = listOf(entry("e1", "гречка", kcal = 184.0))
+        show()
+        compose.onNodeWithTag("swipe").performTouchInput { swipeRight(startX = left + 10f, endX = right) }
+        compose.waitForIdle()
+        compose.onNodeWithTag("entry").assertDoesNotExist()
+        compose.onNodeWithTag("undo").assertIsDisplayed()
+        compose.onNodeWithTag("undo-action").performClick()
+        compose.waitForIdle()
+        compose.onNodeWithTag("entry").assertIsDisplayed()
+        org.junit.Assert.assertTrue(diary.deletedEntries.isEmpty())
+    }
+
+    @Test fun `a short drag puts the food back where it was`() {
+        diary.entries.value = listOf(entry("e1", "гречка", kcal = 184.0))
+        show()
+        compose.onNodeWithTag("swipe").performTouchInput { swipeRight(startX = left + 10f, endX = left + 40f, durationMillis = 600) }
+        compose.waitForIdle()
+        compose.onNodeWithTag("entry").assertIsDisplayed()
+        compose.onNodeWithTag("undo").assertDoesNotExist()
     }
 
     @Test fun `an empty day explains what can be typed`() {

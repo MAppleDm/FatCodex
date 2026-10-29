@@ -20,6 +20,7 @@ import dev.dietapp.data.local.parse.ParseRequest
 import dev.dietapp.data.local.parse.ParseResult
 import dev.dietapp.data.local.parse.ParsedItem
 import dev.dietapp.data.local.parse.PendingQuestion
+import dev.dietapp.data.local.parse.RecentTurn
 import dev.dietapp.data.net.AppError
 import dev.dietapp.data.sync.OutboxFiles
 import java.time.Clock
@@ -127,7 +128,10 @@ class LocalMessageProcessor(
             null
         }
         val context = ParseContext(
-            entries = known.values.map { ContextEntry(it.id, it.name, it.grams) },
+            entries = known.values.map { e ->
+                ContextEntry(e.id, e.name, e.grams, food = e.foodName, kcal100 = e.kcal100, kcal = e.kcal, pending = e.pending, time = clockOf(e.eatenAtMs))
+            },
+            recent = recentTurns(row, known),
             frequent = frequentMeals(row.day),
             pending = row.pendingQuestion?.let { PendingQuestion(it, row.pendingTargetId) },
             localTime = "%02d:%02d".format(eaten.hour, eaten.minute),
@@ -146,7 +150,7 @@ class LocalMessageProcessor(
         val resolved = parsed.items.map { item ->
             val target = if (item.action == Action.Add) null else known[item.targetId]
             if (item.action == Action.Remove || (item.action != Action.Add && target == null)) null
-            else if (item.action == Action.Add && proposedFor(item)) null
+            else if (item.action != Action.Remove && proposedFor(item)) null
             else if (needsLookup(item, target)) resolver.resolve(item.name, item.foodId) else null
         }
 
@@ -164,10 +168,12 @@ class LocalMessageProcessor(
                         replies += t("Убрал: ", "Removed: ") + target.name to null
                     }
                     Action.Update -> {
-                        val updated = if (needsLookup(item, target)) {
-                            withNutrition(target!!.copy(name = item.name), item, resolved[idx])
-                        } else {
-                            rescale(target!!, item)
+                        val updated = when {
+                            // "у курицы больше калорий": the entry waits for the values the agent proposed, instead of
+                            // keeping the old ones while the proposal has nothing to fill in
+                            proposedFor(item) -> withNutrition(target!!.copy(name = item.name), item, null).copy(pending = true)
+                            needsLookup(item, target) -> withNutrition(target!!.copy(name = item.name), item, resolved[idx])
+                            else -> rescale(target!!, item)
                         }
                         val saved = updated.copy(updatedAtMs = now, dirty = false)
                         db.entries().upsert(saved)
@@ -261,11 +267,14 @@ class LocalMessageProcessor(
 
     private fun sameName(a: String, b: String) = a.trim().lowercase().split(Regex("\\s+")) == b.trim().lowercase().split(Regex("\\s+"))
 
-    /** Rescaling needs no lookup: same food, only the amount changed (the common "масла было меньше"). */
+    /**
+     * Rescaling needs no lookup: same food, only the amount changed (the common "масла было меньше"). A food the agent
+     * picked by id is always looked up: "не та курица" keeps the name and changes the food.
+     */
     private fun needsLookup(item: ParsedItem, target: EntryRow?): Boolean = when (item.action) {
         Action.Add -> true
         Action.Remove -> false
-        Action.Update -> !(target != null && target.kcal100 != null && sameName(item.name, target.name))
+        Action.Update -> item.foodId != null || !(target != null && target.kcal100 != null && sameName(item.name, target.name))
     }
 
     private fun rescale(target: EntryRow, item: ParsedItem): EntryRow {
@@ -305,6 +314,31 @@ class LocalMessageProcessor(
         )
     }
 
+    private fun clockOf(ms: Long): String = Instant.ofEpochMilli(ms).atZone(clock.zone).let { "%02d:%02d".format(it.hour, it.minute) }
+
+    /**
+     * The day's messages before [row], with what became of each: the entries made from it as they are now and the app's
+     * lines under it. Without them every message was read alone, and "с макаронами также" or "создай заново" meant nothing.
+     */
+    private suspend fun recentTurns(row: OutboxRow, known: Map<String, EntryRow>): List<RecentTurn> {
+        val notes = db.notes().forDay(row.day).groupBy { it.messageId }
+        return db.messages().forDay(row.day)
+            .filter { it.id != row.id && it.createdAtMs < row.createdAtMs }
+            .takeLast(RECENT_TURNS)
+            .map { m ->
+                val made = known.values.filter { it.mealId == m.id }.map { e ->
+                    "entry ${e.id}: ${e.name} ${num(e.grams)} g" + (e.kcal?.let { ", ${Math.round(it)} kcal" } ?: ", no numbers yet") +
+                        (if (e.pending) ", waits for the user" else "")
+                }
+                val said = notes[m.id].orEmpty().filter { it.kind != "answer" }.takeLast(4).map { n ->
+                    "${n.kind}: " + n.text.replace(Regex("\\s+"), " ").take(200)
+                }
+                RecentTurn(clockOf(m.atMs), (m.text ?: "(photo)").take(300) + if (m.hasImage && m.text != null) " (with a photo)" else "", made + said)
+            }
+    }
+
+    private fun num(v: Double) = if (v == Math.rint(v)) v.toLong().toString() else "%.1f".format(java.util.Locale.ROOT, v)
+
     private suspend fun loadKnown(row: OutboxRow): Map<String, EntryRow> {
         val known = LinkedHashMap<String, EntryRow>()
         db.entries().forDay(row.day).forEach { known[it.id] = it }
@@ -324,6 +358,7 @@ class LocalMessageProcessor(
 
     private companion object {
         const val HISTORY_DAYS = 60L
+        const val RECENT_TURNS = 10
     }
 }
 

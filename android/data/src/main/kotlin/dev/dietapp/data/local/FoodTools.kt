@@ -2,6 +2,7 @@ package dev.dietapp.data.local
 
 import dev.dietapp.data.domain.Lang
 import dev.dietapp.data.domain.Lang.t
+import dev.dietapp.data.domain.Dish
 import dev.dietapp.data.domain.DishPart
 import dev.dietapp.data.domain.Food
 import dev.dietapp.data.domain.Per100
@@ -11,6 +12,9 @@ import dev.dietapp.data.local.parse.Proposal
 import dev.dietapp.data.local.parse.ToolOutcome
 import dev.dietapp.data.net.AppError
 import java.util.Locale
+import kotlin.math.abs
+import kotlin.math.max
+import kotlin.math.roundToInt
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
@@ -75,8 +79,8 @@ class FoodTools(
             "The user picks one or enters their own. Record that item WITHOUT food_id: its numbers arrive after the choice. " +
             "For a dish that people think of as one thing (борщ, оливье, плов, a sandwich with cheese and sausage) that is not a packaged " +
             "product, add \"parts\": its 3-12 ingredients for a typical serving, each with grams and its own values per 100 g (broth or water " +
-            "too, with zeros). The dish's own kcal, protein, fat and carbs are then worked out from the ingredients, so send them as a rough " +
-            "sum. The user confirms the whole dish with one yes and can change an ingredient later.",
+            "too, with zeros). The dish's own kcal, protein, fat and carbs are then worked out from the ingredients, so send their sum: " +
+            "an option whose ingredients come to more than 15% away from its kcal is refused. The user confirms the whole dish with one yes and can change an ingredient later.",
         required = listOf("for_item", "options"),
     ) {
         putJsonObject("for_item") { put("type", "string"); put("description", "The item's name exactly as in record_food") }
@@ -303,6 +307,14 @@ class FoodTools(
                     return@mapNotNull null
                 }
             }
+            // a dish's numbers are what its ingredients add up to: ingredients that come to 75 kcal while the dish says 160
+            // would quietly put 75 in the diary, so the model is told to fix them instead
+            if (clean.parts.isNotEmpty() && abs(clean.per100.kcal - v[0]!!) > max(25.0, 0.15 * v[0]!!)) {
+                problems += "$name: its parts add up to ${clean.per100.kcal.roundToInt()} kcal per 100 g of the dish " +
+                    "(${round1(Dish.grams(clean.parts))} g in all), not the ${v[0]!!.roundToInt()} kcal you gave. Each part's values are " +
+                    "per 100 g of that ingredient and its grams are its share of the serving: fix them and propose again"
+                return@mapNotNull null
+            }
             dev.dietapp.data.domain.FoodChoice(clean.name, clean.per100, string(o, "source"), clean.url, clean.note, clean.estimated, clean.parts)
         }
         if (choices.isEmpty()) return error("no usable option" + problems.joinToString("; ", prefix = ": "))
@@ -311,6 +323,8 @@ class FoodTools(
             buildJsonObject {
                 put("ok", true)
                 put("shown_to_user", choices.size)
+                // what the user sees: a dish's numbers are its ingredients' sum, which may differ a little from what was sent
+                putJsonArray("options") { choices.forEach { c -> addJsonObject { put("name", c.name); numbers(c.per100) } } }
                 if (problems.isNotEmpty()) put("dropped", problems.joinToString("; "))
                 put("next", "record the item without food_id; its numbers arrive when the user chooses")
             },

@@ -93,7 +93,7 @@ class ConversationScreenTest {
         compose.onNodeWithText("~", substring = true).assertDoesNotExist() // the person's own numbers, not an estimate
     }
 
-    @Test fun `the proposal panel lists the options and one tap confirms`() {
+    @Test fun `the proposal in the chat lists the options and one tap confirms`() {
         val diary = FakeDiary()
         val choices = listOf(
             dev.dietapp.data.domain.FoodChoice("Сосиски Рубленые [Ремит]", dev.dietapp.data.domain.Per100(190.0, 13.0, 15.0, 1.0), "health-diet.ru", "https://health-diet.ru/x"),
@@ -110,7 +110,7 @@ class ConversationScreenTest {
         }
         compose.onNodeWithTag("proposal").assertIsDisplayed()
         compose.onNodeWithText("health-diet.ru", substring = true, useUnmergedTree = true).assertIsDisplayed()
-        compose.onNodeWithText("~266 ккал", useUnmergedTree = true).assertIsDisplayed()
+        compose.onNodeWithText("~266", useUnmergedTree = true).assertIsDisplayed()
         compose.onAllNodesWithTag("choice")[0].performClick()
         compose.waitForIdle()
         assertEquals(7L, diary.accepted.single().first)
